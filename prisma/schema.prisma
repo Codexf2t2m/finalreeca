@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Bus {
+  id              String    @id @default(uuid())
+  serviceType     String // "Morning" or "Afternoon"
+  route           String
+  seats           Int
+  fare            Int
+  departureTime   String
+  durationMinutes Int
+  promoActive     Boolean   @default(false)
+  serviceLeft     Boolean   @default(false)
+  tripDate        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  trips Trip[]
+}
+
+model Trip {
+  id               String    @id @default(uuid())
+  busId            String
+  bus              Bus       @relation(fields: [busId], references: [id])
+  date             DateTime
+  availableSeats   Int
+  routeOrigin      String?
+  routeDestination String?
+  departureTime    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  occupiedSeats String? // comma-separated seat numbers
+  bookings      Booking[] // relation to Booking
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  seats         String // comma-separated seat numbers
+  userName      String
+  userEmail     String
+  boardingPoint String
+  droppingPoint String
+  totalPrice    Int
+  orderId       String
+  createdAt     DateTime @default(now())
+}
