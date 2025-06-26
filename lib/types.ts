@@ -17,6 +17,7 @@ export interface BusCategory {
 }
 
 export interface BoardingPoint {
+  id: string;
   name: string;
   times: string[];
 }
@@ -27,6 +28,7 @@ export interface SearchData {
   departureDate: Date;
   returnDate: Date | null;
   seats: number;
+  isReturn: boolean
 }
 
 export interface Booking {

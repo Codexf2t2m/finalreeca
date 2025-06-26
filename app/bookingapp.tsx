@@ -1,4 +1,3 @@
-// src/pages/index.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,27 +13,55 @@ import BookingForm from "@/components/bookingform";
 import TripManagement from "./management/tripmanagement";
 import BusSchedules from "./booking/busschedule";
 
-
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<"search" | "schedules" | "seats">("search");
   const [activeTab, setActiveTab] = useState<"book" | "manage">("book");
   const [searchData, setSearchData] = useState<SearchData | null>(null);
-  // selectedBus now contains trip info from BusSchedules
   const [selectedBus, setSelectedBus] = useState<any>(null);
+  const [selectedReturnBus, setSelectedReturnBus] = useState<any>(null);
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [showPayment, setShowPayment] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>(mockBookings);
 
-  const handleSearch = (data: SearchData) => {
-    setSearchData(data);
+  interface HandleSearchData {
+    from: string;
+    to: string;
+    date: string;
+    returnDate?: string;
+    seats: number;
+  }
+
+  const handleSearch = (data: HandleSearchData) => {
+    setSearchData({
+      from: data.from,
+      to: data.to,
+      departureDate: new Date(data.date),
+      returnDate: data.returnDate ? new Date(data.returnDate) : null,
+      seats: data.seats,
+      isReturn: !!data.returnDate, // <-- Add this line
+    });
     setCurrentStep("schedules");
   };
 
-  // selectedBus will have tripId, tripDate, availableSeats, etc.
-  const handleSelectBus = (bus: any) => {
-    setSelectedBus(bus);
+  interface Bus {
+    route: string;
+    isRequest?: boolean;
+    [key: string]: any;
+  }
+
+  const handleSelectBus = (bus: Bus) => {
+    if (bus.route.includes("→") && searchData && searchData.returnDate) {
+      const [origin, destination] = bus.route.split(" → ");
+      if (origin === searchData.from && destination === searchData.to) {
+        setSelectedBus(bus);
+      } else if (origin === searchData.to && destination === searchData.from) {
+        setSelectedReturnBus(bus);
+      }
+    } else {
+      setSelectedBus(bus);
+    }
     setSelectedSeats([]);
     if (bus.isRequest) {
       setShowRequestForm(true);
@@ -43,8 +70,12 @@ export default function BookingApp() {
     }
   };
 
-  const handleSeatSelect = (seatId: string) => {
-    setSelectedSeats((prev) => {
+  interface HandleSeatSelect {
+    (seatId: string): void;
+  }
+
+  const handleSeatSelect: HandleSeatSelect = (seatId) => {
+    setSelectedSeats((prev: string[]) => {
       if (prev.includes(seatId)) {
         return prev.filter((id) => id !== seatId);
       } else if (searchData && prev.length < searchData.seats) {
@@ -73,19 +104,8 @@ export default function BookingApp() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-amber-50 to-teal-50">
         <div className="w-full max-w-md text-center bg-white p-8 rounded-xl shadow-2xl">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-10 h-10 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <h2 className="text-3xl font-bold mb-4 text-teal-900">
@@ -138,13 +158,7 @@ export default function BookingApp() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image
-                    src="/images/reeca-travel-logo.png"
-                    alt="Reeca Travel"
-                    width={40}
-                    height={24}
-                    className="object-contain"
-                  />
+                  <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
@@ -170,7 +184,7 @@ export default function BookingApp() {
     );
   }
 
-  if (currentStep === "seats" && selectedBus) {
+  if (currentStep === "seats" && selectedBus && searchData) {
     return (
       <div className="bg-gradient-to-br from-amber-50 to-teal-50 min-h-screen">
         <header className="bg-white border-b shadow-sm">
@@ -178,13 +192,7 @@ export default function BookingApp() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image
-                    src="/images/reeca-travel-logo.png"
-                    alt="Reeca Travel"
-                    width={40}
-                    height={24}
-                    className="object-contain"
-                  />
+                  <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
@@ -204,13 +212,14 @@ export default function BookingApp() {
 
         <SeatSelection
           selectedBus={selectedBus}
+          selectedReturnBus={selectedReturnBus}
           onSeatSelect={handleSeatSelect}
           selectedSeats={selectedSeats}
           onProceedToCheckout={handleProceedToCheckout}
           showPayment={showPayment}
           setShowPayment={setShowPayment}
           onPaymentComplete={handlePaymentComplete}
-          searchData={searchData!}
+          searchData={searchData} // now always non-null
           boardingPoints={boardingPoints}
         />
       </div>
@@ -224,13 +233,7 @@ export default function BookingApp() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                <Image
-                  src="/images/reeca-travel-logo.png"
-                  alt="Reeca Travel"
-                  width={40}
-                  height={24}
-                  className="object-contain"
-                />
+                <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
@@ -249,19 +252,8 @@ export default function BookingApp() {
               value="book"
               className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Book Trip
             </TabsTrigger>
@@ -269,19 +261,8 @@ export default function BookingApp() {
               value="manage"
               className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               Manage Trips
             </TabsTrigger>

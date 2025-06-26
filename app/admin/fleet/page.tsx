@@ -1,552 +1,479 @@
-"use client";
-import { useEffect, useState } from "react";
+'use client';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { format, addMinutes } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const serviceTypes = ["Morning", "Afternoon"];
-const routeOptions = [
-  "Gaborone → OR Tambo Airport",
-  "OR Tambo Airport → Gaborone",
-];
-
-const defaultNewService = {
-  serviceType: "",
-  route: "",
-  seats: 50,
-  fare: 500,
-  departureTime: "07:00",
-  durationMinutes: 390,
-  promoActive: false,
-  serviceLeft: false,
-  tripDate: "",
-};
-
-function formatDate(date: string | Date) {
-  return format(new Date(date), "yyyy-MM-dd");
+// Define interfaces for your data structures
+interface Trip {
+  id: string;
+  route: string;
+  date: string;
+  departureTime: string;
+  availableSeats: number;
+  serviceType: string;
+  fare: number;
+  durationMinutes: number;
+  promoActive: boolean;
+  hasDeparted: boolean;
 }
 
-export default function ManageFleet() {
-  const [fleet, setFleet] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
-  const [newService, setNewService] = useState({ ...defaultNewService });
+interface Route {
+  id: string;
+  name: string;
+}
 
-  // Trips state
-  const [trips, setTrips] = useState<any[]>([]);
-  const [tripLoading, setTripLoading] = useState(true);
-  const [filterType, setFilterType] = useState<string>("All");
-  const [filterDate, setFilterDate] = useState<string>(formatDate(new Date()));
-  const [showReminder, setShowReminder] = useState(false);
+interface Time {
+  id: string;
+  time: string;
+}
+
+interface TripFormProps {
+  trip: Trip | null;
+  onSave: (trip: Trip) => void;
+  routes: Route[];
+  times: Time[];
+}
+
+interface AutomateTripsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (trips: Trip[]) => void;
+  routes: Route[];
+  times: Time[];
+}
+
+const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose, onSave, routes, times }) => {
+  const [baseTrips, setBaseTrips] = useState<Trip[]>([]);
 
   useEffect(() => {
-    fetchFleet();
-    fetchTrips();
-  }, []);
-
-  async function fetchFleet() {
-    setLoading(true);
-    const res = await fetch("/api/fleet");
-    const data = await res.json();
-    setFleet(data);
-    setLoading(false);
-  }
-
-  async function fetchTrips() {
-    setTripLoading(true);
-    const res = await fetch("/api/trips");
-    const data = await res.json();
-    setTrips(data);
-    setTripLoading(false);
-
-    // Reminder logic: show modal if less than 5 days of trips left
-    const daysAhead = 5;
-    const today = new Date();
-    interface Trip {
-      id: string;
-      date: string | Date;
-      availableSeats: number;
-      promoActive: boolean;
-      bus: Service;
+    if (isOpen) {
+      const initialBaseTrips: Trip[] = [
+        {
+          id: '1',
+          route: routes[0].name,
+          date: new Date().toISOString().split('T')[0],
+          departureTime: times[0].time,
+          availableSeats: 50,
+          serviceType: 'Morning',
+          fare: 400,
+          durationMinutes: 480,
+          promoActive: false,
+          hasDeparted: false,
+        },
+        {
+          id: '2',
+          route: routes[0].name,
+          date: new Date().toISOString().split('T')[0],
+          departureTime: times[1].time,
+          availableSeats: 50,
+          serviceType: 'Afternoon',
+          fare: 400,
+          durationMinutes: 480,
+          promoActive: false,
+          hasDeparted: false,
+        },
+        {
+          id: '3',
+          route: routes[1].name,
+          date: new Date().toISOString().split('T')[0],
+          departureTime: times[2].time,
+          availableSeats: 50,
+          serviceType: 'Morning',
+          fare: 400,
+          durationMinutes: 480,
+          promoActive: false,
+          hasDeparted: false,
+        },
+        {
+          id: '4',
+          route: routes[1].name,
+          date: new Date().toISOString().split('T')[0],
+          departureTime: times[3].time,
+          availableSeats: 50,
+          serviceType: 'Afternoon',
+          fare: 400,
+          durationMinutes: 480,
+          promoActive: false,
+          hasDeparted: false,
+        },
+      ];
+      setBaseTrips(initialBaseTrips);
     }
+  }, [isOpen, routes, times]);
 
-    interface Service {
-      id: string;
-      serviceType: string;
-      route: string;
-      seats: number;
-      fare: number;
-      departureTime: string;
-      durationMinutes: number;
-      promoActive: boolean;
-      serviceLeft: boolean;
-      tripDate: string | Date | null;
-    }
+  const handleInputChange = (index: number, field: string, value: any) => {
+    const updatedBaseTrips = [...baseTrips];
+    updatedBaseTrips[index] = { ...updatedBaseTrips[index], [field]: value };
+    setBaseTrips(updatedBaseTrips);
+  };
 
-    const lastTripDate: Date | null = data.length
-      ? (data as Trip[]).map((t: Trip) => new Date(t.date)).sort((a, b) => b.getTime() - a.getTime())[0]
-      : null;
-    if (lastTripDate) {
-      const diff = Math.ceil((lastTripDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      if (diff < daysAhead) setShowReminder(true);
-    }
-  }
+  const handleSave = () => {
+    const generateWeeklyTrips = (): Trip[] => {
+      const trips: Trip[] = [];
+      const date = new Date();
+      for (let i = 0; i < 14; i++) {
+        const currentDate = new Date(date);
+        currentDate.setDate(currentDate.getDate() + i);
 
-  async function handleCreateService() {
-    if (fleet.length >= 2) return;
-    // Only send fields that exist in the schema
-    const payload = {
-      serviceType: newService.serviceType,
-      route: newService.route,
-      seats: newService.seats,
-      fare: newService.fare,
-      departureTime: newService.departureTime,
-      durationMinutes: newService.durationMinutes,
-      promoActive: newService.promoActive,
-      serviceLeft: newService.serviceLeft,
-      tripDate: newService.tripDate ? new Date(newService.tripDate) : null,
+        baseTrips.forEach((trip: Trip) => {
+          trips.push({
+            ...trip,
+            id: `${currentDate.toISOString().split('T')[0]}-${trip.route}-${trip.departureTime}`,
+            date: currentDate.toISOString().split('T')[0],
+          });
+        });
+      }
+      return trips;
     };
-    const res = await fetch("/api/fleet", {
-      method: "POST",
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) {
-      setNewService({ ...defaultNewService });
-      fetchFleet();
+
+    onSave(generateWeeklyTrips());
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl w-full max-h-screen overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Base Trips</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {baseTrips.map((trip, index) => (
+            <div key={trip.id} className="border p-4 rounded-lg shadow-sm">
+              <h3 className="font-bold text-lg">{trip.route} - {trip.departureTime}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Available Seats</label>
+                  <Input
+                    type="number"
+                    value={trip.availableSeats}
+                    onChange={(e) => handleInputChange(index, 'availableSeats', parseInt(e.target.value))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Service Type</label>
+                  <Select
+                    value={trip.serviceType}
+                    onValueChange={(value) => handleInputChange(index, 'serviceType', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select service type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Morning">Morning</SelectItem>
+                      <SelectItem value="Afternoon">Afternoon</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Fare</label>
+                  <Input
+                    type="number"
+                    value={trip.fare}
+                    onChange={(e) => handleInputChange(index, 'fare', parseInt(e.target.value))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Duration (Minutes)</label>
+                  <Input
+                    type="number"
+                    value={trip.durationMinutes}
+                    onChange={(e) => handleInputChange(index, 'durationMinutes', parseInt(e.target.value))}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`promoActive-${index}`}
+                    checked={trip.promoActive}
+                    onCheckedChange={(checked) => handleInputChange(index, 'promoActive', checked)}
+                  />
+                  <label htmlFor={`promoActive-${index}`} className="text-sm font-medium text-gray-700">Promo Active</label>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Button onClick={handleSave} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
+          Save and Generate Weekly Trips
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const FleetManagementPage = () => {
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedRoute, setSelectedRoute] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAutomateModalOpen, setIsAutomateModalOpen] = useState(false);
+  const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
+
+  const routes: Route[] = [
+    { id: '1', name: 'Gaborone to OR Tambo Airport' },
+    { id: '2', name: 'OR Tambo Airport to Gaborone' },
+  ];
+
+  const times: Time[] = [
+    { id: '1', time: '07:00' },
+    { id: '2', time: '15:00' },
+    { id: '3', time: '08:00' },
+    { id: '4', time: '17:00' },
+  ];
+
+  const handleAutomateWeeklyTrips = () => {
+    setIsAutomateModalOpen(true);
+  };
+
+  const handleSaveAutomatedTrips = (newTrips: Trip[]) => {
+    setTrips([...trips, ...newTrips]);
+  };
+
+  const handleOpenModal = (trip: Trip | null = null) => {
+    // Prevent editing if trip has departed
+    if (trip && trip.hasDeparted) return;
+    setCurrentTrip(trip);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setCurrentTrip(null);
+  };
+
+  const handleSaveTrip = (trip: Trip) => {
+    if (currentTrip) {
+      setTrips(trips.map(t => t.id === trip.id ? trip : t));
+    } else {
+      setTrips([...trips, trip]);
     }
-  }
+    handleCloseModal();
+  };
 
-  async function handleUpdateService(serviceId: string, update: any) {
-    // Only send fields that exist in the schema
-    const allowedFields = [
-      "serviceType",
-      "route",
-      "seats",
-      "fare",
-      "departureTime",
-      "durationMinutes",
-      "promoActive",
-      "serviceLeft",
-      "tripDate",
-    ];
-    const filteredUpdate: any = {};
-    for (const key of allowedFields) {
-      if (key in update) filteredUpdate[key] = update[key];
-    }
-    const res = await fetch("/api/fleet", {
-      method: "PUT",
-      body: JSON.stringify({ id: serviceId, ...filteredUpdate }),
-      headers: { "Content-Type": "application/json" },
-    });
-    setEditingServiceId(null);
-    fetchFleet();
-  }
+  const handleMarkDeparted = (tripId: string) => {
+    setTrips(trips.map(trip =>
+      trip.id === tripId ? { ...trip, hasDeparted: true } : trip
+    ));
+  };
 
-  async function handleDeleteService(serviceId: string) {
-    await fetch("/api/fleet", {
-      method: "DELETE",
-      body: JSON.stringify({ id: serviceId }),
-      headers: { "Content-Type": "application/json" },
-    });
-    fetchFleet();
-  }
+  const filteredTrips = trips.filter(trip => {
+    const tripDate = new Date(trip.date);
+    const selectedDateStart = new Date(selectedDate);
+    selectedDateStart.setHours(0, 0, 0, 0);
+    const selectedDateEnd = new Date(selectedDate);
+    selectedDateEnd.setHours(23, 59, 59, 999);
 
-  // Auto-create trips for the next N days for all services
-  async function handleAutoCreateTrips(days = 21) {
-    await fetch("/api/trips/auto-create", {
-      method: "POST",
-      body: JSON.stringify({ days }),
-      headers: { "Content-Type": "application/json" },
-    });
-    alert(`Trips created for the next ${days} days!`);
-    fetchTrips();
-  }
-
-  function formatDuration(minutes: number) {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h}h${m > 0 ? m + "min" : ""}`;
-  }
-
-  function getArrival(service: any) {
-    if (!service.tripDate) return { date: "-", time: "-" };
-    const [h, m] = service.departureTime.split(":").map(Number);
-    const depDate = new Date(service.tripDate);
-    depDate.setHours(h, m, 0, 0);
-    const arrDate = addMinutes(depDate, service.durationMinutes);
-    return {
-      date: format(arrDate, "dd MMM yyyy"),
-      time: format(arrDate, "HH:mm"),
-    };
-  }
-
-  // Filtered trips
-  const filteredTrips = trips.filter((trip: any) => {
-    const matchesType = filterType === "All" || trip.bus.serviceType === filterType;
-    const matchesDate = !filterDate || formatDate(trip.date) === filterDate;
-    return matchesType && matchesDate;
+    return tripDate >= selectedDateStart && tripDate <= selectedDateEnd;
   });
 
   return (
-    <div className="max-w-5xl mx-auto py-8 space-y-8">
-      <h1 className="text-3xl font-bold mb-6 text-teal-900">Manage Bus Services</h1>
-      {/* Create New Service */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="font-semibold text-lg mb-4">Create New Service</h2>
-        {fleet.length >= 2 ? (
-          <div className="text-red-600 font-semibold mb-2">
-            Only 2 services can be created. Delete a service to add another.
-          </div>
-        ) : (
-          <>
-            <div className="mb-2 font-semibold">Service Details</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              {/* Service Type Dropdown */}
-              <select
-                className="border rounded px-2 py-1"
-                value={newService.serviceType}
-                onChange={e => setNewService(b => ({ ...b, serviceType: e.target.value }))}
-              >
-                <option value="">Select Service Type</option>
-                {serviceTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-              {/* Route Dropdown */}
-              <select
-                className="border rounded px-2 py-1"
-                value={newService.route}
-                onChange={e => setNewService(b => ({ ...b, route: e.target.value }))}
-              >
-                <option value="">Select Route</option>
-                {routeOptions.map(route => (
-                  <option key={route} value={route}>{route}</option>
-                ))}
-              </select>
-              <input
-                className="border rounded px-2 py-1"
-                type="number"
-                min={1}
-                placeholder="Seats"
-                value={newService.seats}
-                onChange={(e) => setNewService((b) => ({ ...b, seats: Number(e.target.value) }))}
-              />
-              <input
-                className="border rounded px-2 py-1"
-                type="number"
-                min={1}
-                placeholder="Fare (P)"
-                value={newService.fare}
-                onChange={(e) => setNewService((b) => ({ ...b, fare: Number(e.target.value) }))}
-              />
-              <input
-                className="border rounded px-2 py-1"
-                type="text"
-                placeholder="Departure Time (HH:mm)"
-                value={newService.departureTime}
-                onChange={(e) => setNewService((b) => ({ ...b, departureTime: e.target.value }))}
-              />
-              <input
-                className="border rounded px-2 py-1"
-                type="number"
-                min={1}
-                placeholder="Duration (minutes)"
-                value={newService.durationMinutes}
-                onChange={(e) => setNewService((b) => ({ ...b, durationMinutes: Number(e.target.value) }))}
-              />
-              <input
-                className="border rounded px-2 py-1"
-                type="date"
-                value={newService.tripDate}
-                onChange={(e) => setNewService((b) => ({ ...b, tripDate: e.target.value }))}
-              />
+    <div className="flex min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white border-b shadow-sm">
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 className="text-xl font-bold text-teal-900">Fleet Management Dashboard</h1>
+            <div>
+              <Button onClick={handleAutomateWeeklyTrips} className="bg-blue-600 hover:bg-blue-700 text-white">
+                Automate Trips
+              </Button>
             </div>
-            <div className="mb-2 font-semibold">Promo</div>
-            <label className="flex items-center gap-2 mb-4">
-              <input
-                type="checkbox"
-                checked={newService.promoActive}
-                onChange={() =>
-                  setNewService((b) => ({ ...b, promoActive: !b.promoActive }))
-                }
-              />
-              <span className="text-sm font-medium text-blue-700">
-                Activate Promo: 2+ seats at P350/seat
-              </span>
-            </label>
-            <Button
-              onClick={handleCreateService}
-              className="bg-teal-600 text-white"
-              disabled={fleet.length >= 2}
-            >
-              Create Service
-            </Button>
-          </>
-        )}
-      </div>
-      <Button
-        onClick={() => handleAutoCreateTrips(21)}
-        className="bg-blue-600 text-white mb-8"
-      >
-        Auto-create Trips for Next 21 Days
-      </Button>
-      {/* Fleet List */}
-      {loading ? (
-        <div>Loading...</div>
-      ) : (
-        <div className="space-y-6">
-          {fleet.map((service) => {
-            const arrival = getArrival(service);
-            const isEditing = editingServiceId === service.id;
-            return (
-              <div
-                key={service.id}
-                className="bg-white rounded-lg shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-              >
-                <div className="flex-1">
-                  <div className="font-bold text-lg">{service.serviceType} Bus</div>
-                  <div className="text-sm text-gray-600 mb-2">{service.route}</div>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mb-2">
-                    <div>
-                      <div className="font-semibold">Departure</div>
-                      <div>
-                        <input
-                          type="date"
-                          className="border rounded px-2 py-1 w-full"
-                          value={service.tripDate ? format(new Date(service.tripDate), "yyyy-MM-dd") : ""}
-                          disabled={service.serviceLeft || !isEditing}
-                          onChange={(e) =>
-                            handleUpdateService(service.id, { tripDate: new Date(e.target.value) })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="time"
-                          className="border rounded px-2 py-1 w-full"
-                          value={service.departureTime}
-                          disabled={service.serviceLeft || !isEditing}
-                          onChange={(e) =>
-                            handleUpdateService(service.id, { departureTime: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-semibold">Duration</div>
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={1}
-                          className="border rounded px-2 py-1 w-full"
-                          value={service.durationMinutes}
-                          disabled={service.serviceLeft}
-                          onChange={(e) =>
-                            handleUpdateService(service.id, { durationMinutes: Number(e.target.value) })
-                          }
-                        />
-                      ) : (
-                        <div className="mt-2">{formatDuration(service.durationMinutes)}</div>
-                      )}
-                      <div className="text-xs text-gray-400">Non-stop journey</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold">Arrival</div>
-                      <div className="mt-2">{arrival.date}</div>
-                      <div>{arrival.time}</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold">Fare & Seats</div>
-                      {isEditing ? (
-                        <>
-                          <input
-                            type="number"
-                            min={1}
-                            className="border rounded px-2 py-1 w-full mb-1"
-                            value={service.fare}
-                            disabled={service.serviceLeft}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { fare: Number(e.target.value) })
-                            }
-                          />
-                          <input
-                            type="number"
-                            min={1}
-                            className="border rounded px-2 py-1 w-full"
-                            value={service.seats}
-                            disabled={service.serviceLeft}
-                            onChange={(e) =>
-                              handleUpdateService(service.id, { seats: Number(e.target.value) })
-                            }
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <div className="mt-2">P {service.fare} / seat</div>
-                          <div>Seats: {service.seats}</div>
-                        </>
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-semibold">Promo</div>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={service.promoActive}
-                          disabled={service.serviceLeft || !isEditing}
-                          onChange={() =>
-                            handleUpdateService(service.id, { promoActive: !service.promoActive })
-                          }
-                        />
-                        <span className="text-sm font-medium text-blue-700">
-                          2+ seats at P350/seat
-                        </span>
-                      </label>
-                      {service.promoActive && (
-                        <span className="text-xs text-green-700 font-semibold">
-                          Promo Active!
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 min-w-[140px]">
-                  {service.serviceLeft ? (
-                    <span className="px-4 py-2 bg-gray-200 text-gray-600 rounded font-semibold text-center">
-                      Service Left
-                    </span>
-                  ) : (
-                    <>
-                      {isEditing ? (
+          </div>
+        </header>
+        <div className="container mx-auto px-4 py-8 flex-1">
+          <Tabs defaultValue="schedule">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="schedule">Daily Schedule</TabsTrigger>
+              <TabsTrigger value="timetable">Route Timetable</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="schedule">
+              <h2 className="text-2xl font-bold mb-4">Daily Schedule</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Departure Time</TableHead>
+                    <TableHead>Available Seats</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTrips.map((trip) => (
+                    <TableRow key={trip.id}>
+                      <TableCell>{trip.route}</TableCell>
+                      <TableCell>{trip.date}</TableCell>
+                      <TableCell>{trip.departureTime}</TableCell>
+                      <TableCell>{trip.availableSeats}</TableCell>
+                      <TableCell>{trip.hasDeparted ? 'Departed' : 'Not Departed'}</TableCell>
+                      <TableCell>
                         <Button
-                          className="bg-teal-600 text-white"
-                          onClick={() => setEditingServiceId(null)}
+                          onClick={() => handleOpenModal(trip)}
+                          className="mr-2"
+                          disabled={trip.hasDeparted}
                         >
-                          Save
+                          Edit
                         </Button>
-                      ) : (
-                        <Button
-                          className="bg-blue-600 text-white"
-                          onClick={() => setEditingServiceId(service.id)}
-                        >
-                          Update
-                        </Button>
-                      )}
-                      <Button
-                        className="bg-red-600 text-white"
-                        onClick={() => handleUpdateService(service.id, { serviceLeft: true })}
-                        disabled={!service.tripDate}
-                      >
-                        Mark as Service Left
-                      </Button>
-                      <Button
-                        className="bg-gray-600 text-white"
-                        onClick={() => handleDeleteService(service.id)}
-                        disabled={service.serviceLeft}
-                      >
-                        Delete
-                      </Button>
-                    </>
-                  )}
-                </div>
+                        {!trip.hasDeparted && (
+                          <Button onClick={() => handleMarkDeparted(trip.id)}>Mark as Departed</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="timetable">
+              <h2 className="text-2xl font-bold mb-4">Route Timetable</h2>
+              <div className="mb-4 flex space-x-4">
+                <Select onValueChange={setSelectedRoute}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a route" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {routes.map((route) => (
+                      <SelectItem key={route.id} value={route.name}>{route.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input type="date" value={selectedDate.toISOString().split('T')[0]} onChange={(e) => setSelectedDate(new Date(e.target.value))} />
               </div>
-            );
-          })}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Departure Time</TableHead>
+                    <TableHead>Available Seats</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTrips.filter(trip => selectedRoute ? trip.route === selectedRoute : true).map((trip) => (
+                    <TableRow key={trip.id}>
+                      <TableCell>{trip.route}</TableCell>
+                      <TableCell>{trip.date}</TableCell>
+                      <TableCell>{trip.departureTime}</TableCell>
+                      <TableCell>{trip.availableSeats}</TableCell>
+                      <TableCell>
+                        <Button
+                          onClick={() => handleOpenModal(trip)}
+                          disabled={trip.hasDeparted}
+                        >
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </div>
-      )}
-
-      {/* Reminder Modal */}
-      {showReminder && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md">
-            <h2 className="text-xl font-bold mb-2 text-red-700">Auto-create Trips Reminder</h2>
-            <p className="mb-4">
-              Less than 5 days of trips are scheduled. Please run <b>Auto-create Trips</b> to ensure users can book in advance.
-            </p>
-            <Button
-              className="bg-blue-600 text-white"
-              onClick={() => {
-                setShowReminder(false);
-                handleAutoCreateTrips(21);
-              }}
-            >
-              Auto-create Trips for Next 21 Days
-            </Button>
-            <Button
-              className="ml-2"
-              onClick={() => setShowReminder(false)}
-            >
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Trips Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="font-semibold text-lg mb-4">Scheduled Trips</h2>
-        <div className="flex gap-4 mb-4 flex-wrap">
-          <select
-            className="border rounded px-2 py-1"
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-          >
-            <option value="All">All Types</option>
-            <option value="Morning">Morning</option>
-            <option value="Afternoon">Afternoon</option>
-          </select>
-          <input
-            type="date"
-            className="border rounded px-2 py-1"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
-          />
-          <Button onClick={fetchTrips}>Refresh</Button>
-        </div>
-        {tripLoading ? (
-          <div>Loading trips...</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-2 py-1 border">Date</th>
-                  <th className="px-2 py-1 border">Service</th>
-                  <th className="px-2 py-1 border">Route</th>
-                  <th className="px-2 py-1 border">Departure</th>
-                  <th className="px-2 py-1 border">Seats</th>
-                  <th className="px-2 py-1 border">Promo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTrips.map((trip: any) => (
-                  <tr key={trip.id} className="hover:bg-gray-50">
-                    <td className="border px-2 py-1">{formatDate(trip.date)}</td>
-                    <td className="border px-2 py-1">{trip.bus.serviceType}</td>
-                    <td className="border px-2 py-1">{trip.bus.route}</td>
-                    <td className="border px-2 py-1">{trip.bus.departureTime}</td>
-                    <td className="border px-2 py-1">{trip.availableSeats}</td>
-                    <td className="border px-2 py-1">
-                      {trip.promoActive ? (
-                        <span className="text-green-700 font-semibold">Promo</span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {filteredTrips.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-4 text-gray-400">
-                      No trips found for selected filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{currentTrip ? 'Edit Trip' : 'Add Trip'}</DialogTitle>
+          </DialogHeader>
+          {/* If editing a departed trip, don't show the form */}
+          {currentTrip && currentTrip.hasDeparted ? (
+            <div className="text-red-600 font-semibold py-8 text-center">
+              This trip has already departed and cannot be edited.
+            </div>
+          ) : (
+            <TripForm trip={currentTrip} onSave={handleSaveTrip} routes={routes} times={times} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AutomateTripsModal
+        isOpen={isAutomateModalOpen}
+        onClose={() => setIsAutomateModalOpen(false)}
+        onSave={handleSaveAutomatedTrips}
+        routes={routes}
+        times={times}
+      />
     </div>
   );
-}
+};
+
+const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
+  const [formData, setFormData] = useState<Trip>(
+    trip || {
+      id: '',
+      route: '',
+      date: new Date().toISOString().split('T')[0],
+      departureTime: '',
+      availableSeats: 0,
+      serviceType: '',
+      fare: 0,
+      durationMinutes: 0,
+      promoActive: false,
+      hasDeparted: false,
+    }
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : false;
+
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Select onValueChange={(value) => setFormData({ ...formData, route: value })} value={formData.route}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a route" />
+        </SelectTrigger>
+        <SelectContent>
+          {routes.map((route) => (
+            <SelectItem key={route.id} value={route.name}>{route.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input name="date" type="date" value={formData.date} onChange={handleInputChange} required />
+      <Select onValueChange={(value) => setFormData({ ...formData, departureTime: value })} value={formData.departureTime}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select departure time" />
+        </SelectTrigger>
+        <SelectContent>
+          {times.map((time) => (
+            <SelectItem key={time.id} value={time.time}>{time.time}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input name="availableSeats" type="number" value={formData.availableSeats} onChange={handleInputChange} placeholder="Available Seats" required />
+      <Input name="serviceType" value={formData.serviceType} onChange={handleInputChange} placeholder="Service Type" required />
+      <Input name="fare" type="number" value={formData.fare} onChange={handleInputChange} placeholder="Fare" required />
+      <Input name="durationMinutes" type="number" value={formData.durationMinutes} onChange={handleInputChange} placeholder="Duration in Minutes" required />
+      <div className="flex items-center space-x-2">
+        <Checkbox id="promoActive" checked={formData.promoActive} onCheckedChange={(checked: boolean) => setFormData({ ...formData, promoActive: checked })} />
+        <label htmlFor="promoActive">Promo Active</label>
+      </div>
+      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Save Trip</Button>
+    </form>
+  );
+};
+
+export default FleetManagementPage;
