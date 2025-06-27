@@ -1,5 +1,3 @@
-'use client';
-
 import { BoardingPoint, SearchData } from "@/lib/types";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -36,11 +34,10 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
   const [returnBoardingPoint, setReturnBoardingPoint] = useState("");
   const [returnDroppingPoint, setReturnDroppingPoint] = useState("");
 
-  const totalFare = selectedBus.fare * selectedSeats.length + (selectedReturnBus ? selectedReturnBus.fare * selectedSeats.length : 0);
+  const totalFare = selectedBus.fare * selectedSeats.length + 
+                   (selectedReturnBus ? selectedReturnBus.fare * selectedSeats.length : 0);
 
-  interface HandleSubmitEvent extends React.MouseEvent<HTMLButtonElement, MouseEvent> {}
-
-  const handleSubmit = (e: HandleSubmitEvent) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
     onProceedToCheckout();
   };
@@ -58,10 +55,10 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
             <h3 className="text-xl font-semibold mb-2">Trip Details</h3>
             <div className="mb-4">
               <p className="font-medium">
-                {selectedBus.route} - {selectedBus.serviceType} Bus
+                {selectedBus.route} - {selectedBus.serviceType}
               </p>
               <p className="text-sm text-gray-600">
-                Departure: {format(new Date(selectedBus.tripDate), "EEEE, MMMM do, yyyy HH:mm")}
+                Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
               </p>
               <p className="text-sm text-gray-600">Seats: {selectedSeats.join(", ")}</p>
               <p className="text-sm text-gray-600">Fare: P{selectedBus.fare * selectedSeats.length}</p>
@@ -69,10 +66,10 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
             {selectedReturnBus && (
               <div className="mb-4">
                 <p className="font-medium">
-                  {selectedReturnBus.route} - {selectedReturnBus.serviceType} Bus
+                  {selectedReturnBus.route} - {selectedReturnBus.serviceType}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Departure: {format(new Date(selectedReturnBus.tripDate), "EEEE, MMMM do, yyyy HH:mm")}
+                  Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
                 </p>
                 <p className="text-sm text-gray-600">Seats: {selectedSeats.join(", ")}</p>
                 <p className="text-sm text-gray-600">Fare: P{selectedReturnBus.fare * selectedSeats.length}</p>
@@ -146,14 +143,14 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
         <h2 className="text-2xl font-bold mb-6">Select Your Seats</h2>
         <div className="mb-6">
           <h3 className="text-xl font-semibold mb-2">
-            {selectedBus.route} - {selectedBus.serviceType} Bus
+            {selectedBus.route} - {selectedBus.serviceType}
           </h3>
           <p className="text-sm text-gray-600">
-            Departure: {format(new Date(selectedBus.tripDate), "EEEE, MMMM do, yyyy HH:mm")}
+            Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
           </p>
         </div>
         <div className="grid grid-cols-5 gap-4 mb-6">
-          {Array.from({ length: selectedBus.seats }, (_, i) => i + 1).map((seat) => (
+          {Array.from({ length: selectedBus.totalSeats }, (_, i) => i + 1).map((seat) => (
             <button
               key={seat}
               onClick={() => onSeatSelect(seat.toString())}
@@ -184,7 +181,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                 <option value="">Select Boarding Point</option>
                 {boardingPoints[selectedBus.route.split(" → ")[0]]?.map((point: { id: string; name: string }) => (
                   <option key={point.id} value={point.name}>
-                  {point.name}
+                    {point.name}
                   </option>
                 ))}
               </select>
@@ -203,7 +200,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                 <option value="">Select Dropping Point</option>
                 {boardingPoints[selectedBus.route.split(" → ")[1]]?.map((point: { id: string; name: string }) => (
                   <option key={point.id} value={point.name}>
-                  {point.name}
+                    {point.name}
                   </option>
                 ))}
               </select>
@@ -213,10 +210,10 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
         {selectedReturnBus && (
           <div className="mb-6">
             <h3 className="text-xl font-semibold mb-2">
-              {selectedReturnBus.route} - {selectedReturnBus.serviceType} Bus
+              {selectedReturnBus.route} - {selectedReturnBus.serviceType}
             </h3>
             <p className="text-sm text-gray-600">
-              Departure: {format(new Date(selectedReturnBus.tripDate), "EEEE, MMMM do, yyyy HH:mm")}
+              Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
             </p>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
@@ -231,11 +228,11 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                   required
                 >
                   <option value="">Select Boarding Point</option>
-                    {boardingPoints[selectedReturnBus.route.split(" → ")[0]]?.map((point: { id: string; name: string }) => (
+                  {boardingPoints[selectedReturnBus.route.split(" → ")[0]]?.map((point: { id: string; name: string }) => (
                     <option key={point.id} value={point.name}>
                       {point.name}
                     </option>
-                    ))}
+                  ))}
                 </select>
               </div>
               <div>
@@ -250,11 +247,11 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                   required
                 >
                   <option value="">Select Dropping Point</option>
-                    {boardingPoints[selectedReturnBus.route.split(" → ")[1]]?.map((point: { id: string; name: string }) => (
+                  {boardingPoints[selectedReturnBus.route.split(" → ")[1]]?.map((point: { id: string; name: string }) => (
                     <option key={point.id} value={point.name}>
                       {point.name}
                     </option>
-                    ))}
+                  ))}
                 </select>
               </div>
             </div>
@@ -269,7 +266,12 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
         <Button
           onClick={handleSubmit}
           className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2"
-          disabled={selectedSeats.length === 0 || !boardingPoint || !droppingPoint || (selectedReturnBus && (!returnBoardingPoint || !returnDroppingPoint))}
+          disabled={
+            selectedSeats.length === 0 || 
+            !boardingPoint || 
+            !droppingPoint || 
+            (selectedReturnBus && (!returnBoardingPoint || !returnDroppingPoint))
+          }
         >
           Proceed to Checkout
         </Button>

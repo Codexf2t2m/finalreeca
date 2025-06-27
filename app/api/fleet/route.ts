@@ -1,71 +1,91 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/lib/supabaseClient";
 
-const prisma = new PrismaClient();
+
 
 export async function GET() {
-  const buses = await prisma.bus.findMany({ orderBy: { createdAt: "desc" } });
-  return NextResponse.json(buses);
+  try {
+    const { data, error } = await supabase
+      .from('Bus')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching buses:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
-  const data = await req.json();
-  // Only pick fields that exist in your schema
-  const {
-    serviceType,
-    route,
-    seats,
-    fare,
-    departureTime,
-    durationMinutes,
-    promoActive,
-    serviceLeft,
-    tripDate,
-  } = data;
-  const bus = await prisma.bus.create({
-    data: {
-      serviceType,
-      route,
-      seats,
-      fare,
-      departureTime,
-      durationMinutes,
-      promoActive,
-      serviceLeft,
-      tripDate,
-    },
-  });
-  return NextResponse.json(bus);
+  try {
+    const body = await req.json();
+
+    const { error, data: bus } = await supabase
+      .from('Bus')
+      .insert([body])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating bus:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(bus);
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+  }
 }
 
 export async function PUT(req: Request) {
-  const data = await req.json();
-  const { id, ...update } = data;
-  // Only pick fields that exist in your schema
-  const allowedFields = [
-    "serviceType",
-    "route",
-    "seats",
-    "fare",
-    "departureTime",
-    "durationMinutes",
-    "promoActive",
-    "serviceLeft",
-    "tripDate",
-  ];
-  const filteredUpdate: any = {};
-  for (const key of allowedFields) {
-    if (key in update) filteredUpdate[key] = update[key];
+  try {
+    const body = await req.json();
+    const { id, ...update } = body;
+
+    const { error, data: bus } = await supabase
+      .from('Bus')
+      .update(update)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating bus:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(bus);
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
-  const bus = await prisma.bus.update({
-    where: { id },
-    data: filteredUpdate,
-  });
-  return NextResponse.json(bus);
 }
 
 export async function DELETE(req: Request) {
-  const { id } = await req.json();
-  await prisma.bus.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  try {
+    const { id } = await req.json();
+
+    const { error } = await supabase
+      .from('Bus')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting bus:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+  }
 }

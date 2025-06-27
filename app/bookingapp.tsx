@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Booking, BusCategory, SearchData } from "@/lib/types";
-import { boardingPoints, mockBookings } from "@/lib/data";
+import { Booking, SearchData } from "@/lib/types";
+import { boardingPoints } from "@/lib/data";
 import SeatSelection from "./booking/seatselection";
 import ThemeToggle from "@/components/theme-toggle";
 import RequestForm from "./booking/requestform";
@@ -23,59 +23,44 @@ export default function BookingApp() {
   const [showPayment, setShowPayment] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
-  interface HandleSearchData {
-    from: string;
-    to: string;
-    date: string;
-    returnDate?: string;
-    seats: number;
-  }
-
-  const handleSearch = (data: HandleSearchData) => {
+  const handleSearch = (data: { from: string; to: string; date: string; returnDate?: string; seats: number }) => {
     setSearchData({
       from: data.from,
       to: data.to,
       departureDate: new Date(data.date),
       returnDate: data.returnDate ? new Date(data.returnDate) : null,
       seats: data.seats,
-      isReturn: !!data.returnDate, // <-- Add this line
+      isReturn: !!data.returnDate,
     });
     setCurrentStep("schedules");
   };
 
-  interface Bus {
-    route: string;
-    isRequest?: boolean;
-    [key: string]: any;
-  }
-
-  const handleSelectBus = (bus: Bus) => {
-    if (bus.route.includes("→") && searchData && searchData.returnDate) {
-      const [origin, destination] = bus.route.split(" → ");
-      if (origin === searchData.from && destination === searchData.to) {
-        setSelectedBus(bus);
-      } else if (origin === searchData.to && destination === searchData.from) {
-        setSelectedReturnBus(bus);
-      }
+  const handleSelectBus = (bus: any) => {
+    // Check if it's a return trip
+    if (bus.isReturnTrip) {
+      setSelectedReturnBus(bus);
     } else {
       setSelectedBus(bus);
     }
+    
     setSelectedSeats([]);
+    
     if (bus.isRequest) {
       setShowRequestForm(true);
+    } else if (bus.isReturnTrip) {
+      // For return trips, go directly to seat selection if outward trip is already selected
+      if (selectedBus) {
+        setCurrentStep("seats");
+      }
     } else {
       setCurrentStep("seats");
     }
   };
 
-  interface HandleSeatSelect {
-    (seatId: string): void;
-  }
-
-  const handleSeatSelect: HandleSeatSelect = (seatId) => {
-    setSelectedSeats((prev: string[]) => {
+  const handleSeatSelect = (seatId: string) => {
+    setSelectedSeats((prev) => {
       if (prev.includes(seatId)) {
         return prev.filter((id) => id !== seatId);
       } else if (searchData && prev.length < searchData.seats) {
@@ -219,7 +204,7 @@ export default function BookingApp() {
           showPayment={showPayment}
           setShowPayment={setShowPayment}
           onPaymentComplete={handlePaymentComplete}
-          searchData={searchData} // now always non-null
+          searchData={searchData}
           boardingPoints={boardingPoints}
         />
       </div>

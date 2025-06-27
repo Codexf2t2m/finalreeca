@@ -8,36 +8,26 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Bus {
-  id              String    @id @default(uuid())
-  serviceType     String
-  route           String
-  seats           Int
-  fare            Int
-  departureTime   String
-  durationMinutes Int
-  promoActive     Boolean   @default(false)
-  serviceLeft     Boolean   @default(false)
-  tripDate        DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  trips Trip[]
-}
-
 model Trip {
-  id               String    @id @default(uuid())
-  busId            String
-  bus              Bus       @relation(fields: [busId], references: [id])
-  date             DateTime
+  id               String   @id @default(uuid())
+  serviceType      String
+  routeName        String
+  routeOrigin      String
+  routeDestination String
+  departureDate    DateTime
+  departureTime    String
+  totalSeats       Int
   availableSeats   Int
-  routeOrigin      String?
-  routeDestination String?
-  departureTime    DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  occupiedSeats    String?
+  fare             Int
+  durationMinutes  Int
+  boardingPoint    String
+  droppingPoint    String
+  promoActive      Boolean  @default(false)
+  hasDeparted      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  occupiedSeats  String?
   bookings       Booking[] @relation("TripBooking")
   returnBookings Booking[] @relation("ReturnTripBooking")
 }
@@ -45,8 +35,10 @@ model Trip {
 model Promotion {
   id         String   @id @default(uuid())
   code       String   @unique
-  discount   Int
+  discount   Int // Percentage or fixed amount
+  type       String   @default("percentage") // percentage or fixed
   expiryDate DateTime
+  isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -55,24 +47,46 @@ model Admin {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  firstName String?
+  lastName  String?
+  role      String   @default("admin") // admin, super_admin
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Booking {
-  id                  String   @id @default(uuid())
-  tripId              String
-  trip                Trip     @relation("TripBooking", fields: [tripId], references: [id])
-  returnTripId        String?
-  returnTrip          Trip?    @relation("ReturnTripBooking", fields: [returnTripId], references: [id])
-  seats               String
-  userName            String
-  userEmail           String
+  id           String  @id @default(uuid())
+  tripId       String
+  trip         Trip    @relation("TripBooking", fields: [tripId], references: [id])
+  returnTripId String?
+  returnTrip   Trip?   @relation("ReturnTripBooking", fields: [returnTripId], references: [id])
+
+  // Passenger details
+  userName  String
+  userEmail String
+  userPhone String?
+
+  // Booking details
+  seats      String // JSON array of seat numbers
+  seatCount  Int // Number of seats booked
+  totalPrice Int
+
+  // Journey details
   boardingPoint       String
   droppingPoint       String
   returnBoardingPoint String?
   returnDroppingPoint String?
-  totalPrice          Int
-  orderId             String
-  createdAt           DateTime @default(now())
+
+  // Payment and status
+  orderId       String @unique
+  paymentStatus String @default("pending") // pending, paid, failed, refunded
+  bookingStatus String @default("confirmed") // confirmed, cancelled
+
+  // Promotions
+  promoCode      String?
+  discountAmount Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
