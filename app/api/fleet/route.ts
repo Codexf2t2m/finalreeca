@@ -1,91 +1,105 @@
-import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
-import { supabase } from "@/lib/supabaseClient";
+import { PrismaClient } from '@prisma/client';
+import { NextResponse } from 'next/server';
 
+const prisma = new PrismaClient();
 
+function toISODateString(date: Date | string) {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toISOString().split('T')[0];
+}
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from('Bus')
-      .select('*')
-      .order('createdAt', { ascending: false });
+    const trips = await prisma.trip.findMany({
+      include: {
+        bookings: true,
+        returnBookings: true,
+      },
+    });
 
-    if (error) {
-      console.error('Error fetching buses:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    // Calculate available seats for each trip
+    const tripsWithAvailability = trips.map(trip => {
+      // Combine bookings and returnBookings
+      const allBookings = [...trip.bookings, ...trip.returnBookings];
+      
+      // Calculate total occupied seats
+      const occupiedSeats = allBookings.reduce((total, booking) => {
+        return total + (booking.seats ? booking.seats.split(',').length : 0);
+      }, 0);
+      
+      return {
+        ...trip,
+        availableSeats: trip.totalSeats - occupiedSeats,
+        departureDate: trip.departureDate.toISOString(),
+      };
+    });
 
-    return NextResponse.json(data);
+    return NextResponse.json(tripsWithAvailability);
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    console.error('Error fetching trips:', error);
+    return NextResponse.json(
+      { message: 'Failed to fetch trips', error },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
+    const data = await request.json();
+    
+    const tripData = {
+      ...data,
+      totalSeats: data.totalSeats || data.availableSeats,
+      departureDate: new Date(data.departureDate)
+    };
 
-    const { error, data: bus } = await supabase
-      .from('Bus')
-      .insert([body])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating bus:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(bus);
+    const newTrip = await prisma.trip.create({
+      data: tripData
+    });
+    
+    return NextResponse.json(newTrip, { status: 201 });
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    console.error('Error creating trip:', error);
+    return NextResponse.json(
+      { message: 'Failed to create trip', error },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(request: Request) {
   try {
-    const body = await req.json();
-    const { id, ...update } = body;
-
-    const { error, data: bus } = await supabase
-      .from('Bus')
-      .update(update)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating bus:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(bus);
+    const data = await request.json();
+    const updatedTrip = await prisma.trip.update({
+      where: { id: data.id },
+      data: {
+        ...data,
+        departureDate: data.departureDate ? new Date(data.departureDate) : undefined,
+      },
+    });
+    return NextResponse.json(updatedTrip);
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    console.error('Error updating trip:', error);
+    return NextResponse.json(
+      { message: 'Failed to update trip', error },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(request: Request) {
   try {
-    const { id } = await req.json();
-
-    const { error } = await supabase
-      .from('Bus')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting bus:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    const { id } = await request.json();
+    await prisma.trip.delete({
+      where: { id },
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    console.error('Error deleting trip:', error);
+    return NextResponse.json(
+      { message: 'Failed to delete trip', error },
+      { status: 500 }
+    );
   }
 }

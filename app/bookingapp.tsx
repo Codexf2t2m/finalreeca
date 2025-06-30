@@ -25,12 +25,52 @@ export default function BookingApp() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  const handleSearch = (data: { from: string; to: string; date: string; returnDate?: string; seats: number }) => {
+  // Robust date handling for DD/MM/YYYY format
+  const parseDate = (dateStr: string): Date => {
+    if (!dateStr) return new Date();
+    
+    // Handle DD/MM/YYYY format
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    // Handle other formats
+    return new Date(dateStr);
+  };
+
+  const isValidDate = (date: any): boolean => {
+    if (!date) return false;
+    
+    const d = date instanceof Date ? date : parseDate(date);
+    return !isNaN(d.getTime());
+  };
+
+  const toDateObj = (date: any): Date => {
+    if (date instanceof Date) return date;
+    return parseDate(date);
+  };
+
+  const handleSearch = (data: { from: string; to: string; date: any; returnDate?: any; seats: number }) => {
+    // Convert and validate dates
+    const departureDate = toDateObj(data.date);
+    const returnDate = data.returnDate ? toDateObj(data.returnDate) : undefined;
+
+    if (!isValidDate(departureDate)) {
+      alert("Please select a valid departure date");
+      return;
+    }
+    
+    if (data.returnDate && !isValidDate(returnDate)) {
+      alert("Please select a valid return date");
+      return;
+    }
+
     setSearchData({
       from: data.from,
       to: data.to,
-      departureDate: new Date(data.date),
-      returnDate: data.returnDate ? new Date(data.returnDate) : null,
+      departureDate,
+      returnDate: returnDate || null,
       seats: data.seats,
       isReturn: !!data.returnDate,
     });
@@ -38,7 +78,6 @@ export default function BookingApp() {
   };
 
   const handleSelectBus = (bus: any) => {
-    // Check if it's a return trip
     if (bus.isReturnTrip) {
       setSelectedReturnBus(bus);
     } else {
@@ -49,11 +88,6 @@ export default function BookingApp() {
     
     if (bus.isRequest) {
       setShowRequestForm(true);
-    } else if (bus.isReturnTrip) {
-      // For return trips, go directly to seat selection if outward trip is already selected
-      if (selectedBus) {
-        setCurrentStep("seats");
-      }
     } else {
       setCurrentStep("seats");
     }

@@ -1,7 +1,6 @@
 import { BoardingPoint, SearchData } from "@/lib/types";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import { format } from "date-fns";
 
 interface SeatSelectionProps {
@@ -42,7 +41,8 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
     onProceedToCheckout();
   };
 
-  const handlePayment = () => {
+  const handlePayment = (e: React.FormEvent) => {
+    e.preventDefault();
     onPaymentComplete();
   };
 
@@ -141,35 +141,74 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-bold mb-6">Select Your Seats</h2>
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-2">
-            {selectedBus.route} - {selectedBus.serviceType}
-          </h3>
-          <p className="text-sm text-gray-600">
-            Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-          </p>
+        
+        {/* Outward Trip */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold">
+              {selectedBus.route} - {selectedBus.serviceType}
+            </h3>
+            <p className="text-sm text-gray-600">
+              Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {Array.from({ length: selectedBus.totalSeats }, (_, i) => i + 1).map((seat) => (
+              <div
+                key={seat}
+                onClick={() => onSeatSelect(seat.toString())}
+                className={`flex items-center justify-center h-12 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedSeats.includes(seat.toString())
+                    ? "bg-teal-600 border-teal-700 text-white"
+                    : "bg-white border-gray-300 hover:bg-gray-100"
+                }`}
+              >
+                {seat}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          {Array.from({ length: selectedBus.totalSeats }, (_, i) => i + 1).map((seat) => (
-            <button
-              key={seat}
-              onClick={() => onSeatSelect(seat.toString())}
-              className={`py-2 rounded ${
-                selectedSeats.includes(seat.toString())
-                  ? "bg-teal-600 text-white"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
-            >
-              {seat}
-            </button>
-          ))}
-        </div>
+        
+        {/* Return Trip */}
+        {selectedReturnBus && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold">
+                {selectedReturnBus.route} - {selectedReturnBus.serviceType}
+              </h3>
+              <p className="text-sm text-gray-600">
+                Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {Array.from({ length: selectedReturnBus.totalSeats }, (_, i) => i + 1).map((seat) => (
+                <div
+                  key={`return-${seat}`}
+                  onClick={() => onSeatSelect(seat.toString())}
+                  className={`flex items-center justify-center h-12 rounded-lg border-2 cursor-pointer transition-colors ${
+                    selectedSeats.includes(seat.toString())
+                      ? "bg-teal-600 border-teal-700 text-white"
+                      : "bg-white border-gray-300 hover:bg-gray-100"
+                  }`}
+                >
+                  {seat}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Boarding Points */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-2">Boarding and Dropping Points</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <h3 className="text-lg font-semibold mb-4">Journey Details</h3>
+          
+          {/* Outward Points */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-gray-700 font-medium mb-2" htmlFor="boardingPoint">
-                Boarding Point
+                Boarding Point (Outward)
               </label>
               <select
                 id="boardingPoint"
@@ -188,7 +227,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
             </div>
             <div>
               <label className="block text-gray-700 font-medium mb-2" htmlFor="droppingPoint">
-                Dropping Point
+                Dropping Point (Outward)
               </label>
               <select
                 id="droppingPoint"
@@ -206,19 +245,13 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
               </select>
             </div>
           </div>
-        </div>
-        {selectedReturnBus && (
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold mb-2">
-              {selectedReturnBus.route} - {selectedReturnBus.serviceType}
-            </h3>
-            <p className="text-sm text-gray-600">
-              Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-            </p>
+          
+          {/* Return Points */}
+          {selectedReturnBus && (
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block text-gray-700 font-medium mb-2" htmlFor="returnBoardingPoint">
-                  Boarding Point
+                  Boarding Point (Return)
                 </label>
                 <select
                   id="returnBoardingPoint"
@@ -237,7 +270,7 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
               </div>
               <div>
                 <label className="block text-gray-700 font-medium mb-2" htmlFor="returnDroppingPoint">
-                  Dropping Point
+                  Dropping Point (Return)
                 </label>
                 <select
                   id="returnDroppingPoint"
@@ -255,19 +288,26 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
                 </select>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        
         <div className="flex justify-between items-center mb-6">
-          <p className="text-lg font-medium">
-            Selected Seats: <span className="font-bold">{selectedSeats.join(", ")}</span>
-          </p>
+          <div>
+            <p className="text-lg font-medium">
+              Selected Seats: <span className="font-bold">{selectedSeats.join(", ")}</span>
+            </p>
+            <p className="text-sm text-gray-600">
+              {searchData.seats} seat{searchData.seats > 1 ? "s" : ""} selected
+            </p>
+          </div>
           <p className="text-lg font-bold">Total Fare: P{totalFare}</p>
         </div>
+        
         <Button
           onClick={handleSubmit}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2"
+          className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 text-lg"
           disabled={
-            selectedSeats.length === 0 || 
+            selectedSeats.length !== searchData.seats || 
             !boardingPoint || 
             !droppingPoint || 
             (selectedReturnBus && (!returnBoardingPoint || !returnDroppingPoint))
