@@ -1,11 +1,51 @@
-import { BoardingPoint, SearchData } from "@/lib/types";
-import React, { useState } from "react";
+// app/booking/seatselection.tsx
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Clock, Timer, Navigation, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { SearchData } from "@/lib/types";
+import PaymentGateway from "./paymentgateway";
+
+interface Seat {
+  id: string;
+  number: string;
+  isAvailable: boolean;
+  isSelected: boolean;
+  row: number;
+  position: string;
+  side: string;
+  seatIndex: number;
+}
+
+interface SelectedBus {
+  id: string;
+  registration?: string;
+  serviceType?: string;
+  name?: string;
+  departureTime: string;
+  tripDate?: string;
+  departureDate?: string;
+  durationMinutes?: number | string;
+  duration?: number | string;
+  seats?: number;
+  totalSeats?: number;
+  availableSeats?: number;
+  occupiedSeats?: string;
+  fare: number;
+  promoActive?: boolean;
+  promoPrice?: number;
+  routeOrigin?: string;
+  routeDestination?: string;
+  boardingPoint?: string;
+  droppingPoint?: string;
+}
 
 interface SeatSelectionProps {
-  selectedBus: any;
-  selectedReturnBus?: any;
+  selectedBus: SelectedBus;
   onSeatSelect: (seatId: string) => void;
   selectedSeats: string[];
   onProceedToCheckout: () => void;
@@ -13,12 +53,91 @@ interface SeatSelectionProps {
   setShowPayment: (show: boolean) => void;
   onPaymentComplete: () => void;
   searchData: SearchData;
-  boardingPoints: Record<string, BoardingPoint[]>;
 }
 
-const SeatSelection: React.FC<SeatSelectionProps> = ({
+const fetchTripBookings = async (tripId: string) => {
+  try {
+    console.log(`Fetching bookings for trip ID: ${tripId}`);
+    const response = await fetch(`/api/trips/${tripId}/bookings`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(`Failed to fetch bookings: ${errorData.message || 'Unknown error'}`);
+    }
+    const data = await response.json();
+    console.log(`Fetched bookings: ${JSON.stringify(data)}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching trip bookings:', error instanceof Error ? error.message : 'Unknown error');
+    return { bookings: [], trip: null };
+  }
+};
+
+const generateSeatLayoutWithBookings = (
+  totalSeats = 57,
+  occupiedSeats: string[] = [],
+  bookedSeats: string[] = []
+): Seat[] => {
+  const seats: Seat[] = [];
+  const totalRows = Math.ceil(totalSeats / 4);
+
+  const unavailableSeats = new Set([...occupiedSeats, ...bookedSeats]);
+  console.log(`Unavailable seats: ${JSON.stringify([...unavailableSeats])}`);
+
+  let seatIndex = 0;
+  for (let row = 1; row <= totalRows && seatIndex < totalSeats; row++) {
+    const positions = ['A', 'B', 'C', 'D'];
+    const sides = ['left', 'left', 'right', 'right'];
+
+    for (let i = 0; i < 4 && seatIndex < totalSeats; i++) {
+      const seatId = `${row}${positions[i]}`;
+      const isAvailable = !unavailableSeats.has(seatId);
+
+      seats.push({
+        id: seatId,
+        number: seatId,
+        isAvailable,
+        isSelected: false,
+        row,
+        position: positions[i],
+        side: sides[i],
+        seatIndex,
+      });
+      seatIndex++;
+    }
+  }
+
+  return seats;
+};
+
+const boardingPoints: { [key: string]: { name: string }[] } = {
+  "Gaborone": [
+    { name: "Tlokweng Bus Stop" },
+    { name: "Mogobe Plaza" },
+    { name: "Main Mall Bus Terminal" },
+    { name: "Game City Bus Stop" }
+  ],
+  "OR Tambo": [
+    { name: "OR Tambo Airport Terminal A" },
+    { name: "OR Tambo Airport Terminal B" },
+  ],
+  "Johannesburg": [
+    { name: "OR Tambo Airport Terminal A" },
+    { name: "OR Tambo Airport Terminal B" },
+    { name: "Sandton City" },
+    { name: "Park Station" }
+  ],
+  "Francistown": [
+    { name: "Francistown Bus Terminal" },
+    { name: "Francistown Shopping Centre" }
+  ],
+  "Maun": [
+    { name: "Maun Bus Terminal" },
+    { name: "Maun Airport" }
+  ]
+};
+
+export default function SeatSelection({
   selectedBus,
-  selectedReturnBus,
   onSeatSelect,
   selectedSeats,
   onProceedToCheckout,
@@ -26,298 +145,429 @@ const SeatSelection: React.FC<SeatSelectionProps> = ({
   setShowPayment,
   onPaymentComplete,
   searchData,
-  boardingPoints,
-}) => {
+}: SeatSelectionProps) {
+  const [seatLayout, setSeatLayout] = useState<Seat[]>([]);
+  const [isLoadingSeats, setIsLoadingSeats] = useState(true);
   const [boardingPoint, setBoardingPoint] = useState("");
   const [droppingPoint, setDroppingPoint] = useState("");
-  const [returnBoardingPoint, setReturnBoardingPoint] = useState("");
-  const [returnDroppingPoint, setReturnDroppingPoint] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
-  const totalFare = selectedBus.fare * selectedSeats.length + 
-                   (selectedReturnBus ? selectedReturnBus.fare * selectedSeats.length : 0);
+  useEffect(() => {
+    const loadSeatData = async () => {
+      setIsLoadingSeats(true);
+      try {
+        const { bookings, trip } = await fetchTripBookings(selectedBus.id);
 
-  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.preventDefault();
-    onProceedToCheckout();
+        const bookedSeats: string[] = bookings
+          .filter((booking: any) => booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'paid')
+          .reduce((seats: string[], booking: any) => {
+            try {
+              const parsedSeats = JSON.parse(booking.seats);
+              return [...seats, ...parsedSeats];
+            } catch (e) {
+              console.error('Error parsing booked seats:', e);
+              return seats;
+            }
+          }, []);
+
+        console.log(`Booked seats: ${JSON.stringify(bookedSeats)}`);
+
+        let occupiedSeats: string[] = [];
+        if (selectedBus.occupiedSeats) {
+          try {
+            occupiedSeats = JSON.parse(selectedBus.occupiedSeats);
+            console.log(`Occupied seats from trip: ${JSON.stringify(occupiedSeats)}`);
+          } catch (e) {
+            console.error('Error parsing occupied seats:', e);
+          }
+        }
+
+        const layout = generateSeatLayoutWithBookings(
+          selectedBus.totalSeats || 57,
+          occupiedSeats,
+          bookedSeats
+        );
+
+        setSeatLayout(layout);
+      } catch (error) {
+        console.error('Error loading seat data:', error);
+      } finally {
+        setIsLoadingSeats(false);
+      }
+    };
+
+    loadSeatData();
+  }, [selectedBus.id, selectedBus.totalSeats, selectedBus.occupiedSeats]);
+
+  const handleSeatClick = (seatId: string) => {
+    setSeatLayout(prev => prev.map(seat =>
+      seat.id === seatId
+        ? { ...seat, isSelected: !seat.isSelected }
+        : seat
+    ));
+    onSeatSelect(seatId);
   };
 
-  const handlePayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    onPaymentComplete();
+  const timeString = selectedBus.departureTime || "00:00";
+  const [hourStr, minStr] = timeString.split(':');
+  const depHour = parseInt(hourStr, 10) || 0;
+  const depMin = parseInt(minStr, 10) || 0;
+
+  const departureDateObj = new Date(selectedBus.tripDate || selectedBus.departureDate || searchData.departureDate);
+  departureDateObj.setHours(depHour, depMin, 0, 0);
+
+  const durationMinutes = Number(selectedBus.durationMinutes || selectedBus.duration || 0);
+  const arrivalDateObj = new Date(departureDateObj.getTime() + durationMinutes * 60000);
+  const arrivalTime = `${arrivalDateObj.getHours().toString().padStart(2, "0")}:${arrivalDateObj.getMinutes().toString().padStart(2, "0")}`;
+
+  let pricePerSeat = selectedBus.fare || 0;
+  if (selectedBus.promoActive && selectedSeats.length >= 2) {
+    pricePerSeat = selectedBus.promoPrice || pricePerSeat;
+  }
+  const totalPrice = pricePerSeat * selectedSeats.length;
+
+  const originKey: string = selectedBus.routeOrigin || searchData.from || '';
+  const destinationKey: string = selectedBus.routeDestination || searchData.to || '';
+
+  const getBoardingPoints = (key: string): { name: string }[] => {
+    if (!key) return [];
+    const normalizedKey = key.toLowerCase().trim();
+    return boardingPoints[normalizedKey] || boardingPoints[normalizedKey] || [{ name: `${key} Bus Terminal` }];
   };
 
-  if (showPayment) {
+  const originPoints: { name: string }[] = getBoardingPoints(originKey);
+  const destinationPoints: { name: string }[] = getBoardingPoints(destinationKey);
+
+  const handleProceedToCheckout = () => {
+    if (!userName || !userEmail) {
+      alert('Please provide your name and email');
+      return;
+    }
+
+    if (!boardingPoint || !droppingPoint) {
+      alert('Please select both boarding and dropping points');
+      return;
+    }
+
+    setShowPayment(true);
+  };
+
+  const generateOrderId = () => {
+    const timestamp = Date.now();
+    const tripIdShort = selectedBus.id.slice(-8);
+    return `RT-${tripIdShort}-${timestamp}`;
+  };
+
+  const numberOfRows = Math.ceil((selectedBus.totalSeats || 57) / 4);
+
+  if (isLoadingSeats) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-bold mb-6 text-center">Payment</h2>
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold mb-2">Trip Details</h3>
-            <div className="mb-4">
-              <p className="font-medium">
-                {selectedBus.route} - {selectedBus.serviceType}
-              </p>
-              <p className="text-sm text-gray-600">
-                Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-              </p>
-              <p className="text-sm text-gray-600">Seats: {selectedSeats.join(", ")}</p>
-              <p className="text-sm text-gray-600">Fare: P{selectedBus.fare * selectedSeats.length}</p>
-            </div>
-            {selectedReturnBus && (
-              <div className="mb-4">
-                <p className="font-medium">
-                  {selectedReturnBus.route} - {selectedReturnBus.serviceType}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-                </p>
-                <p className="text-sm text-gray-600">Seats: {selectedSeats.join(", ")}</p>
-                <p className="text-sm text-gray-600">Fare: P{selectedReturnBus.fare * selectedSeats.length}</p>
-              </div>
-            )}
-            <p className="font-bold text-xl text-right">Total Fare: P{totalFare}</p>
-          </div>
-          <form onSubmit={handlePayment}>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2" htmlFor="cardNumber">
-                Card Number
-              </label>
-              <input
-                type="text"
-                id="cardNumber"
-                className="w-full border rounded px-3 py-2"
-                placeholder="1234 5678 9012 3456"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2" htmlFor="cardName">
-                Card Holder Name
-              </label>
-              <input
-                type="text"
-                id="cardName"
-                className="w-full border rounded px-3 py-2"
-                placeholder="John Doe"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2" htmlFor="expiryDate">
-                  Expiry Date
-                </label>
-                <input
-                  type="text"
-                  id="expiryDate"
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="MM/YY"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2" htmlFor="cvv">
-                  CVV
-                </label>
-                <input
-                  type="text"
-                  id="cvv"
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="123"
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2">
-              Pay Now
-            </Button>
-          </form>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-teal-600 mx-auto mb-4 animate-spin" />
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Loading Seat Layout...</h2>
+          <p className="text-muted-foreground">
+            Fetching current booking information for trip {selectedBus.id}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-6">Select Your Seats</h2>
-        
-        {/* Outward Trip */}
-        <div className="mb-8">
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold">
-              {selectedBus.route} - {selectedBus.serviceType}
-            </h3>
-            <p className="text-sm text-gray-600">
-              Departure: {format(new Date(selectedBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {Array.from({ length: selectedBus.totalSeats }, (_, i) => i + 1).map((seat) => (
-              <div
-                key={seat}
-                onClick={() => onSeatSelect(seat.toString())}
-                className={`flex items-center justify-center h-12 rounded-lg border-2 cursor-pointer transition-colors ${
-                  selectedSeats.includes(seat.toString())
-                    ? "bg-teal-600 border-teal-700 text-white"
-                    : "bg-white border-gray-300 hover:bg-gray-100"
-                }`}
-              >
-                {seat}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Return Trip */}
-        {selectedReturnBus && (
-          <div className="mb-8">
-            <div className="mb-4">
-              <h3 className="text-xl font-semibold">
-                {selectedReturnBus.route} - {selectedReturnBus.serviceType}
-              </h3>
-              <p className="text-sm text-gray-600">
-                Departure: {format(new Date(selectedReturnBus.departureDate), "EEEE, MMMM do, yyyy HH:mm")}
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              {Array.from({ length: selectedReturnBus.totalSeats }, (_, i) => i + 1).map((seat) => (
-                <div
-                  key={`return-${seat}`}
-                  onClick={() => onSeatSelect(seat.toString())}
-                  className={`flex items-center justify-center h-12 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedSeats.includes(seat.toString())
-                      ? "bg-teal-600 border-teal-700 text-white"
-                      : "bg-white border-gray-300 hover:bg-gray-100"
-                  }`}
-                >
-                  {seat}
+    <>
+      <div className="max-w-6xl mx-auto my-8 px-4">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+          <div className="p-6 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+            <div className="flex flex-col md:flex-row justify-between items-start">
+              <div>
+                <div className="font-bold text-xl text-gray-800">
+                  {selectedBus.registration || selectedBus.serviceType} - {selectedBus.name || 'Luxury Bus'}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Boarding Points */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Journey Details</h3>
-          
-          {/* Outward Points */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-gray-700 font-medium mb-2" htmlFor="boardingPoint">
-                Boarding Point (Outward)
-              </label>
-              <select
-                id="boardingPoint"
-                className="w-full border rounded px-3 py-2"
-                value={boardingPoint}
-                onChange={(e) => setBoardingPoint(e.target.value)}
-                required
-              >
-                <option value="">Select Boarding Point</option>
-                {boardingPoints[selectedBus.route.split(" → ")[0]]?.map((point: { id: string; name: string }) => (
-                  <option key={point.id} value={point.name}>
-                    {point.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-gray-700 font-medium mb-2" htmlFor="droppingPoint">
-                Dropping Point (Outward)
-              </label>
-              <select
-                id="droppingPoint"
-                className="w-full border rounded px-3 py-2"
-                value={droppingPoint}
-                onChange={(e) => setDroppingPoint(e.target.value)}
-                required
-              >
-                <option value="">Select Dropping Point</option>
-                {boardingPoints[selectedBus.route.split(" → ")[1]]?.map((point: { id: string; name: string }) => (
-                  <option key={point.id} value={point.name}>
-                    {point.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          {/* Return Points */}
-          {selectedReturnBus && (
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2" htmlFor="returnBoardingPoint">
-                  Boarding Point (Return)
-                </label>
-                <select
-                  id="returnBoardingPoint"
-                  className="w-full border rounded px-3 py-2"
-                  value={returnBoardingPoint}
-                  onChange={(e) => setReturnBoardingPoint(e.target.value)}
-                  required
-                >
-                  <option value="">Select Boarding Point</option>
-                  {boardingPoints[selectedReturnBus.route.split(" → ")[0]]?.map((point: { id: string; name: string }) => (
-                    <option key={point.id} value={point.name}>
-                      {point.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="text-sm text-gray-600">AC, Video ({selectedBus.totalSeats || 57} seats) (2+2 Configuration)</div>
+                <div className="text-xs text-gray-500 mt-1">Trip ID: {selectedBus.id}</div>
+                <div className="text-xs text-green-600 mt-1">
+                  Available: {seatLayout.filter(seat => seat.isAvailable).length} |
+                  Occupied: {seatLayout.filter(seat => !seat.isAvailable).length}
+                </div>
               </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2" htmlFor="returnDroppingPoint">
-                  Dropping Point (Return)
-                </label>
-                <select
-                  id="returnDroppingPoint"
-                  className="w-full border rounded px-3 py-2"
-                  value={returnDroppingPoint}
-                  onChange={(e) => setReturnDroppingPoint(e.target.value)}
-                  required
-                >
-                  <option value="">Select Dropping Point</option>
-                  {boardingPoints[selectedReturnBus.route.split(" → ")[1]]?.map((point: { id: string; name: string }) => (
-                    <option key={point.id} value={point.name}>
-                      {point.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="mt-2 md:mt-0 text-right">
+                <div className="text-sm text-gray-600 capitalize">
+                  {searchData.from} → {searchData.to}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {format(new Date(searchData.departureDate), "dd MMM yyyy")}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-        
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <p className="text-lg font-medium">
-              Selected Seats: <span className="font-bold">{selectedSeats.join(", ")}</span>
-            </p>
-            <p className="text-sm text-gray-600">
-              {searchData.seats} seat{searchData.seats > 1 ? "s" : ""} selected
-            </p>
           </div>
-          <p className="text-lg font-bold">Total Fare: P{totalFare}</p>
-        </div>
-        
-        <Button
-          onClick={handleSubmit}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 text-lg"
-          disabled={
-            selectedSeats.length !== searchData.seats || 
-            !boardingPoint || 
-            !droppingPoint || 
-            (selectedReturnBus && (!returnBoardingPoint || !returnDroppingPoint))
-          }
-        >
-          Proceed to Checkout
-        </Button>
-      </div>
-    </div>
-  );
-};
 
-export default SeatSelection;
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 border-b bg-gray-50">
+            <div className="text-center">
+              <span className="text-sm text-gray-500 block">Departure</span>
+              <div className="flex items-center justify-center mt-1">
+                <Clock className="w-5 h-5 mr-2 text-teal-600" />
+                <span className="font-bold text-xl text-gray-900">{selectedBus.departureTime}</span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {format(departureDateObj, "dd MMM yyyy")}
+              </span>
+            </div>
+
+            <div className="text-center">
+              <span className="text-sm text-gray-500 block">Duration</span>
+              <div className="flex items-center justify-center mt-1">
+                <Timer className="w-5 h-5 mr-2 text-teal-600" />
+                <span className="font-bold text-xl text-gray-900">
+                  {Math.floor(durationMinutes / 60)}h {durationMinutes % 60}m
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">Non-stop journey</span>
+            </div>
+
+            <div className="text-center">
+              <span className="text-sm text-gray-500 block">Arrival</span>
+              <div className="flex items-center justify-center mt-1">
+                <Clock className="w-5 h-5 mr-2 text-teal-600" />
+                <span className="font-bold text-xl text-gray-900">{arrivalTime}</span>
+              </div>
+              <span className="text-xs text-gray-500">{format(arrivalDateObj, "dd MMM yyyy")}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
+            <div className="lg:col-span-2">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Select Your Seats</h3>
+
+              <div className="flex flex-wrap gap-4 mb-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gray-200 border-2 border-gray-300 rounded-md"></div>
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-gray-400 border-2 border-gray-500 rounded-md"></div>
+                  <span>Occupied</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-teal-500 border-2 border-teal-600 rounded-md"></div>
+                  <span>Selected</span>
+                </div>
+              </div>
+
+              <div className="border-2 border-gray-300 rounded-xl p-6 bg-white">
+                <div className="flex justify-end mb-8">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                      <Navigation className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="text-xs text-center mt-1 font-medium text-gray-600">Driver</div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {Array.from({ length: numberOfRows }).map((_, rowIndex) => {
+                    const rowNumber = rowIndex + 1;
+                    const leftSeats = [`${rowNumber}A`, `${rowNumber}B`];
+                    const rightSeats = [`${rowNumber}C`, `${rowNumber}D`];
+
+                    return (
+                      <div key={rowIndex} className="flex items-center justify-center gap-4">
+                        <div className="w-6 text-center text-xs font-medium text-gray-500">
+                          {rowNumber}
+                        </div>
+
+                        <div className="flex gap-2">
+                          {leftSeats.map((seatId) => {
+                            const seat = seatLayout.find((s) => s.id === seatId);
+                            if (!seat) return <div key={seatId} className="w-10 h-10" />;
+
+                            return (
+                              <button
+                                key={seatId}
+                                onClick={() => handleSeatClick(seatId)}
+                                disabled={!seat.isAvailable}
+                                className={cn(
+                                  "w-10 h-10 rounded-lg text-xs font-bold flex items-center justify-center border-2 transition-all duration-200 hover:scale-105",
+                                  selectedSeats.includes(seatId)
+                                    ? "bg-teal-500 text-white border-teal-600 shadow-md transform scale-105"
+                                    : seat.isAvailable
+                                      ? "bg-gray-200 hover:bg-gray-300 border-gray-300 hover:border-gray-400 hover:shadow-sm"
+                                      : "bg-gray-400 text-gray-600 cursor-not-allowed border-gray-500 opacity-60",
+                                )}
+                              >
+                                {seatId}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="w-8 border-l-2 border-dashed border-gray-300 h-8 flex items-center justify-center">
+                          <div className="text-xs text-gray-400">||</div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          {rightSeats.map((seatId) => {
+                            const seat = seatLayout.find((s) => s.id === seatId);
+                            if (!seat) return <div key={seatId} className="w-10 h-10" />;
+
+                            return (
+                              <button
+                                key={seatId}
+                                onClick={() => handleSeatClick(seatId)}
+                                disabled={!seat.isAvailable}
+                                className={cn(
+                                  "w-10 h-10 rounded-lg text-xs font-bold flex items-center justify-center border-2 transition-all duration-200 hover:scale-105",
+                                  selectedSeats.includes(seatId)
+                                    ? "bg-teal-500 text-white border-teal-600 shadow-md transform scale-105"
+                                    : seat.isAvailable
+                                      ? "bg-gray-200 hover:bg-gray-300 border-gray-300 hover:border-gray-400 hover:shadow-sm"
+                                      : "bg-gray-400 text-gray-600 cursor-not-allowed border-gray-500 opacity-60",
+                                )}
+                              >
+                                {seatId}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Booking Summary</h3>
+
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Selected Seats:</span>
+                    <span className="font-semibold text-gray-900">
+                      {selectedSeats.length > 0 ? selectedSeats.join(", ") : "None"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Seat Count:</span>
+                    <span className="font-semibold text-gray-900">{selectedSeats.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Price per seat:</span>
+                    <span className="font-semibold text-gray-900">P {pricePerSeat}</span>
+                  </div>
+                  <div className="border-t border-gray-300 my-2"></div>
+                  <div className="flex justify-between text-lg">
+                    <span className="font-bold text-gray-900">Total Amount:</span>
+                    <span className="font-bold text-teal-600 text-xl">P {totalPrice}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Name
+                  </label>
+                  <Input
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Email
+                  </label>
+                  <Input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Boarding Point
+                  </label>
+                  <Select value={boardingPoint} onValueChange={setBoardingPoint}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select boarding point" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {originPoints.length > 0 ? (
+                        originPoints.map((point) => (
+                          <SelectItem key={point.name} value={point.name}>
+                            {point.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No boarding points available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Dropping Point
+                  </label>
+                  <Select value={droppingPoint} onValueChange={setDroppingPoint}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select dropping point" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destinationPoints.length > 0 ? (
+                        destinationPoints.map((point) => (
+                          <SelectItem key={point.name} value={point.name}>
+                            {point.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>No dropping points available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  onClick={handleProceedToCheckout}
+                  disabled={selectedSeats.length === 0 || !boardingPoint || !droppingPoint || !userName || !userEmail}
+                  className="w-full h-12 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg"
+                >
+                  PROCEED TO PAYMENT ({selectedSeats.length} seat{selectedSeats.length !== 1 ? 's' : ''})
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={showPayment} onOpenChange={setShowPayment}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Complete Your Booking</DialogTitle>
+          </DialogHeader>
+          <PaymentGateway
+            bookingData={{
+              totalPrice,
+              selectedSeats,
+              userName,
+              userEmail,
+              boardingPoint,
+              droppingPoint,
+              orderId: generateOrderId(),
+              tripId: selectedBus.id,
+            }}
+            onPaymentComplete={onPaymentComplete}
+            setShowPayment={setShowPayment}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

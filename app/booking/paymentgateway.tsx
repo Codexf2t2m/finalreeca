@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
-import { PolicyModal } from "@/components/PolicyModal";
+// File: components/PaymentGateway.tsx
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Shield } from 'lucide-react';
+import { PolicyModal } from '@/components/PolicyModal';
 
 interface PaymentGatewayProps {
   bookingData: {
@@ -12,6 +13,7 @@ interface PaymentGatewayProps {
     boardingPoint: string;
     droppingPoint: string;
     orderId: string;
+    tripId: string;
   };
   onPaymentComplete: () => void;
   setShowPayment?: (show: boolean) => void;
@@ -28,45 +30,53 @@ export default function PaymentGateway({
 
   const handleProceedToPayment = async () => {
     if (!agreed) {
-      alert("Please agree to the travel policies first");
+      alert('Please agree to the travel policies first');
       return;
     }
-
     setIsProcessing(true);
 
     try {
-      // Stripe payment request
-      const response = await fetch('/api/create-stripe-session', {
+      const payload = {
+        tripId: bookingData.tripId,
+        orderId: bookingData.orderId,
+        totalPrice: bookingData.totalPrice,
+        userName: bookingData.userName,
+        userEmail: bookingData.userEmail,
+        boardingPoint: bookingData.boardingPoint,
+        droppingPoint: bookingData.droppingPoint,
+        selectedSeats: bookingData.selectedSeats,
+      };
+      console.log('[PAYMENT:FETCH BODY]', payload);
+
+      const res = await fetch('/api/create-dpo-transaction', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          totalPrice: bookingData.totalPrice,
-          userEmail: bookingData.userEmail,
-          orderId: bookingData.orderId,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
+      const data = await res.json();
+      console.log('[PAYMENT RESPONSE]', data);
 
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Payment initialization failed');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Payment init failed');
       }
 
-      // Store booking details if needed
-      localStorage.setItem('pendingBooking', JSON.stringify({
-        ...bookingData,
-        orderRef: bookingData.orderId,
-        timestamp: new Date().toISOString()
-      }));
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.sessionUrl;
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert(error instanceof Error ? error.message : "Payment initialization failed");
+      // store pending booking and redirect
+      localStorage.setItem(
+        'pendingBooking',
+        JSON.stringify({
+          ...bookingData,
+          orderRef: data.orderRef,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      window.location.href = data.paymentUrl;
+    } catch (err) {
+      console.error('[PAYMENT] Error:', err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : 'Payment initialization failed'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -83,23 +93,33 @@ export default function PaymentGateway({
           </div>
           <div className="flex justify-between">
             <span>Selected Seats:</span>
-            <span>{bookingData.selectedSeats.join(", ")}</span>
+            <span>{bookingData.selectedSeats.join(', ')}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Boarding Point:</span>
+            <span>{bookingData.boardingPoint}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Dropping Point:</span>
+            <span>{bookingData.droppingPoint}</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-2">
+            Trip ID: {bookingData.tripId}
           </div>
         </div>
       </div>
 
       <Button
-        onClick={() => setShowPolicies(true)}
         variant="outline"
+        onClick={() => setShowPolicies?.(true)}
         className="w-full"
       >
         View Travel Policies
       </Button>
-
       <PolicyModal
         isOpen={showPolicies}
         onClose={() => setShowPolicies(false)}
-        onAgree={handleProceedToPayment}
+        onAgree={() => setAgreed(true)}
         agreed={agreed}
         setAgreed={setAgreed}
       />

@@ -1,6 +1,6 @@
 // app/admin/bookings/page.tsx
 "use client"
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,20 +8,77 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { PrintableTicket } from "@/components/printable-ticket";
-import { mockBookings } from "@/lib/data";
+import PrintableTicket from "@/components/printable-ticket";
 
 
+interface Booking {
+  id: string;
+  bookingRef: string;
+  passengerName: string;
+  email: string;
+  phone: string;
+  passengers: number;
+  route: string;
+  date: Date;
+  time: string;
+  bus: string;
+  boardingPoint: string;
+  droppingPoint: string;
+  seats: string[];
+  totalAmount: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  bookingStatus: string;
+  specialRequests: string;
+}
 
 export default function BookingsManagement() {
-  const [bookings, setBookings] = useState(mockBookings);
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showPrintTicket, setShowPrintTicket] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Format date function
+  const formatDate = (date: Date, formatStr: string) => {
+    const options: Intl.DateTimeFormatOptions = {};
+    
+    if (formatStr.includes('EEEE')) {
+      options.weekday = 'long';
+    }
+    if (formatStr.includes('MMMM')) {
+      options.month = 'long';
+    } else if (formatStr.includes('MMM')) {
+      options.month = 'short';
+    }
+    if (formatStr.includes('dd')) {
+      options.day = '2-digit';
+    }
+    if (formatStr.includes('yyyy')) {
+      options.year = 'numeric';
+    }
+    
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const response = await fetch('/api/admin/booking');
+        if (!response.ok) {
+          throw new Error('Failed to fetch bookings');
+        }
+        const data = await response.json();
+        setBookings(data);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
@@ -34,12 +91,12 @@ export default function BookingsManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleViewBooking = (booking: any) => {
+  const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
   };
 
-  const handlePrintTicket = (booking: any) => {
+  const handlePrintTicket = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowPrintTicket(true);
   };
@@ -53,13 +110,12 @@ export default function BookingsManagement() {
         booking.id === bookingId
           ? { ...booking, bookingStatus: newStatus }
           : booking
-      ),
+      )
     );
   };
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
       <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -93,7 +149,6 @@ export default function BookingsManagement() {
         </CardContent>
       </Card>
 
-      {/* Bookings Table */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-teal-900">
@@ -134,18 +189,16 @@ export default function BookingsManagement() {
                       <p className="text-xs text-gray-600">{booking.bus}</p>
                     </td>
                     <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{format(booking.date, "MMM dd, yyyy")}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatDate(new Date(booking.date), "MMM dd, yyyy")}</p>
                       <p className="text-xs text-gray-600">{booking.time}</p>
                     </td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">
-                        {booking.seats
-                          .filter((seat: any) => typeof seat === "string" || typeof seat === "number")
-                          .map((seat: string | number) => (
-                            <Badge key={seat} variant="outline" className="text-xs">
-                              {seat}
-                            </Badge>
-                          ))}
+                        {booking.seats.map((seat) => (
+                          <Badge key={seat} variant="outline" className="text-xs">
+                            {seat}
+                          </Badge>
+                        ))}
                       </div>
                       <p className="text-xs text-gray-600 mt-1">{booking.passengers} passenger(s)</p>
                     </td>
@@ -207,7 +260,6 @@ export default function BookingsManagement() {
         </CardContent>
       </Card>
 
-      {/* Booking Details Dialog */}
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -216,7 +268,6 @@ export default function BookingsManagement() {
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-6">
-              {/* Passenger Information */}
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-gray-800">Passenger Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -239,7 +290,6 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {/* Journey Information */}
               <div className="p-4 bg-teal-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -249,7 +299,7 @@ export default function BookingsManagement() {
                   </div>
                   <div>
                     <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{format(selectedBooking.date, "EEEE, MMMM dd, yyyy")}</span>
+                    <span className="font-semibold ml-2">{formatDate(new Date(selectedBooking.date), "EEEE, MMMM dd, yyyy")}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Time:</span>
@@ -270,11 +320,10 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {/* Seat Information */}
               <div className="p-4 bg-amber-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-amber-800">Seat Information</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedBooking.seats.map((seat: string) => (
+                  {selectedBooking.seats.map((seat) => (
                     <Badge key={seat} className="bg-amber-600 text-white">
                       {seat}
                     </Badge>
@@ -282,7 +331,6 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {/* Payment Information */}
               <div className="p-4 bg-green-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-green-800">Payment Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -325,7 +373,6 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {/* Special Requests */}
               {selectedBooking.specialRequests && (
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-semibold mb-2 text-blue-800">Special Requests</h4>
@@ -333,7 +380,6 @@ export default function BookingsManagement() {
                 </div>
               )}
 
-              {/* Admin Actions */}
               <div className="flex gap-3 pt-4 border-t">
                 <Button
                   onClick={() => handleUpdateBookingStatus(selectedBooking.id, "Confirmed")}
@@ -368,7 +414,6 @@ export default function BookingsManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Print Ticket Dialog */}
       <Dialog open={showPrintTicket} onOpenChange={setShowPrintTicket}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

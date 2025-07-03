@@ -1,28 +1,119 @@
-// app/admin/page.tsx
-"use client"
+"use client";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, DollarSign, AlertTriangle, Bus, TrendingUp, BarChart3, QrCode, FileText } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
-import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import Link from "next/link";
-import { busCategories, boardingPoints, mockBookings } from "@/lib/data";
+
+interface Trip {
+  id: string;
+  routeName: string;
+  routeOrigin: string;
+  routeDestination: string;
+  departureDate: Date;
+  departureTime: string;
+  totalSeats: number;
+}
+
+interface Booking {
+  id: string;
+  createdAt: Date;
+  totalPrice: number;
+  bookingStatus: string;
+  trip: Trip;
+  seatCount: number;
+}
+
+interface DashboardData {
+  stats: {
+    totalBookings: number;
+    totalRevenue: number;
+    pendingRequests: number;
+    todayDepartures: number;
+  };
+  recentBookings: Booking[];
+  morningOccupancy: {
+    bus: string;
+    route: string;
+    totalSeats: number;
+    bookedSeats: number;
+    departureTime: string;
+  }[];
+  afternoonOccupancy: {
+    bus: string;
+    route: string;
+    totalSeats: number;
+    bookedSeats: number;
+    departureTime: string;
+  }[];
+}
 
 export default function DashboardOverview() {
-  const today = new Date();
-  const thisMonth = {
-    start: startOfMonth(today),
-    end: endOfMonth(today),
-  };
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Calculate stats based on the new data structure
-  const stats = {
-    totalBookings: mockBookings.length,
-    totalRevenue: mockBookings.reduce((sum, booking) => sum + booking.totalAmount, 0),
-    pendingRequests: 0, // Assuming no pending requests for simplicity
-    todayDepartures: busCategories.length,
-  };
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard');
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        const data: DashboardData = await response.json();
+        setDashboardData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 mx-auto"></div>
+          <p className="mt-4 text-teal-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+          <p className="mt-4 text-red-500">Error: {error}</p>
+          <Button
+            className="mt-4 bg-teal-600 hover:bg-teal-700 text-white"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">No dashboard data available</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { stats, recentBookings, morningOccupancy, afternoonOccupancy } = dashboardData;
 
   return (
     <div className="space-y-6">
@@ -112,7 +203,6 @@ export default function DashboardOverview() {
               <FileText className="h-6 w-6 mb-1" />
               <span>Generate Reports</span>
             </Button>
-            {/* FIX: Wrap Manage Fleet in Link */}
             <Link href="/admin/fleet" className="block">
               <Button
                 variant="outline"
@@ -137,23 +227,15 @@ export default function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockBookings.slice(0, 3).map((booking) => (
+              {recentBookings.map((booking) => (
                 <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-semibold text-gray-900">{booking.route}</p>
-                    <p className="text-sm text-gray-600">{booking.bus}</p>
-                    <p className="text-xs text-gray-500">{format(booking.date, "MMM dd, yyyy")}</p>
+                    <p className="font-semibold text-gray-900">{booking.trip.routeName}</p>
+                    <p className="text-xs text-gray-500">{format(booking.createdAt, "MMM dd, yyyy")}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-teal-600">P {booking.totalAmount}</p>
-                    <Badge
-                      className={cn(
-                        "text-xs",
-                        booking.bookingStatus === "Confirmed"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800",
-                      )}
-                    >
+                    <p className="font-bold text-teal-600">P {booking.totalPrice}</p>
+                    <Badge className="text-xs bg-green-100 text-green-800">
                       {booking.bookingStatus}
                     </Badge>
                   </div>
@@ -163,42 +245,84 @@ export default function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-teal-900">
-              <BarChart3 className="h-5 w-5" />
-              Bus Occupancy Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {busCategories.map((bus) => (
-                <div key={bus.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-gray-900">{bus.registration}</p>
-                      <p className="text-sm text-gray-600">{bus.departureTime}</p>
+        {/* Bus Occupancy */}
+        <div className="space-y-6">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-teal-900">
+                <BarChart3 className="h-5 w-5" />
+                Morning Bus Occupancy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {morningOccupancy.map((bus, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-gray-900">{bus.bus}</p>
+                        <p className="text-sm text-gray-600">Route: {bus.route}</p>
+                        <p className="text-sm text-gray-600">Departure: {bus.departureTime}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {bus.bookedSeats}/{bus.totalSeats} seats
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {Math.round((bus.bookedSeats / bus.totalSeats) * 100)}% full
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        30/{bus.seats} seats
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {Math.round((30 / bus.seats) * 100)}% full
-                      </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-teal-600 h-2 rounded-full"
+                        style={{ width: `${(bus.bookedSeats / bus.totalSeats) * 100}%` }}
+                      ></div>
                     </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-teal-600 h-2 rounded-full"
-                      style={{ width: `${(30 / bus.seats) * 100}%` }}
-                    ></div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-teal-900">
+                <BarChart3 className="h-5 w-5" />
+                Afternoon Bus Occupancy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {afternoonOccupancy.map((bus, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-gray-900">{bus.bus}</p>
+                        <p className="text-sm text-gray-600">Route: {bus.route}</p>
+                        <p className="text-sm text-gray-600">Departure: {bus.departureTime}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">
+                          {bus.bookedSeats}/{bus.totalSeats} seats
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {Math.round((bus.bookedSeats / bus.totalSeats) * 100)}% full
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-teal-600 h-2 rounded-full"
+                        style={{ width: `${(bus.bookedSeats / bus.totalSeats) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

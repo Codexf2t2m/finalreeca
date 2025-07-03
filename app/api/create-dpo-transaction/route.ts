@@ -1,74 +1,91 @@
+// File: pages/api/create-dpo-transaction.ts
 import { NextResponse } from 'next/server';
+import fetch from 'node-fetch';
+import { PrismaClient } from '@prisma/client';
+import { encode } from 'html-entities';
+import { parseStringPromise } from 'xml2js';
 
-// Constants
-const DPO_COMPANY_TOKEN = "8D3DA73D-9D7F-4E09-96D4-3D44E7A83EA3";
-const DPO_SERVICE_TYPE = "3854";
-const BASE_URL = "https://secure.3gdirectpay.com";
-
-// Types
-interface PaymentRequest {
-  amount: number;
-  orderId: string;
-  customerEmail?: string;
-  customerName?: string;
-}
-
-// Logging helper
-const logPaymentDetails = (details: PaymentRequest) => {
-  console.log('--- Starting DPO Payment Process ---');
-  console.log('--- Request Details ---');
-  console.log(`Amount: ${details.amount}`);
-  console.log(`Order ID: ${details.orderId}`);
-  console.log(`Customer Email: ${details.customerEmail}`);
-  console.log(`Customer Name: ${details.customerName}`);
-  console.log('------------------------');
-};
+const prisma = new PrismaClient();
+const COMPANY_TOKEN = process.env.DPO_COMPANY_TOKEN!;
+const SERVICE_TYPE = process.env.DPO_SERVICE_TYPE || '3854';
+const API_URL = 'https://secure.3gdirectpay.com/API/v6/';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as PaymentRequest;
-    
-    // Log request details
-    logPaymentDetails(body);
+    const rawBody = await request.json();
+    console.log('[PAYMENT:RAW BODY]', rawBody);
 
-    // Format amount to 2 decimal places
-    const formattedAmount = Number(body.amount).toFixed(2);
+    const {
+      tripId, orderId, totalPrice,
+      userName, userEmail,
+      boardingPoint, droppingPoint,
+      selectedSeats
+    } = rawBody;
 
-    // Build payment URL parameters
-    const params = new URLSearchParams({
-      ID: DPO_COMPANY_TOKEN,
-      ServiceType: DPO_SERVICE_TYPE,
-      CompanyRef: body.orderId,
-      CompanyRefUnique: "1",
-      Amount: formattedAmount,
-      Currency: "BWP",
-      RedirectURL: "http://localhost:3000/payment/success",
-      BackURL: "http://localhost:3000/payment/cancel",
-      customerEmail: body.customerEmail || '',
-      customerFirstName: body.customerName || ''
-    });
+    if (!tripId || !orderId || typeof totalPrice !== 'number' ||
+        !userName || !userEmail ||
+        !Array.isArray(selectedSeats) || selectedSeats.length === 0) {
+      throw new Error('Missing or invalid input');
+    }
 
-    const paymentUrl = `${BASE_URL}/pay.asp?${params.toString()}`;
+    const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) throw new Error(`Trip not found: ${tripId}`);
 
-    // Log the generated URL
-    console.log('--- Generated Payment URL ---');
-    console.log(paymentUrl);
-    console.log('------------------------');
-
-    return NextResponse.json({
-      success: true,
-      orderRef: body.orderId,
-      paymentUrl
-    });
-
-  } catch (error) {
-    console.error('DPO Transaction Error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Payment initialization failed' 
+    const booking = await prisma.booking.create({
+      data: {
+        tripId, userName, userEmail,
+        seats: JSON.stringify(selectedSeats),
+        seatCount: selectedSeats.length,
+        totalPrice, boardingPoint, droppingPoint,
+        orderId, paymentStatus: 'pending',
+        bookingStatus: 'confirmed'
       },
-      { status: 500 }
-    );
+    });
+    console.log(`[PAYMENT] Booking created: ${booking.id}`);
+
+    const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const redirectUrl = `${base}/payment/success?ref=${orderId}`;
+    const backUrl = `${base}/payment/cancel?ref=${orderId}`;
+
+    const servicesXML = `<Services><Service><ServiceType>${encode(SERVICE_TYPE, { level: 'xml' })}</ServiceType><ServiceDescription>Bus Fare</ServiceDescription><ServiceAmount>${totalPrice.toFixed(2)}</ServiceAmount></Service></Services>`;
+
+    const tx = `<API3G>` +
+      `<CompanyToken>${encode(COMPANY_TOKEN, { level: 'xml' })}</CompanyToken>` +
+      `<Request>createToken</Request>` +
+      `<Transaction>` +
+        `<PaymentAmount>${totalPrice.toFixed(2)}</PaymentAmount>` +
+        `<PaymentCurrency>BWP</PaymentCurrency>` +
+        `<CompanyRef>${encode(orderId, { level: 'xml' })}</CompanyRef>` +
+        `<CompanyRefUnique>1</CompanyRefUnique>` +
+        `<customerFirstName>${encode(userName, { level: 'xml' })}</customerFirstName>` +
+        `<customerEmail>${encode(userEmail, { level: 'xml' })}</customerEmail>` +
+        `<RedirectURL>${encode(redirectUrl, { level: 'xml' })}</RedirectURL>` +
+        `<BackURL>${encode(backUrl, { level: 'xml' })}</BackURL>` +
+      `</Transaction>` +
+      servicesXML +
+      `</API3G>`;
+
+    console.log('[PAYMENT] createToken request XML:', tx);
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/xml'},
+      body: tx,
+    });
+
+    const xml = await res.text();
+    console.log('[PAYMENT] createToken response XML:', xml);
+
+    const parsed = await parseStringPromise(xml);
+    const token = parsed?.API3G?.Response?.[0]?.Token?.[0] ||
+                  parsed?.Response?.Token?.[0];
+    if (!token) throw new Error('Token generation failed');
+
+    const paymentUrl = `https://secure.3gdirectpay.com/payv3.php?ID=${token}`;
+    return NextResponse.json({ success: true, orderRef: orderId, paymentUrl });
+
+  } catch (err: any) {
+    console.error('[PAYMENT] Error:', err.message);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
