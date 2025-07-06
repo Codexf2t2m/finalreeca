@@ -25,6 +25,8 @@ export async function GET(request: Request) {
     const departureDate = searchParams.get('departureDate');
     const returnDate = searchParams.get('returnDate');
 
+    console.log('API received params:', { from, to, departureDate, returnDate });
+
     // Build filter conditions
     const whereConditions: any = {};
     
@@ -33,24 +35,35 @@ export async function GET(request: Request) {
       
       // Outbound trip conditions
       if (from && to && departureDate) {
+        // Create date range for the entire day in UTC
+        const startDate = new Date(departureDate + 'T00:00:00.000Z');
+        const endDate = new Date(departureDate + 'T23:59:59.999Z');
+        
+        console.log('Outbound date range:', { startDate, endDate });
+        
         orConditions.push({
           AND: [
             { routeOrigin: { equals: from, mode: 'insensitive' } },
             { routeDestination: { equals: to, mode: 'insensitive' } },
-            { departureDate: { gte: new Date(departureDate + 'T00:00:00Z') } },
-            { departureDate: { lt: new Date(departureDate + 'T23:59:59Z') } }
+            { departureDate: { gte: startDate } },
+            { departureDate: { lte: endDate } }
           ]
         });
       }
       
       // Return trip conditions
       if (returnDate && from && to) {
+        const startDate = new Date(returnDate + 'T00:00:00.000Z');
+        const endDate = new Date(returnDate + 'T23:59:59.999Z');
+        
+        console.log('Return date range:', { startDate, endDate });
+        
         orConditions.push({
           AND: [
             { routeOrigin: { equals: to, mode: 'insensitive' } },
             { routeDestination: { equals: from, mode: 'insensitive' } },
-            { departureDate: { gte: new Date(returnDate + 'T00:00:00Z') } },
-            { departureDate: { lt: new Date(returnDate + 'T23:59:59Z') } }
+            { departureDate: { gte: startDate } },
+            { departureDate: { lte: endDate } }
           ]
         });
       }
@@ -59,6 +72,8 @@ export async function GET(request: Request) {
         whereConditions.OR = orConditions;
       }
     }
+
+    console.log('Prisma query conditions:', JSON.stringify(whereConditions, null, 2));
 
     const trips = await prisma.trip.findMany({
       where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
@@ -71,6 +86,13 @@ export async function GET(request: Request) {
         { departureTime: 'asc' }
       ]
     });
+
+    console.log('Found trips:', trips.map(t => ({
+      id: t.id,
+      date: t.departureDate,
+      time: t.departureTime,
+      route: `${t.routeOrigin} → ${t.routeDestination}`
+    })));
 
     const tripsWithAvailability = trips.map(trip => {
       const allBookings = [...trip.bookings, ...trip.returnBookings];
@@ -94,6 +116,7 @@ export async function GET(request: Request) {
       };
     });
 
+    console.log('Returning trips with availability:', tripsWithAvailability.length);
     return NextResponse.json(tripsWithAvailability);
   } catch (error) {
     console.error('Error fetching trips:', error);

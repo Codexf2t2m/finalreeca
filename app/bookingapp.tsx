@@ -12,18 +12,24 @@ import RequestForm from "./booking/requestform";
 import BookingForm from "@/components/bookingform";
 import TripManagement from "./management/tripmanagement";
 import BusSchedules from "./booking/busschedule";
+import PassengerDetailsForm from "./booking/passengerdetails/page";
 
 export default function BookingApp() {
-  const [currentStep, setCurrentStep] = useState<"search" | "schedules" | "seats">("search");
+  const [currentStep, setCurrentStep] = useState<
+    "search" | "schedules" | "departure-seats" | "return-schedules" | "return-seats" | "passenger-details"
+  >("search");
+  
   const [activeTab, setActiveTab] = useState<"book" | "manage">("book");
   const [searchData, setSearchData] = useState<SearchData | null>(null);
-  const [selectedBus, setSelectedBus] = useState<any>(null);
+  const [selectedDepartureBus, setSelectedDepartureBus] = useState<any>(null);
   const [selectedReturnBus, setSelectedReturnBus] = useState<any>(null);
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [selectedDepartureSeats, setSelectedDepartureSeats] = useState<string[]>([]);
+  const [selectedReturnSeats, setSelectedReturnSeats] = useState<string[]>([]);
   const [showPayment, setShowPayment] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isReturnTripSelection, setIsReturnTripSelection] = useState(false);
 
   // Robust date handling for DD/MM/YYYY format
   const parseDate = (dateStr: string): Date => {
@@ -54,7 +60,7 @@ export default function BookingApp() {
   const handleSearch = (data: { from: string; to: string; date: any; returnDate?: any; seats: number }) => {
     // Convert and validate dates
     const departureDate = toDateObj(data.date);
-    const returnDate = data.returnDate ? toDateObj(data.returnDate) : undefined;
+    const returnDate = data.returnDate ? toDateObj(data.returnDate) : null;
 
     if (!isValidDate(departureDate)) {
       alert("Please select a valid departure date");
@@ -70,41 +76,63 @@ export default function BookingApp() {
       from: data.from,
       to: data.to,
       departureDate,
-      returnDate: returnDate || null,
+      returnDate,
       seats: data.seats,
       isReturn: !!data.returnDate,
     });
     setCurrentStep("schedules");
   };
 
-  const handleSelectBus = (bus: any) => {
-    if (bus.isReturnTrip) {
+  const handleSelectBus = (bus: any, isReturnTrip = false) => {
+    if (isReturnTrip) {
       setSelectedReturnBus(bus);
-    } else {
-      setSelectedBus(bus);
-    }
-    
-    setSelectedSeats([]);
-    
-    if (bus.isRequest) {
-      setShowRequestForm(true);
-    } else {
-      setCurrentStep("seats");
-    }
-  };
-
-  const handleSeatSelect = (seatId: string) => {
-    setSelectedSeats((prev) => {
-      if (prev.includes(seatId)) {
-        return prev.filter((id) => id !== seatId);
-      } else if (searchData && prev.length < searchData.seats) {
-        return [...prev, seatId];
+      if (bus.isRequest) {
+        setShowRequestForm(true);
+      } else {
+        setCurrentStep("return-seats");
       }
-      return prev;
-    });
+    } else {
+      setSelectedDepartureBus(bus);
+      if (bus.isRequest) {
+        setShowRequestForm(true);
+      } else {
+        setCurrentStep("departure-seats");
+      }
+    }
   };
 
-  const handleProceedToCheckout = () => {
+  const handleSeatSelect = (seatId: string, isReturnTrip = false) => {
+    if (isReturnTrip) {
+      setSelectedReturnSeats((prev) => {
+        if (prev.includes(seatId)) {
+          return prev.filter((id) => id !== seatId);
+        } else if (searchData && prev.length < searchData.seats) {
+          return [...prev, seatId];
+        }
+        return prev;
+      });
+    } else {
+      setSelectedDepartureSeats((prev) => {
+        if (prev.includes(seatId)) {
+          return prev.filter((id) => id !== seatId);
+        } else if (searchData && prev.length < searchData.seats) {
+          return [...prev, seatId];
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleProceedToPassengerDetails = () => {
+    if (searchData?.isReturn && selectedReturnSeats.length === 0) {
+      setIsReturnTripSelection(true);
+      setCurrentStep("return-schedules");
+    } else {
+      setCurrentStep("passenger-details");
+    }
+  };
+
+  const handleProceedToPayment = () => {
     setShowPayment(true);
   };
 
@@ -128,17 +156,17 @@ export default function BookingApp() {
             </svg>
           </div>
           <h2 className="text-3xl font-bold mb-4 text-teal-900">
-            {selectedBus?.isRequest ? "Request Submitted!" : "Booking Confirmed!"}
+            {selectedDepartureBus?.isRequest ? "Request Submitted!" : "Booking Confirmed!"}
           </h2>
           <p className="text-amber-700 mb-6">
-            {selectedBus?.isRequest
+            {selectedDepartureBus?.isRequest
               ? "Your tour vehicle request has been submitted. We'll contact you within 2 hours."
               : "Your Reeca Travel bus ticket has been successfully booked"}
           </p>
 
           <div className="p-4 bg-gradient-to-br from-teal-50 to-amber-50 rounded-lg mb-6 border border-teal-200">
             <div className="text-sm text-teal-700">
-              {selectedBus?.isRequest ? "Request Reference" : "Booking Reference"}
+              {selectedDepartureBus?.isRequest ? "Request Reference" : "Booking Reference"}
             </div>
             <div className="text-xl font-bold text-teal-900">
               #RT{Math.random().toString(36).substr(2, 9).toUpperCase()}
@@ -169,7 +197,8 @@ export default function BookingApp() {
     );
   }
 
-  if (showRequestForm && selectedBus) {
+  if (showRequestForm && (selectedDepartureBus || selectedReturnBus)) {
+    const bus = selectedDepartureBus || selectedReturnBus;
     return (
       <div className="bg-gradient-to-br from-amber-50 to-teal-50 min-h-screen">
         <header className="bg-white border-b shadow-sm">
@@ -198,49 +227,7 @@ export default function BookingApp() {
           </div>
         </header>
 
-        <RequestForm selectedBus={selectedBus} onSubmitRequest={handleRequestSubmit} />
-      </div>
-    );
-  }
-
-  if (currentStep === "seats" && selectedBus && searchData) {
-    return (
-      <div className="bg-gradient-to-br from-amber-50 to-teal-50 min-h-screen">
-        <header className="bg-white border-b shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
-                  <p className="text-xs text-amber-600">Seat Selection</p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep("schedules")}
-                className="text-teal-600 border-teal-600 hover:bg-teal-50"
-              >
-                Back to Schedule
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <SeatSelection
-          selectedBus={selectedBus}
-          selectedReturnBus={selectedReturnBus}
-          onSeatSelect={handleSeatSelect}
-          selectedSeats={selectedSeats}
-          onProceedToCheckout={handleProceedToCheckout}
-          showPayment={showPayment}
-          setShowPayment={setShowPayment}
-          onPaymentComplete={handlePaymentComplete}
-          searchData={searchData}
-          boardingPoints={boardingPoints}
-        />
+        <RequestForm selectedBus={bus} onSubmitRequest={handleRequestSubmit} />
       </div>
     );
   }
@@ -311,8 +298,109 @@ export default function BookingApp() {
                 </Button>
                 <BusSchedules
                   searchData={searchData}
-                  onSelectBus={handleSelectBus}
+                  onSelectBus={(bus) => handleSelectBus(bus)}
                   boardingPoints={boardingPoints}
+                />
+              </div>
+            )}
+
+            {currentStep === "departure-seats" && selectedDepartureBus && searchData && (
+              <div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentStep("schedules")}
+                  className="mb-4 text-teal-600 hover:bg-teal-50"
+                >
+                  ← Back to Schedule
+                </Button>
+                <SeatSelection
+                  selectedBus={selectedDepartureBus}
+                  onSeatSelect={(seatId) => handleSeatSelect(seatId)}
+                  selectedSeats={selectedDepartureSeats}
+                  onProceed={handleProceedToPassengerDetails}
+                  searchData={searchData}
+                  isReturnTrip={false}
+                />
+              </div>
+            )}
+
+            {currentStep === "return-schedules" && searchData && (
+              <div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentStep("departure-seats")}
+                  className="mb-4 text-teal-600 hover:bg-teal-50"
+                >
+                  ← Back to Departure Seats
+                </Button>
+                <BusSchedules
+                  searchData={{
+                    ...searchData,
+                    from: searchData.to,
+                    to: searchData.from,
+                    departureDate: searchData.returnDate || new Date(),
+                    returnDate: null
+                  }}
+                  onSelectBus={(bus) => handleSelectBus(bus, true)}
+                  boardingPoints={boardingPoints}
+                  isReturnTrip={true}
+                />
+              </div>
+            )}
+
+            {currentStep === "return-seats" && selectedReturnBus && searchData && (
+              <div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setCurrentStep("return-schedules")}
+                  className="mb-4 text-teal-600 hover:bg-teal-50"
+                >
+                  ← Back to Return Schedules
+                </Button>
+                <SeatSelection
+                  selectedBus={selectedReturnBus}
+                  onSeatSelect={(seatId) => handleSeatSelect(seatId, true)}
+                  selectedSeats={selectedReturnSeats}
+                  onProceed={handleProceedToPassengerDetails}
+                  searchData={{
+                    ...searchData,
+                    from: searchData.to,
+                    to: searchData.from,
+                    departureDate: searchData.returnDate || new Date(),
+                  }}
+                  isReturnTrip={true}
+                />
+              </div>
+            )}
+
+            {currentStep === "passenger-details" && searchData && (
+              <div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (selectedReturnBus) {
+                      setCurrentStep("return-seats");
+                    } else if (searchData.isReturn && !selectedReturnBus) {
+                      setCurrentStep("return-schedules");
+                    } else {
+                      setCurrentStep("departure-seats");
+                    }
+                  }}
+                  className="mb-4 text-teal-600 hover:bg-teal-50"
+                >
+                  ← Back to Seat Selection
+                </Button>
+                <PassengerDetailsForm
+                  departureBus={selectedDepartureBus}
+                  returnBus={selectedReturnBus}
+                  departureSeats={selectedDepartureSeats}
+                  returnSeats={selectedReturnSeats}
+                  searchData={searchData}
+                  boardingPoints={boardingPoints}
+                  onProceedToPayment={handleProceedToPayment}
+                  showPayment={showPayment}
+                  setShowPayment={setShowPayment}
+                  onPaymentComplete={handlePaymentComplete}
                 />
               </div>
             )}

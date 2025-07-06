@@ -25,12 +25,25 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
   const [isReturnTrip, setIsReturnTrip] = useState(true);
   const [totalSeats, setTotalSeats] = useState("1");
 
+  // Get today's date without time for proper date comparison
+  const getToday = () => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  };
+
+  // Check if a date is before today (excluding today)
+  const isDateBeforeToday = (date: Date) => {
+    const today = getToday();
+    const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return checkDate < today;
+  };
+
   const handleSearch = () => {
     if (fromLocation && toLocation && departureDate) {
       onSearch({
         from: fromLocation,
         to: toLocation,
-        departureDate,
+        date: departureDate, // Changed from departureDate to date to match parent component
         returnDate: isReturnTrip ? returnDate : null,
         seats: Number.parseInt(totalSeats),
       });
@@ -50,8 +63,12 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 height={168}
                 className="object-contain"
               />
-              <div className="absolute bottom-2 left-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-bold">
+              {/* Enhanced plate number styling - positioned at front */}
+              <div className="absolute bottom-6 left-8 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
                 B609BRD
+              </div>
+              <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                VIP CLASS
               </div>
             </div>
             <div className="relative">
@@ -62,8 +79,12 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 height={168}
                 className="object-contain"
               />
-              <div className="absolute bottom-2 left-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-bold">
+              {/* Enhanced plate number styling - positioned at front */}
+              <div className="absolute bottom-6 left-8 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
                 B610BRD
+              </div>
+              <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                STANDARD
               </div>
             </div>
           </div>
@@ -122,7 +143,7 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                   selected={departureDate}
                   onSelect={setDepartureDate}
                   initialFocus
-                  disabled={(date) => date < new Date()}
+                  disabled={isDateBeforeToday} // Fixed: Now allows today's date
                 />
               </PopoverContent>
             </Popover>
@@ -163,7 +184,13 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                   selected={returnDate}
                   onSelect={setReturnDate}
                   initialFocus
-                  disabled={(date) => date < (departureDate || new Date())}
+                  disabled={(date) => {
+                    // Return date cannot be before departure date (or today if no departure date selected)
+                    const minDate = departureDate || getToday();
+                    const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                    const minDateCheck = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+                    return checkDate < minDateCheck;
+                  }}
                 />
               </PopoverContent>
             </Popover>
@@ -195,6 +222,18 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
           >
             SEARCH BUSES
           </Button>
+        </div>
+
+        {/* Same-day booking notice */}
+        <div className="mt-4 p-3 bg-amber-500/20 border border-amber-300/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-amber-100">
+              <strong>Same-day booking available!</strong> You can book for today's departures until 11:00 PM.
+            </p>
+          </div>
         </div>
       </div>
     </div>

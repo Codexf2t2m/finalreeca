@@ -13,7 +13,7 @@ export interface BusCategory {
   arrivalTime: string;
   duration: string;
   isRequest?: boolean;
-  route?: string; // <-- Add this line (optional)
+  route?: string;
 }
 
 export interface BoardingPoint {
@@ -28,28 +28,7 @@ export interface SearchData {
   departureDate: Date;
   returnDate: Date | null;
   seats: number;
-  isReturn: boolean
-}
-
-export interface Booking {
-  id: string;
-  bookingRef: string;
-  passengerName: string;
-  email: string;
-  phone: string;
-  route: string;
-  date: Date;
-  time: string;
-  bus: string;
-  seats: string[];
-  passengers: number;
-  totalAmount: number;
-  paymentMethod: string;
-  bookingStatus: "Confirmed" | "Pending" | "Cancelled";
-  paymentStatus: "Paid" | "Unpaid";
-  boardingPoint: string;
-  droppingPoint: string;
-  specialRequests?: string;
+  isReturn: boolean;
 }
 
 export interface Seat {
@@ -63,15 +42,15 @@ export interface Seat {
   seatIndex: number;
 }
 
-export interface PassengerDetails {
-  fullName: string;
-  email: string;
-  phone: string;
-  passengers: number;
-  specialRequests: string;
+export interface Passenger {
+  id: string;
+  name: string;
+  title: string;
+  seatNumber: string;
 }
 
 export interface PaymentData {
+  tripId: string;
   totalPrice: number;
   selectedSeats: string[];
   userName: string;
@@ -79,4 +58,69 @@ export interface PaymentData {
   boardingPoint: string;
   droppingPoint: string;
   orderId: string;
+  promoCode?: string;
+  discountAmount?: number;
+  userPhone?: string;
+  returnTripId?: string;
+  returnPrice?: number;
+}
+
+export interface DpoTransactionResponse {
+  success: boolean;
+  orderRef?: string;
+  paymentUrl?: string;
+  transactionToken?: string;
+  error?: string;
+}
+
+export interface DpoVerifyResponse {
+  success: boolean;
+  result?: string;
+  explanation?: string;
+  transactionAmount?: number;
+  transactionCurrency?: string;
+  isPaid?: boolean;
+  error?: string;
+}
+
+export interface CreateTokenRequest extends PaymentData {
+  redirectUrl: string;
+  backUrl: string;
+  returnBoardingPoint?: string;
+  returnDroppingPoint?: string;
+}
+
+export interface BookingData extends PaymentData {
+  passengers: Passenger[];
+  returnBoardingPoint?: string;
+  returnDroppingPoint?: string;
+}
+
+export interface Booking {
+  id: string;
+  tripId: string;
+  returnTripId?: string;
+  passengers: Passenger[];
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  seats: string;
+  seatCount: number;
+  totalPrice: number;
+  boardingPoint: string;
+  droppingPoint: string;
+  returnBoardingPoint?: string;
+  returnDroppingPoint?: string;
+  orderId: string;
+  transactionToken?: string;
+  paymentStatus: string;
+  bookingStatus: string;
+  promoCode?: string;
+  discountAmount: number;
+  competitorInfo?: any;
+  scanned: boolean;
+  lastScanned?: Date;
+  scannerId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

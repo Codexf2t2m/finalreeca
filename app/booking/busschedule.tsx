@@ -15,6 +15,8 @@ interface Trip {
   availableSeats: number;
   serviceType: string;
   totalSeats: number;
+  promoActive?: boolean;
+  promoPrice?: number;
 }
 
 const morningBusImg = "/images/scania-irizar-vip.png";
@@ -22,21 +24,26 @@ const afternoonBusImg = "/images/scania-irizar-vip.png";
 
 interface BusSchedulesProps {
   searchData: SearchData;
-  onSelectBus: (bus: any) => void;
+  onSelectBus: (bus: any, isReturnTrip?: boolean) => void;
   boardingPoints: Record<string, BoardingPoint[]>;
+  isReturnTrip?: boolean;
 }
 
 // Cache for trips data
 const tripsCache = new Map<string, { data: Trip[]; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export default function BusSchedules({ searchData, onSelectBus, boardingPoints }: BusSchedulesProps) {
+export default function BusSchedules({ 
+  searchData, 
+  onSelectBus,
+  boardingPoints,
+  isReturnTrip = false
+}: BusSchedulesProps) {
   const [selectedDay, setSelectedDay] = useState(0);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showReturnTrips, setShowReturnTrips] = useState(!!searchData.returnDate);
 
-  // Memoized date utilities
+  // Fixed date utilities with proper timezone handling
   const dateUtils = useMemo(() => {
     const isValidDate = (date: any): date is Date | string => {
       return date && !isNaN(new Date(date).getTime());
@@ -46,7 +53,11 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
       if (!date || !isValidDate(date)) return "";
       try {
         const d = new Date(date);
-        return d.toISOString().split('T')[0];
+        // Use local date components to avoid timezone shifts
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       } catch {
         return "";
       }
@@ -65,15 +76,20 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
     return { isValidDate, toISODateString, safeFormat };
   }, []);
 
-  // Memoized days array
+  // Fixed days array with proper date handling
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       let baseDate;
       try {
-        baseDate = new Date(searchData.departureDate);
-        if (isNaN(baseDate.getTime())) throw new Error("Invalid date");
+        // Ensure we're working with the correct date
+        const inputDate = new Date(searchData.departureDate);
+        if (isNaN(inputDate.getTime())) throw new Error("Invalid date");
+        
+        // Create date in local timezone to avoid timezone shifts
+        baseDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
       } catch {
-        baseDate = new Date();
+        const today = new Date();
+        baseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       }
       
       const date = addDays(baseDate, i);
@@ -88,8 +104,8 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
 
   // Optimized fetch with caching
   const fetchTrips = useCallback(async () => {
-    const returnDateStr = searchData.returnDate ? dateUtils.toISODateString(searchData.returnDate) : '';
-    const cacheKey = `${searchData.from}-${searchData.to}-${dateUtils.toISODateString(searchData.departureDate)}-${returnDateStr}`;
+    const departureDateStr = dateUtils.toISODateString(searchData.departureDate);
+    const cacheKey = `${searchData.from}-${searchData.to}-${departureDateStr}`;
     const cached = tripsCache.get(cacheKey);
     
     // Check if we have valid cached data
@@ -104,24 +120,15 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
       const params = new URLSearchParams({
         from: searchData.from,
         to: searchData.to,
-        departureDate: dateUtils.toISODateString(searchData.departureDate)
+        departureDate: departureDateStr
       });
       
-      if (searchData.returnDate) {
-        params.append('returnDate', dateUtils.toISODateString(searchData.returnDate));
-      }
-      
       const url = `/api/trips?${params.toString()}`;
-      console.log('Fetching trips from:', url);
       
       const res = await fetch(url);
       
-      console.log('Response status:', res.status);
-      console.log('Response ok:', res.ok);
-      
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Error response:', errorText);
         let errorData;
         try {
           errorData = JSON.parse(errorText);
@@ -132,14 +139,12 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
       }
       
       const data: Trip[] = await res.json();
-      console.log('Fetched trips:', data);
       
       // Cache the results
       tripsCache.set(cacheKey, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
       console.error("Error fetching trips:", error);
-      // Show error message to user
       alert(`Error loading trips: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setTrips([]); // Set empty array on error
     } finally {
@@ -151,40 +156,22 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
     fetchTrips();
   }, [fetchTrips]);
 
-  // Memoized filtered trips
-  const { filteredTrips, filteredReturnTrips } = useMemo(() => {
+  // Fixed filtered trips
+  const filteredTrips = useMemo(() => {
     const selectedDate = days[selectedDay]?.date;
     const selectedDateStr = dateUtils.toISODateString(selectedDate);
-    const returnDateStr = searchData.returnDate ? dateUtils.toISODateString(searchData.returnDate) : "";
 
-    const outboundTrips = trips.filter((trip) => {
+    return trips.filter((trip) => {
       const tripDate = dateUtils.toISODateString(trip.departureDate);
-      return (
-        trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
-        trip.routeDestination.toLowerCase() === searchData.to.toLowerCase() &&
-        tripDate === selectedDateStr &&
-        tripDate
-      );
+      const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
+                          trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
+      const matchesDate = tripDate === selectedDateStr;
+      
+      return matchesRoute && matchesDate && tripDate;
     });
-
-    const returnTrips = trips.filter((trip) => {
-      const tripDate = dateUtils.toISODateString(trip.departureDate);
-      return (
-        trip.routeOrigin.toLowerCase() === searchData.to.toLowerCase() &&
-        trip.routeDestination.toLowerCase() === searchData.from.toLowerCase() &&
-        tripDate === returnDateStr &&
-        tripDate
-      );
-    });
-
-    return {
-      filteredTrips: outboundTrips,
-      filteredReturnTrips: returnTrips
-    };
   }, [trips, selectedDay, days, searchData, dateUtils]);
 
-  // Memoized trip card component
-  const TripCard = useCallback(({ trip, isReturnTrip = false }: { trip: Trip; isReturnTrip?: boolean }) => {
+  const TripCard = useCallback(({ trip }: { trip: Trip }) => {
     const isMorning = trip.serviceType.includes("Morning");
     const busImg = isMorning ? morningBusImg : afternoonBusImg;
     const durationHours = Math.floor(trip.durationMinutes / 60);
@@ -209,7 +196,7 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
         ...trip,
         isReturnTrip,
         route: `${trip.routeOrigin} → ${trip.routeDestination}`,
-      });
+      }, isReturnTrip);
     };
 
     const handleRequestBus = () => {
@@ -218,7 +205,7 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
         isRequest: true,
         isReturnTrip,
         route: `${trip.routeOrigin} → ${trip.routeDestination}`,
-      });
+      }, isReturnTrip);
     };
 
     return (
@@ -291,7 +278,7 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
         </div>
       </div>
     );
-  }, [onSelectBus, dateUtils]);
+  }, [onSelectBus, dateUtils, isReturnTrip]);
 
   return (
     <div className="max-w-5xl mx-auto mt-8">
@@ -301,22 +288,13 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
               <h2 className="text-xl font-bold text-gray-800 capitalize">
+                {isReturnTrip ? 'RETURN TRIP: ' : ''}
                 {searchData.from} → {searchData.to}
               </h2>
               <p className="text-sm text-gray-600">
                 {dateUtils.safeFormat(searchData.departureDate, "EEEE, MMMM do, yyyy")}
               </p>
             </div>
-            {searchData.returnDate && (
-              <div className="mt-2 md:mt-0">
-                <h2 className="text-xl font-bold text-gray-800 capitalize">
-                  {searchData.to} → {searchData.from}
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {dateUtils.safeFormat(searchData.returnDate, "EEEE, MMMM do, yyyy")}
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -355,6 +333,25 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
           ) : filteredTrips.length === 0 ? (
             <div className="p-8 text-center text-gray-400">
               No trips found for this day.
+              <div className="mt-4 text-sm">
+                <p>Debug info:</p>
+                <p>Selected date: {dateUtils.toISODateString(days[selectedDay]?.date)}</p>
+                <p>Total trips available: {trips.length}</p>
+                <p>Route: {searchData.from} → {searchData.to}</p>
+              </div>
+              <Button
+                onClick={() => onSelectBus({
+                  id: `request-${Date.now()}`,
+                  routeOrigin: searchData.from,
+                  routeDestination: searchData.to,
+                  departureDate: days[selectedDay]?.date.toISOString() || '',
+                  isRequest: true,
+                  route: `${searchData.from} → ${searchData.to}`,
+                }, isReturnTrip)}
+                className="mt-4 bg-amber-500 hover:bg-amber-600 text-gray-900"
+              >
+                Request Custom Trip
+              </Button>
             </div>
           ) : (
             filteredTrips.map((trip) => (
@@ -362,61 +359,6 @@ export default function BusSchedules({ searchData, onSelectBus, boardingPoints }
             ))
           )}
         </div>
-
-        {/* Return trips section */}
-        {searchData.returnDate && (
-          <div className="p-6 border-t bg-gradient-to-r from-gray-50 to-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
-                {searchData.to} → {searchData.from} on {dateUtils.safeFormat(searchData.returnDate, "EEE, MMM do")}
-              </h3>
-              <Button 
-                variant="outline"
-                onClick={() => setShowReturnTrips(!showReturnTrips)}
-                className="text-teal-600 border-teal-600 hover:bg-teal-50"
-              >
-                {showReturnTrips ? "Hide" : "Show"} Return Trips
-              </Button>
-            </div>
-            
-            {showReturnTrips && (
-              <div className="divide-y">
-                {filteredReturnTrips.length === 0 ? (
-                  <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
-                    <p className="text-gray-500 mb-4">No return trips found for selected date</p>
-                    <Button
-                      onClick={() => onSelectBus({
-                        id: `request-${Date.now()}`,
-                        routeOrigin: searchData.to,
-                        routeDestination: searchData.from,
-                        departureDate: searchData.returnDate?.toISOString() || '',
-                        isRequest: true,
-                        isReturnTrip: true,
-                        route: `${searchData.to} → ${searchData.from}`,
-                      })}
-                      className="bg-amber-500 hover:bg-amber-600 text-gray-900"
-                    >
-                      Request Custom Return Trip
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold text-gray-700">
-                      <div className="col-span-2">Bus Details</div>
-                      <div>Departure</div>
-                      <div>Duration</div>
-                      <div>Arrival</div>
-                      <div className="text-right">Fare & Action</div>
-                    </div>
-                    {filteredReturnTrips.map((trip) => (
-                      <TripCard key={trip.id} trip={trip} isReturnTrip={true} />
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
