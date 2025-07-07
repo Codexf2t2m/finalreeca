@@ -8,7 +8,7 @@ interface BookingData {
   phone: string;
   passengers: number;
   route: string;
-  date: Date | string; // Allow both Date and string types
+  date: Date | string;
   time: string;
   bus: string;
   boardingPoint: string;
@@ -19,6 +19,7 @@ interface BookingData {
   paymentStatus: string;
   bookingStatus: string;
   specialRequests?: string;
+  passengerList?: { name: string; seat: string }[]; // Add this for multiple passengers
 }
 
 interface PrintableTicketProps {
@@ -70,9 +71,13 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
   };
   
   const qrString = JSON.stringify(qrData);
-  
-  // Generate QR code URL (using a free QR code service)
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrString)}`;
+
+  // Use passengerList if provided, else fallback to single passenger
+  const passengerList: { name: string; seat: string }[] =
+    bookingData.passengerList && bookingData.passengerList.length > 0
+      ? bookingData.passengerList
+      : [{ name: bookingData.passengerName, seat: bookingData.seats.join(", ") }];
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 font-sans" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -95,9 +100,10 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
         </div>
       </div>
 
-      {/* Company Details */}
-      <div className="grid grid-cols-2 gap-8 mb-8">
-        <div>
+      {/* Company & Passenger Details */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        {/* Company */}
+        <div className="md:col-span-1">
           <h3 className="font-bold text-gray-800 mb-2">REECA TRAVEL</h3>
           <div className="text-sm text-gray-600 space-y-1">
             <p>Company ID: REECA TRAVEL</p>
@@ -110,28 +116,38 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             <p>WWW.REECATRAVEL.CO.BW</p>
           </div>
         </div>
-        
-        <div>
+        {/* Passenger List */}
+        <div className="md:col-span-2">
           <h3 className="font-bold text-gray-800 mb-2">Passenger Details</h3>
-          <div className="text-sm text-gray-600 space-y-1">
-            <p className="font-semibold text-gray-800">{bookingData.passengerName}</p>
-            <p>{bookingData.email}</p>
-            <p>{bookingData.phone}</p>
-            <p>Passengers: {bookingData.passengers}</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-200 rounded">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">#</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Name</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Seat</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Email</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Phone</th>
+                </tr>
+              </thead>
+              <tbody>
+                {passengerList.map((p, idx) => (
+                  <tr key={idx} className="border-t border-gray-100">
+                    <td className="px-3 py-2 text-xs">{idx + 1}</td>
+                    <td className="px-3 py-2 text-xs">{p.name}</td>
+                    <td className="px-3 py-2 text-xs">{p.seat}</td>
+                    <td className="px-3 py-2 text-xs">{bookingData.email}</td>
+                    <td className="px-3 py-2 text-xs">{bookingData.phone}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Date:</span>
-              <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span>
-            </div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Booking Date:</span>
-              <span className="font-semibold">{formatDate(bookingData.date, "dd MMM yyyy")}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Status:</span>
-              <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span>
-            </div>
+          <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-600">
+            <span>Passengers: <span className="font-semibold">{bookingData.passengers}</span></span>
+            <span>Status: <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span></span>
+            <span>Date Issued: <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span></span>
+            <span>Booking Date: <span className="font-semibold">{formatDate(bookingData.date, "dd MMM yyyy")}</span></span>
           </div>
         </div>
       </div>
@@ -216,7 +232,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       )}
 
       {/* QR Code and Terms */}
-      <div className="grid grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <div className="bg-gray-100 p-2 mb-2">
             <h3 className="font-bold text-gray-800">Important Notes</h3>
@@ -274,7 +290,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-600">
         <p>Thank you for choosing REECA TRAVEL for your journey!</p>
-        <p>For support, contact us at +26773061124 or aging@reecatravel.co.bw</p>
+        <p>For support, contact us at +26773061124 or admin@reecatravel.co.bw</p>
       </div>
 
       {/* Print Button */}
@@ -292,16 +308,13 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           .no-print {
             display: none !important;
           }
-          
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
           }
-          
           .bg-gray-100 {
             background-color: #f3f4f6 !important;
           }
-          
           .bg-gray-50 {
             background-color: #f9fafb !important;
           }
