@@ -5,10 +5,19 @@ import { CreateTokenRequest } from '@/lib/types';
 
 const prisma = new PrismaClient();
 
+// In-memory store for request deduplication (use Redis in production)
+const requestCache = new Map<string, { timestamp: number, response: any }>();
+const CACHE_DURATION = 30000; // 30 seconds
+
 const generateOrderId = () => {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
   return `RT-${timestamp}-${randomStr}`;
+};
+
+// Create a unique request key for deduplication
+const createRequestKey = (data: any) => {
+  return `${data.tripId}-${data.userEmail}-${data.selectedSeats?.join(',')}-${data.totalPrice}`;
 };
 
 const validateInput = (data: any) => {
@@ -71,6 +80,16 @@ const logError = (context: string, error: unknown, additionalData?: any) => {
   });
 };
 
+// Clean up expired cache entries
+const cleanupCache = () => {
+  const now = Date.now();
+  for (const [key, value] of requestCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      requestCache.delete(key);
+    }
+  }
+};
+
 export async function OPTIONS(request: NextRequest) {
   return new Response(null, {
     status: 204,
@@ -96,7 +115,25 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const rawBody = await request.json();
+    
+    // Create request key for deduplication
+    const requestKey = createRequestKey(rawBody);
+    
+    // Clean up expired cache entries
+    cleanupCache();
+    
+    // Check for duplicate request
+    const cachedResponse = requestCache.get(requestKey);
+    if (cachedResponse) {
+      console.log('[PAYMENT-API] Returning cached response for duplicate request:', requestKey);
+      return new Response(JSON.stringify(cachedResponse.response), {
+        status: cachedResponse.response.success ? 200 : 400,
+        headers
+      });
+    }
+    
     console.log('[PAYMENT-API] Request received:', {
+      requestKey,
       tripId: rawBody.tripId,
       totalPrice: rawBody.totalPrice,
       userName: rawBody.userName,
@@ -108,11 +145,19 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validationErrors = validateInput(rawBody);
     if (validationErrors.length > 0) {
-      return new Response(JSON.stringify({
+      const errorResponse = {
         success: false,
         orderRef: 'validation-error',
         error: `Validation failed: ${validationErrors.join(', ')}`
-      }), { status: 400, headers });
+      };
+      
+      // Cache validation error to prevent repeated validation
+      requestCache.set(requestKey, {
+        timestamp: Date.now(),
+        response: errorResponse
+      });
+      
+      return new Response(JSON.stringify(errorResponse), { status: 400, headers });
     }
 
     const { 
@@ -131,18 +176,75 @@ export async function POST(request: NextRequest) {
       returnDroppingPoint
     } = rawBody;
 
-    // Check if trip exists
+    // Check if trip exists and has available seats
     const trip = await prisma.trip.findUnique({ 
       where: { id: tripId },
-      select: { id: true, routeName: true, routeOrigin: true, routeDestination: true }
+      select: { 
+        id: true, 
+        routeName: true, 
+        routeOrigin: true, 
+        routeDestination: true,
+        availableSeats: true,
+        totalSeats: true
+      }
     });
     
     if (!trip) {
-      return new Response(JSON.stringify({
+      const errorResponse = {
         success: false,
         orderRef: 'trip-not-found',
         error: `Trip not found: ${tripId}`
-      }), { status: 404, headers });
+      };
+      
+      requestCache.set(requestKey, {
+        timestamp: Date.now(),
+        response: errorResponse
+      });
+      
+      return new Response(JSON.stringify(errorResponse), { status: 404, headers });
+    }
+
+    // Check seat availability
+    if (trip.availableSeats < selectedSeats.length) {
+      const errorResponse = {
+        success: false,
+        orderRef: 'insufficient-seats',
+        error: `Only ${trip.availableSeats} seats available, but ${selectedSeats.length} requested`
+      };
+      
+      requestCache.set(requestKey, {
+        timestamp: Date.now(),
+        response: errorResponse
+      });
+      
+      return new Response(JSON.stringify(errorResponse), { status: 400, headers });
+    }
+
+    // Check for existing pending booking for same user/trip
+    const existingBooking = await prisma.booking.findFirst({
+      where: {
+        tripId,
+        userEmail: userEmail.trim().toLowerCase(),
+        paymentStatus: { in: ['pending', 'initiated'] },
+        createdAt: {
+          gte: new Date(Date.now() - 15 * 60 * 1000) // Within last 15 minutes
+        }
+      }
+    });
+
+    if (existingBooking) {
+      const errorResponse = {
+        success: false,
+        orderRef: 'booking-exists',
+        error: 'You already have a pending booking for this trip. Please complete or cancel it first.'
+      };
+      
+      requestCache.set(requestKey, {
+        timestamp: Date.now(),
+        response: errorResponse
+      });
+      
+      return new Response(JSON.stringify(errorResponse), { status: 400, headers });
     }
 
     // Generate order ID
@@ -203,7 +305,8 @@ export async function POST(request: NextRequest) {
       orderId,
       totalPrice,
       redirectUrl,
-      backUrl
+      backUrl,
+      seatCount: selectedSeats.length
     });
 
     // Call DPO service
@@ -212,7 +315,8 @@ export async function POST(request: NextRequest) {
       success: dpoResponse.success,
       hasToken: !!dpoResponse.transactionToken,
       hasPaymentUrl: !!dpoResponse.paymentUrl,
-      error: dpoResponse.error
+      error: dpoResponse.error,
+      resultCode: dpoResponse.resultCode
     });
 
     // Update booking with transaction token
@@ -228,17 +332,28 @@ export async function POST(request: NextRequest) {
     } else {
       await prisma.booking.update({
         where: { id: bookingId },
-        data: { paymentStatus: 'failed' }
+        data: { 
+          paymentStatus: 'failed'
+        }
       });
       console.log('[PAYMENT-API] Booking marked as failed');
     }
 
-    // Return response to client
-    return new Response(JSON.stringify({
+    // Prepare response
+    const response = {
       ...dpoResponse,
       orderRef: orderId,
       bookingId: booking.id
-    }), {
+    };
+
+    // Cache the response
+    requestCache.set(requestKey, {
+      timestamp: Date.now(),
+      response
+    });
+
+    // Return response to client
+    return new Response(JSON.stringify(response), {
       status: dpoResponse.success ? 200 : 400,
       headers
     });
@@ -250,7 +365,9 @@ export async function POST(request: NextRequest) {
       try {
         await prisma.booking.update({
           where: { id: bookingId },
-          data: { paymentStatus: 'failed' }
+          data: { 
+            paymentStatus: 'failed'
+          }
         });
       } catch (updateError) {
         logError('Database Error - Booking Update (Unexpected Error)', updateError, { bookingId });
@@ -260,7 +377,7 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({
       success: false,
       orderRef: 'server-error',
-      error: 'Internal server error occurred'
+      error: 'Internal server error occurred. Please try again.'
     }), {
       status: 500,
       headers

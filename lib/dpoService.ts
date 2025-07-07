@@ -35,10 +35,14 @@ const toDPODateFormat = (date: Date) => {
 
 export const createToken = async (requestData: CreateTokenRequest): Promise<CreateTokenResponse> => {
   try {
-    // Validate environment
+    // Validate environment variables
     if (!process.env.DPO_COMPANY_TOKEN) {
-      console.error('DPO_COMPANY_TOKEN is not set');
+      console.error('[DPO] DPO_COMPANY_TOKEN is not set');
       throw new Error('Payment gateway configuration error');
+    }
+
+    if (!process.env.DPO_SERVICE_TYPE) {
+      console.error('[DPO] DPO_SERVICE_TYPE is not set, using default');
     }
 
     // Split user name
@@ -46,14 +50,15 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
     const firstName = nameParts[0] || 'Customer';
     const lastName = nameParts.slice(1).join(' ') || 'User';
 
-    // Calculate auto charge date (15 hours from now)
-    const autoChargeDate = new Date(Date.now() + 15 * 60 * 60 * 1000);
+    // Calculate auto charge date (24 hours from now for better reliability)
+    const autoChargeDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Build XML payload
+    // Build XML payload with proper structure
     const xmlBuilder = new xml2js.Builder({
       rootName: 'API3G',
       headless: true,
-      renderOpts: { pretty: true }
+      renderOpts: { pretty: false }, // Compact XML to avoid formatting issues
+      xmldec: { version: '1.0', encoding: 'UTF-8' }
     });
 
     const payloadData = {
@@ -61,26 +66,27 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
       Request: 'createToken',
       Transaction: {
         PaymentAmount: requestData.totalPrice.toFixed(2),
-        PaymentCurrency: 'USD',
+        PaymentCurrency: 'BWP', // Changed to Botswana Pula - adjust if needed
         CompanyRef: requestData.orderId,
         RedirectURL: requestData.redirectUrl,
         BackURL: requestData.backUrl,
         CompanyRefUnique: '0',
-        CompanyAccRef: `Bus booking ${requestData.orderId}`,
-        PTL: '15',
-        TransactionChargeType: '',
-        TransactionAutoChargeDate: toDPODateFormat(autoChargeDate),
+        CompanyAccRef: `Bus booking for ${requestData.selectedSeats.length} seat(s)`,
+        PTL: '24', // Increased to 24 hours
         PTLtype: 'hours',
         customerFirstName: firstName,
         customerLastName: lastName,
         customerEmail: requestData.userEmail,
-        FraudTimeLimit: '60',
-        AllowRecurrent: ''
+        // Remove problematic fields that might cause 403
+        // TransactionChargeType: '',
+        // TransactionAutoChargeDate: toDPODateFormat(autoChargeDate),
+        // FraudTimeLimit: '60',
+        // AllowRecurrent: ''
       },
       Services: {
         Service: {
           ServiceType: process.env.DPO_SERVICE_TYPE || '3854',
-          ServiceDescription: requestData.selectedSeats.join(', ') || 'Bus Seats',
+          ServiceDescription: `Bus seats: ${requestData.selectedSeats.join(', ')}`,
           ServiceDate: toDPODateFormat(new Date())
         }
       }
@@ -88,14 +94,40 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
 
     const xmlPayload = xmlBuilder.buildObject(payloadData);
     
-    // Make API call to DPO
+    console.log('[DPO] Sending request to DPO API');
+    console.log('[DPO] XML Payload:', xmlPayload.substring(0, 200) + '...');
+
+    // Make API call to DPO with better headers and configuration
     const response = await axios.post('https://secure.3gdirectpay.com/API/v6/', xmlPayload, {
       headers: { 
         'Content-Type': 'application/xml',
-        'Accept': 'application/xml'
+        'Accept': 'application/xml',
+        'User-Agent': 'Bus-Booking-System/1.0',
+        'Cache-Control': 'no-cache'
       },
-      timeout: 15000
+      timeout: 30000, // Increased timeout
+      maxRedirects: 0, // Prevent redirects
+      validateStatus: function (status) {
+        return status >= 200 && status < 500; // Don't throw on 4xx errors
+      }
     });
+
+    console.log('[DPO] Response status:', response.status);
+    console.log('[DPO] Response headers:', response.headers);
+
+    // Handle non-200 responses
+    if (response.status !== 200) {
+      console.error('[DPO] Non-200 response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data?.substring(0, 500)
+      });
+      
+      return {
+        success: false,
+        error: `Payment gateway returned status ${response.status}. Please try again later.`,
+      };
+    }
 
     // Parse XML response
     const parser = new xml2js.Parser({ 
@@ -108,10 +140,16 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
     const result = await parser.parseStringPromise(response.data);
     const api3g = result.api3g;
 
+    console.log('[DPO] Parsed response:', {
+      result: api3g?.result,
+      resultexplanation: api3g?.resultexplanation,
+      hasTransToken: !!api3g?.transtoken
+    });
+
     if (!api3g) {
       return {
         success: false,
-        error: 'Invalid response from payment gateway',
+        error: 'Invalid response format from payment gateway',
       };
     }
 
@@ -120,15 +158,17 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
       const transactionToken = api3g.transtoken;
       
       if (!transactionToken) {
-        console.error('Success response but missing transaction token');
+        console.error('[DPO] Success response but missing transaction token');
         return {
           success: false,
           error: 'Payment gateway returned success but no transaction token',
         };
       }
 
-      // CORRECTED PAYMENT URL - uses uppercase ID as required by DPO
+      // Payment URL with uppercase ID as required by DPO
       const paymentUrl = `https://secure.3gdirectpay.com/dpopayment.php?ID=${transactionToken}`;
+      
+      console.log('[DPO] Token created successfully:', transactionToken);
       
       return {
         success: true,
@@ -140,6 +180,11 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
     } 
     // Handle DPO API errors
     else {
+      console.error('[DPO] API Error:', {
+        result: api3g.result,
+        explanation: api3g.resultexplanation
+      });
+      
       return {
         success: false,
         error: api3g.resultexplanation || 'Failed to create payment token',
@@ -148,11 +193,40 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
     }
 
   } catch (error: any) {
-    console.error('DPO Communication Error:', {
+    console.error('[DPO] Communication Error:', {
       message: error.message,
       code: error.code,
-      response: error.response?.data,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data?.substring(0, 500),
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      }
     });
+    
+    // More specific error messages based on error type
+    if (error.code === 'ECONNABORTED') {
+      return {
+        success: false,
+        error: 'Payment gateway request timed out. Please try again.',
+      };
+    }
+    
+    if (error.response?.status === 403) {
+      return {
+        success: false,
+        error: 'Payment gateway access denied. Please contact support.',
+      };
+    }
+    
+    if (error.response?.status >= 500) {
+      return {
+        success: false,
+        error: 'Payment gateway server error. Please try again later.',
+      };
+    }
     
     return {
       success: false,
@@ -187,7 +261,8 @@ export const verifyToken = async (transactionToken: string): Promise<VerifyToken
     const xmlBuilder = new xml2js.Builder({
       rootName: 'API3G',
       headless: true,
-      renderOpts: { pretty: true }
+      renderOpts: { pretty: false },
+      xmldec: { version: '1.0', encoding: 'UTF-8' }
     });
     
     const xmlPayload = xmlBuilder.buildObject({
@@ -196,13 +271,28 @@ export const verifyToken = async (transactionToken: string): Promise<VerifyToken
       TransactionToken: transactionToken,
     });
 
+    console.log('[DPO] Verifying token:', transactionToken);
+
     const response = await axios.post('https://secure.3gdirectpay.com/API/v6/', xmlPayload, {
       headers: { 
         'Content-Type': 'application/xml',
-        'Accept': 'application/xml'
+        'Accept': 'application/xml',
+        'User-Agent': 'Bus-Booking-System/1.0',
+        'Cache-Control': 'no-cache'
       },
-      timeout: 10000,
+      timeout: 15000,
+      validateStatus: function (status) {
+        return status >= 200 && status < 500;
+      }
     });
+
+    if (response.status !== 200) {
+      console.error('[DPO] Verification non-200 response:', response.status);
+      return {
+        success: false,
+        error: `Payment verification failed with status ${response.status}`,
+      };
+    }
 
     const parser = new xml2js.Parser({ 
       explicitArray: false, 
@@ -222,6 +312,11 @@ export const verifyToken = async (transactionToken: string): Promise<VerifyToken
     }
 
     const resultCode = api3g.result;
+    
+    console.log('[DPO] Verification result:', {
+      result: resultCode,
+      explanation: api3g.resultexplanation
+    });
     
     if (resultCode === '000') {
       return {
@@ -247,10 +342,11 @@ export const verifyToken = async (transactionToken: string): Promise<VerifyToken
       };
     }
   } catch (error: any) {
-    console.error('DPO Verification Error:', {
+    console.error('[DPO] Verification Error:', {
       message: error.message,
       code: error.code,
-      response: error.response?.data,
+      status: error.response?.status,
+      response: error.response?.data?.substring(0, 500),
     });
     
     return {
