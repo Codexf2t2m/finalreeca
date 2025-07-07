@@ -156,12 +156,20 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
+
+    // Ensure numeric fields are numbers
+    if (typeof data.fare === "string") data.fare = parseFloat(data.fare);
+    if (typeof data.durationMinutes === "string") data.durationMinutes = parseInt(data.durationMinutes, 10);
+    if (typeof data.totalSeats === "string") data.totalSeats = parseInt(data.totalSeats, 10);
+    if (typeof data.availableSeats === "string") data.availableSeats = parseInt(data.availableSeats, 10);
+
+    // Remove fields that are not part of the Trip model (like bookings, returnBookings)
+    delete data.bookings;
+    delete data.returnBookings;
+
     const updatedTrip = await prisma.trip.update({
       where: { id: data.id },
-      data: {
-        ...data,
-        departureDate: data.departureDate ? new Date(data.departureDate) : undefined,
-      },
+      data: data,
     });
     return NextResponse.json(updatedTrip);
   } catch (error) {

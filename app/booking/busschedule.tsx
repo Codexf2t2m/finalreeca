@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
+import { Wifi, Luggage, CheckCircle2 } from "lucide-react";
 
 interface Trip {
   id: string;
@@ -176,10 +177,10 @@ export default function BusSchedules({
     const busImg = isMorning ? morningBusImg : afternoonBusImg;
     const durationHours = Math.floor(trip.durationMinutes / 60);
     const durationMinutes = trip.durationMinutes % 60;
-    
+
     let departureDate: Date | null = null;
     let arrivalDate: Date | null = null;
-    
+
     try {
       departureDate = new Date(trip.departureDate);
       if (!isNaN(departureDate.getTime())) {
@@ -189,7 +190,7 @@ export default function BusSchedules({
     } catch {
       // Handle invalid dates gracefully
     }
-    
+
     const isFull = trip.availableSeats === 0;
     const handleSelectBus = () => {
       onSelectBus({
@@ -207,6 +208,15 @@ export default function BusSchedules({
         route: `${trip.routeOrigin} → ${trip.routeDestination}`,
       }, isReturnTrip);
     };
+
+    // --- ICONS: Add features here ---
+    // You can customize these based on your data model
+    const features = [
+      { icon: <Wifi className="w-5 h-5 text-teal-600" />, label: "WiFi" },
+      { icon: <Luggage className="w-5 h-5 text-teal-600" />, label: "Baggage" },
+      { icon: <CheckCircle2 className="w-5 h-5 text-teal-600" />, label: "AC" },
+      // Add more icons/labels as needed
+    ];
 
     return (
       <div className="grid grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors">
@@ -228,6 +238,14 @@ export default function BusSchedules({
                 {trip.routeOrigin} → {trip.routeDestination}
               </div>
               <div className="text-xs text-gray-500">{trip.totalSeats} seats</div>
+              {/* Feature icons */}
+              <div className="flex gap-2 mt-1">
+                {features.map((f, idx) => (
+                  <span key={f.label} title={f.label} className="flex items-center">
+                    {f.icon}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

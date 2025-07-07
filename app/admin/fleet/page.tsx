@@ -831,7 +831,7 @@ const FleetManagementPage = () => {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{currentTrip ? 'Edit Trip' : 'Add Trip'}</DialogTitle>
           </DialogHeader>

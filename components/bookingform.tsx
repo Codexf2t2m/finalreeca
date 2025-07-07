@@ -63,12 +63,9 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 height={168}
                 className="object-contain"
               />
-              {/* Enhanced plate number styling - positioned at front */}
+              {/* Plate number styling - positioned at front */}
               <div className="absolute bottom-6 left-8 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
-                B609BRD
-              </div>
-              <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-semibold">
-                VIP CLASS
+                B300CAA
               </div>
             </div>
             <div className="relative">
@@ -79,12 +76,9 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 height={168}
                 className="object-contain"
               />
-              {/* Enhanced plate number styling - positioned at front */}
-              <div className="absolute bottom-6 left-8 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
-                B610BRD
-              </div>
-              <div className="absolute bottom-2 right-2 bg-teal-600 text-white px-2 py-1 rounded text-xs font-semibold">
-                STANDARD
+              {/* Plate number at the spot where "STANDARD" was */}
+              <div className="absolute bottom-2 right-2 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
+                B300CAB
               </div>
             </div>
           </div>
@@ -206,9 +200,9 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                   <SelectValue placeholder="1" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num}
+                  {[...Array(50)].map((_, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      {i + 1}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -222,18 +216,6 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
           >
             SEARCH BUSES
           </Button>
-        </div>
-
-        {/* Same-day booking notice */}
-        <div className="mt-4 p-3 bg-amber-500/20 border border-amber-300/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-amber-100">
-              <strong>Same-day booking available!</strong> You can book for today's departures until 11:00 PM.
-            </p>
-          </div>
         </div>
       </div>
     </div>

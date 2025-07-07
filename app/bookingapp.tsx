@@ -205,8 +205,14 @@ export default function BookingApp() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
+                <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
+                  <Image
+                    src="/images/reeca-travel-logo.png"
+                    alt="Reeca Travel"
+                    width={96}
+                    height={56}
+                    className="object-contain"
+                  />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
@@ -238,8 +244,14 @@ export default function BookingApp() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
-                <Image src="/images/reeca-travel-logo.png" alt="Reeca Travel" width={40} height={24} className="object-contain" />
+              <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
+                <Image
+                  src="/images/reeca-travel-logo.png"
+                  alt="Reeca Travel"
+                  width={96}
+                  height={56}
+                  className="object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>

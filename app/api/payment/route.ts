@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createToken } from '@/lib/dpoService';
 import { CreateTokenRequest } from '@/lib/types';
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
       seatCount: selectedSeats.length
     });
 
-    // Prepare payment gateway URLs
+    // Always build payment gateway URLs from backend env
     const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const redirectUrl = `${base}/payment/success?ref=${orderId}`;
     const backUrl = `${base}/payment/cancel?ref=${orderId}`;
@@ -382,7 +382,5 @@ export async function POST(request: NextRequest) {
       status: 500,
       headers
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
