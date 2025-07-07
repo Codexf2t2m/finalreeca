@@ -34,12 +34,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-8 bg-white rounded-lg flex items-center justify-center p-1">
+              <div className="w-32 h-16 bg-white rounded-lg flex items-center justify-center p-2">
                 <Image
                   src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
-                  width={40}
-                  height={24}
+                  width={128}
+                  height={64}
                   className="object-contain"
                 />
               </div>
