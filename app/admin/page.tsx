@@ -153,7 +153,7 @@ export default function DashboardOverview() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-600">Pending Requests</p>
+                <p className="text-sm font-medium text-red-600">Pending Inquiries</p>
                 <p className="text-3xl font-bold text-red-900">{stats.pendingRequests}</p>
                 <p className="text-xs text-red-600 mt-1">Awaiting approval</p>
               </div>

@@ -56,7 +56,7 @@ const fetchTripBookings = async (tripId: string) => {
 };
 
 const generateSeatLayoutWithBookings = (
-  totalSeats = 57,
+  totalSeats = 63, // changed from 57 to 63
   occupiedSeats: string[] = [],
   bookedSeats: string[] = []
 ): Seat[] => {
@@ -173,7 +173,7 @@ export default function SeatSelection({
   }
   const totalPrice = pricePerSeat * selectedSeats.length;
 
-  const numberOfRows = Math.ceil((selectedBus.totalSeats || 57) / 4);
+  const numberOfRows = Math.ceil((selectedBus.totalSeats || 63) / 4);
 
   if (isLoadingSeats) {
     return (

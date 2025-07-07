@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 
 
-interface Request {
+interface Inquiry {
   id: string;
   requestRef: string;
   passengerName: string;
@@ -29,32 +29,32 @@ interface Request {
   adminNotes: string;
 }
 
-export default function RequestsManagement() {
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [showRequestDetails, setShowRequestDetails] = useState(false);
+export default function InquiriesManagement() {
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [showInquiryDetails, setShowInquiryDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filteredRequests = requests.filter((request) => {
+  const filteredInquiries = inquiries.filter((inquiry) => {
     const matchesSearch =
-      request.passengerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requestRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.email.toLowerCase().includes(searchTerm.toLowerCase());
+      inquiry.passengerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inquiry.requestRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inquiry.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || request.status.toLowerCase() === statusFilter;
+    const matchesStatus = statusFilter === "all" || inquiry.status.toLowerCase() === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
-  const handleViewRequest = (request: Request) => {
-    setSelectedRequest(request);
-    setShowRequestDetails(true);
+  const handleViewInquiry = (inquiry: Inquiry) => {
+    setSelectedInquiry(inquiry);
+    setShowInquiryDetails(true);
   };
 
-  const handleUpdateRequestStatus = (requestId: string, newStatus: string) => {
-    setRequests((prev) =>
-      prev.map((request) => (request.id === requestId ? { ...request, status: newStatus } : request)),
+  const handleUpdateInquiryStatus = (inquiryId: string, newStatus: string) => {
+    setInquiries((prev) =>
+      prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
     );
   };
 
@@ -68,7 +68,7 @@ export default function RequestsManagement() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search by name, request ref, or email..."
+                  placeholder="Search by name, inquiry ref, or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -94,12 +94,12 @@ export default function RequestsManagement() {
         </CardContent>
       </Card>
 
-      {/* Requests Table */}
+      {/* Inquiries Table */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-teal-900">
             <Users className="h-5 w-5" />
-            All Requests ({filteredRequests.length})
+            All Inquiries ({filteredInquiries.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -107,7 +107,7 @@ export default function RequestsManagement() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-semibold text-gray-700">Request Ref</th>
+                  <th className="text-left p-3 font-semibold text-gray-700">Inquiry Ref</th>
                   <th className="text-left p-3 font-semibold text-gray-700">Passenger</th>
                   <th className="text-left p-3 font-semibold text-gray-700">Route</th>
                   <th className="text-left p-3 font-semibold text-gray-700">Date & Time</th>
@@ -117,41 +117,41 @@ export default function RequestsManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRequests.map((request) => (
-                  <tr key={request.id} className="border-b border-gray-100 hover:bg-gray-50">
+                {filteredInquiries.map((inquiry) => (
+                  <tr key={inquiry.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="p-3">
-                      <span className="font-mono text-sm font-semibold text-teal-600">{request.requestRef}</span>
+                      <span className="font-mono text-sm font-semibold text-teal-600">{inquiry.requestRef}</span>
                     </td>
                     <td className="p-3">
                       <div>
-                        <p className="font-semibold text-gray-900">{request.passengerName}</p>
-                        <p className="text-sm text-gray-600">{request.email}</p>
-                        <p className="text-sm text-gray-600">{request.phone}</p>
+                        <p className="font-semibold text-gray-900">{inquiry.passengerName}</p>
+                        <p className="text-sm text-gray-600">{inquiry.email}</p>
+                        <p className="text-sm text-gray-600">{inquiry.phone}</p>
                       </div>
                     </td>
                     <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{request.route}</p>
+                      <p className="text-sm font-medium text-gray-900">{inquiry.route}</p>
                     </td>
                     <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{format(request.date, "MMM dd, yyyy")}</p>
-                      <p className="text-xs text-gray-600">{request.time}</p>
+                      <p className="text-sm font-medium text-gray-900">{format(inquiry.date, "MMM dd, yyyy")}</p>
+                      <p className="text-xs text-gray-600">{inquiry.time}</p>
                     </td>
                     <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{request.passengers}</p>
+                      <p className="text-sm font-medium text-gray-900">{inquiry.passengers}</p>
                     </td>
                     <td className="p-3">
                       <div className="space-y-1">
                         <Badge
                           className={cn(
                             "text-xs",
-                            request.status === "Approved"
+                            inquiry.status === "Approved"
                               ? "bg-green-100 text-green-800"
-                              : request.status === "Pending"
+                              : inquiry.status === "Pending"
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800",
                           )}
                         >
-                          {request.status}
+                          {inquiry.status}
                         </Badge>
                       </div>
                     </td>
@@ -160,7 +160,7 @@ export default function RequestsManagement() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewRequest(request)}
+                          onClick={() => handleViewInquiry(inquiry)}
                           className="text-teal-600 border-teal-600 hover:bg-teal-50"
                         >
                           <Eye className="h-4 w-4" />
@@ -175,14 +175,14 @@ export default function RequestsManagement() {
         </CardContent>
       </Card>
 
-      {/* Request Details Dialog */}
-      <Dialog open={showRequestDetails} onOpenChange={setShowRequestDetails}>
+      {/* Inquiry Details Dialog */}
+      <Dialog open={showInquiryDetails} onOpenChange={setShowInquiryDetails}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-teal-900">Request Details</DialogTitle>
-            <DialogDescription>Complete information for request {selectedRequest?.requestRef}</DialogDescription>
+            <DialogTitle className="text-teal-900">Inquiry Details</DialogTitle>
+            <DialogDescription>Complete information for inquiry {selectedInquiry?.requestRef}</DialogDescription>
           </DialogHeader>
-          {selectedRequest && (
+          {selectedInquiry && (
             <div className="space-y-6">
               {/* Passenger Information */}
               <div className="p-4 bg-gray-50 rounded-lg">
@@ -190,19 +190,19 @@ export default function RequestsManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Name:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.passengerName}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.passengerName}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Email:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.email}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.email}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Phone:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.phone}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.phone}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Passengers:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.passengers}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.passengers}</span>
                   </div>
                 </div>
               </div>
@@ -213,40 +213,40 @@ export default function RequestsManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-teal-600">Route:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.route}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.route}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{format(selectedRequest.date, "EEEE, MMMM dd, yyyy")}</span>
+                    <span className="font-semibold ml-2">{format(selectedInquiry.date, "EEEE, MMMM dd, yyyy")}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Time:</span>
-                    <span className="font-semibold ml-2">{selectedRequest.time}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.time}</span>
                   </div>
                 </div>
               </div>
 
               {/* Special Requests */}
-              {selectedRequest.specialRequests && (
+              {selectedInquiry.specialRequests && (
                 <div className="p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-semibold mb-2 text-blue-800">Special Requests</h4>
-                  <p className="text-sm text-blue-700">{selectedRequest.specialRequests}</p>
+                  <p className="text-sm text-blue-700">{selectedInquiry.specialRequests}</p>
                 </div>
               )}
 
               {/* Admin Actions */}
               <div className="flex gap-3 pt-4 border-t">
                 <Button
-                  onClick={() => handleUpdateRequestStatus(selectedRequest.id, "Approved")}
+                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Approved")}
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={selectedRequest.status === "Approved"}
+                  disabled={selectedInquiry.status === "Approved"}
                 >
                   Approve Request
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => handleUpdateRequestStatus(selectedRequest.id, "Cancelled")}
-                  disabled={selectedRequest.status === "Cancelled"}
+                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Cancelled")}
+                  disabled={selectedInquiry.status === "Cancelled"}
                 >
                   Cancel Request
                 </Button>

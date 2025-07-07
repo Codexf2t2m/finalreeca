@@ -18,7 +18,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: <Home className="h-4 w-4" /> },
     { name: "Bookings", href: "/admin/bookings", icon: <Users className="h-4 w-4" /> },
-    { name: "Requests", href: "/admin/requests", icon: <Bus className="h-4 w-4" /> },
+    { name: "Inquiries", href: "/admin/requests", icon: <Bus className="h-4 w-4" /> },
     { name: "Reports", href: "/admin/reports", icon: <FileText className="h-4 w-4" /> },
   ];
 
