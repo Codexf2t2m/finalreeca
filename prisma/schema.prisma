@@ -9,7 +9,7 @@ datasource db {
 }
 
 model Trip {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   serviceType      String
   routeName        String
   routeOrigin      String
@@ -23,58 +23,42 @@ model Trip {
   durationMinutes  Int
   boardingPoint    String
   droppingPoint    String
-  promoActive      Boolean  @default(false)
-  hasDeparted      Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  promoActive      Boolean   @default(false)
+  hasDeparted      Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   bookings         Booking[] @relation("TripBooking")
   returnBookings   Booking[] @relation("ReturnTripBooking")
 }
 
 model Booking {
-  id               String   @id @default(uuid())
-  tripId           String
-  trip             Trip     @relation("TripBooking", fields: [tripId], references: [id])
-  returnTripId     String?
-  returnTrip       Trip?    @relation("ReturnTripBooking", fields: [returnTripId], references: [id])
-
-  passengers       Passenger[]
-  userName         String
-  userEmail        String
-  userPhone        String?
-
-  seats            String // JSON array of seat numbers
-  seatCount        Int // Number of seats booked
-  totalPrice       Float
-
+  id                  String    @id @default(uuid())
+  tripId              String
+  trip                Trip      @relation("TripBooking", fields: [tripId], references: [id])
+  returnTripId        String?
+  returnTrip          Trip?     @relation("ReturnTripBooking", fields: [returnTripId], references: [id])
+  passengers          Json? // Store passengers directly as JSON
+  userName            String
+  userEmail           String
+  userPhone           String?
+  seats               String // JSON array of seat numbers
+  seatCount           Int // Number of seats booked
+  totalPrice          Float
+  paymentMode         String // Added payment mode
   boardingPoint       String
   droppingPoint       String
   returnBoardingPoint String?
   returnDroppingPoint String?
-
-  orderId          String   @unique
-  transactionToken String?
-
-  paymentStatus    String   @default("pending")
-  bookingStatus    String   @default("confirmed")
-
-  promoCode        String?
-  discountAmount   Float    @default(0)
-
-  competitorInfo   Json?    // Store competitor details
-
-  scanned          Boolean  @default(false)
-  lastScanned      DateTime?
-  scannerId        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model Passenger {
-  id        String @id @default(uuid())
-  booking   Booking @relation(fields: [bookingId], references: [id])
-  bookingId String
-  name      String
-  title     String
-  seatNumber String
+  orderId             String    @unique
+  transactionToken    String?
+  paymentStatus       String    @default("pending")
+  bookingStatus       String    @default("confirmed")
+  promoCode           String?
+  discountAmount      Float     @default(0)
+  competitorInfo      Json? // Store competitor details
+  scanned             Boolean   @default(false)
+  lastScanned         DateTime?
+  scannerId           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }

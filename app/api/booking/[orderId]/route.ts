@@ -15,7 +15,6 @@ interface TripData {
   boardingPoint: string;
   droppingPoint: string;
   seats: string[];
-  passengers?: PassengerResponse[];  // Added passengers field
 }
 
 interface BookingResponse {
@@ -85,12 +84,7 @@ export async function GET(req: NextRequest) {
       }
 
       booking = bookingData;
-      // Transform passengers to match the expected format
-      passengers = (booking.passengers || []).map((p: any) => ({
-        name: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-        seat: p.seatNumber || '',
-        title: p.title || 'Mr' // Default to Mr if missing
-      }));
+      passengers = booking.passengers || []; // Get passengers directly from booking
     } else {
       // Fetch booking by ID
       const { data: bookingData, error: bookingError } = await supabase
@@ -107,12 +101,7 @@ export async function GET(req: NextRequest) {
       }
 
       booking = bookingData;
-      // Transform passengers to match the expected format
-      passengers = (booking.passengers || []).map((p: any) => ({
-        name: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-        seat: p.seatNumber || '',
-        title: p.title || 'Mr'
-      }));
+      passengers = booking.passengers || []; // Get passengers directly from booking
     }
 
     // Helper to parse seat data
@@ -138,9 +127,6 @@ export async function GET(req: NextRequest) {
           boardingPoint: booking.boarding_point,
           droppingPoint: booking.dropping_point,
           seats: parseSeats(booking.Trip.occupied_seats || []),
-          passengers: passengers.filter(p => 
-            parseSeats(booking.Trip.occupied_seats || []).includes(p.seat)
-          )
         }
       : null;
 
@@ -154,9 +140,6 @@ export async function GET(req: NextRequest) {
           boardingPoint: booking.return_boarding_point,
           droppingPoint: booking.return_dropping_point,
           seats: parseSeats(booking.ReturnTrip.occupied_seats || []),
-          passengers: passengers.filter(p => 
-            parseSeats(booking.ReturnTrip.occupied_seats || []).includes(p.seat)
-          )
         }
       : null;
 

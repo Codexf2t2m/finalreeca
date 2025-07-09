@@ -1,5 +1,5 @@
-// app/admin/bookings/page.tsx
-"use client"
+"use client";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,24 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import PrintableTicket from "@/components/printable-ticket";
+import { PrintableTicket } from "@/components/printable-ticket";
 
+interface Passenger {
+  name: string;
+  seat: string;
+  title?: string;
+}
+
+interface TripData {
+  route: string;
+  date: Date | string;
+  time: string;
+  bus: string;
+  boardingPoint: string;
+  droppingPoint: string;
+  seats: string[];
+  passengers?: Passenger[]; // Add this line
+}
 
 interface Booking {
   id: string;
@@ -31,6 +47,8 @@ interface Booking {
   paymentStatus: string;
   bookingStatus: string;
   specialRequests: string;
+  passengerList?: Passenger[];
+  returnTrip?: TripData;
 }
 
 export default function BookingsManagement() {
@@ -40,43 +58,35 @@ export default function BookingsManagement() {
   const [showPrintTicket, setShowPrintTicket] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [tripTypeForPrint, setTripTypeForPrint] = useState<"departure" | "return">("departure");
+  const [loading, setLoading] = useState(false);
 
   // Format date function
-  const formatDate = (date: Date, formatStr: string) => {
+  const formatDate = (date: Date | string, formatStr: string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return "Invalid date";
+
     const options: Intl.DateTimeFormatOptions = {};
-    
-    if (formatStr.includes('EEEE')) {
-      options.weekday = 'long';
-    }
-    if (formatStr.includes('MMMM')) {
-      options.month = 'long';
-    } else if (formatStr.includes('MMM')) {
-      options.month = 'short';
-    }
-    if (formatStr.includes('dd')) {
-      options.day = '2-digit';
-    }
-    if (formatStr.includes('yyyy')) {
-      options.year = 'numeric';
-    }
-    
-    return date.toLocaleDateString('en-US', options);
+    if (formatStr.includes("EEEE")) options.weekday = "long";
+    if (formatStr.includes("MMMM")) options.month = "long";
+    else if (formatStr.includes("MMM")) options.month = "short";
+    if (formatStr.includes("dd")) options.day = "2-digit";
+    if (formatStr.includes("yyyy")) options.year = "numeric";
+
+    return dateObj.toLocaleDateString("en-US", options);
   };
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('/api/admin/booking');
-        if (!response.ok) {
-          throw new Error('Failed to fetch bookings');
-        }
+        const response = await fetch("/api/admin/booking");
+        if (!response.ok) throw new Error("Failed to fetch bookings");
         const data = await response.json();
         setBookings(data);
       } catch (error) {
-        console.error('Error fetching bookings:', error);
+        console.error("Error fetching bookings:", error);
       }
     };
-
     fetchBookings();
   }, []);
 
@@ -85,9 +95,7 @@ export default function BookingsManagement() {
       booking.passengerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.bookingRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesStatus = statusFilter === "all" || booking.bookingStatus.toLowerCase() === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
 
@@ -96,9 +104,37 @@ export default function BookingsManagement() {
     setShowBookingDetails(true);
   };
 
-  const handlePrintTicket = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setShowPrintTicket(true);
+  const handlePrintTicket = async (booking: Booking) => {
+    setLoading(true);
+    try {
+      // Create merged booking object with passenger data
+      const bookingWithDetails = {
+        ...booking,
+        passengerList: booking.passengerList || [],
+        departureTrip: {
+          ...booking,
+          passengers: booking.passengerList || []
+        },
+        returnTrip: booking.returnTrip ? {
+          ...booking.returnTrip,
+          passengers: booking.passengerList || []
+        } : undefined
+      };
+
+      setSelectedBooking(bookingWithDetails);
+      setTripTypeForPrint("departure");
+      setShowPrintTicket(true);
+    } catch (error) {
+      console.error("Error processing booking:", error);
+      setSelectedBooking({
+        ...booking,
+        passengerList: []
+      });
+      setTripTypeForPrint("departure");
+      setShowPrintTicket(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateBookingStatus = (
@@ -189,7 +225,7 @@ export default function BookingsManagement() {
                       <p className="text-xs text-gray-600">{booking.bus}</p>
                     </td>
                     <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{formatDate(new Date(booking.date), "MMM dd, yyyy")}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatDate(booking.date, "MMM dd, yyyy")}</p>
                       <p className="text-xs text-gray-600">{booking.time}</p>
                     </td>
                     <td className="p-3">
@@ -215,7 +251,7 @@ export default function BookingsManagement() {
                               ? "bg-green-100 text-green-800"
                               : booking.bookingStatus === "Pending"
                               ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800",
+                              : "bg-red-100 text-red-800"
                           )}
                         >
                           {booking.bookingStatus}
@@ -225,7 +261,7 @@ export default function BookingsManagement() {
                             "text-xs block",
                             booking.paymentStatus === "Paid"
                               ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800",
+                              : "bg-red-100 text-red-800"
                           )}
                         >
                           {booking.paymentStatus}
@@ -247,8 +283,13 @@ export default function BookingsManagement() {
                           size="sm"
                           onClick={() => handlePrintTicket(booking)}
                           className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                          disabled={loading}
                         >
-                          <QrCode className="h-4 w-4" />
+                          {loading ? (
+                            <span className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+                          ) : (
+                            <QrCode className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </td>
@@ -290,6 +331,30 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
+              {selectedBooking.passengerList && selectedBooking.passengerList.length > 0 && (
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-gray-800">Passenger List</h4>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Name</th>
+                        <th className="text-left p-2">Seat</th>
+                        <th className="text-left p-2">Title</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedBooking.passengerList.map((passenger, index) => (
+                        <tr key={index} className="border-b last:border-0">
+                          <td className="p-2">{passenger.name}</td>
+                          <td className="p-2">{passenger.seat}</td>
+                          <td className="p-2">{passenger.title || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               <div className="p-4 bg-teal-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -299,7 +364,7 @@ export default function BookingsManagement() {
                   </div>
                   <div>
                     <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{formatDate(new Date(selectedBooking.date), "EEEE, MMMM dd, yyyy")}</span>
+                    <span className="font-semibold ml-2">{formatDate(selectedBooking.date, "EEEE, MMMM dd, yyyy")}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Time:</span>
@@ -349,7 +414,7 @@ export default function BookingsManagement() {
                         "ml-2",
                         selectedBooking.paymentStatus === "Paid"
                           ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800",
+                          : "bg-red-100 text-red-800"
                       )}
                     >
                       {selectedBooking.paymentStatus}
@@ -364,7 +429,7 @@ export default function BookingsManagement() {
                           ? "bg-green-100 text-green-800"
                           : selectedBooking.bookingStatus === "Pending"
                           ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800",
+                          : "bg-red-100 text-red-800"
                       )}
                     >
                       {selectedBooking.bookingStatus}
@@ -418,9 +483,62 @@ export default function BookingsManagement() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-teal-900">Print Ticket</DialogTitle>
-            <DialogDescription>Print or download ticket for {selectedBooking?.bookingRef}</DialogDescription>
+            <DialogDescription>
+              Print or download ticket for {selectedBooking?.bookingRef}
+            </DialogDescription>
           </DialogHeader>
-          {selectedBooking && <PrintableTicket bookingData={selectedBooking} />}
+          {selectedBooking && (
+            <div className="space-y-4">
+              {selectedBooking.returnTrip && (
+                <div className="flex gap-4 mb-4">
+                  <Button
+                    variant={tripTypeForPrint === "departure" ? "default" : "outline"}
+                    onClick={() => setTripTypeForPrint("departure")}
+                    disabled={loading}
+                  >
+                    Departure Ticket
+                  </Button>
+                  <Button
+                    variant={tripTypeForPrint === "return" ? "default" : "outline"}
+                    onClick={() => setTripTypeForPrint("return")}
+                    disabled={loading}
+                  >
+                    Return Ticket
+                  </Button>
+                </div>
+              )}
+              <PrintableTicket
+                bookingData={{
+                  bookingRef: selectedBooking.bookingRef,
+                  userName: selectedBooking.passengerName,
+                  userEmail: selectedBooking.email,
+                  userPhone: selectedBooking.phone,
+                  totalAmount: selectedBooking.totalAmount,
+                  paymentMethod: selectedBooking.paymentMethod || "Credit Card",
+                  paymentStatus: selectedBooking.paymentStatus,
+                  bookingStatus: selectedBooking.bookingStatus,
+                  passengerList: selectedBooking.passengerList || [],
+                  departureTrip: {
+                    route: selectedBooking.route,
+                    date: selectedBooking.date,
+                    time: selectedBooking.time,
+                    bus: selectedBooking.bus,
+                    boardingPoint: selectedBooking.boardingPoint,
+                    droppingPoint: selectedBooking.droppingPoint,
+                    seats: selectedBooking.seats,
+                    passengers: selectedBooking.passengerList || []
+                  },
+                  returnTrip: selectedBooking.returnTrip
+                    ? {
+                        ...selectedBooking.returnTrip,
+                        passengers: selectedBooking.returnTrip.passengers || []
+                      }
+                    : undefined
+                }}
+                tripType={tripTypeForPrint}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

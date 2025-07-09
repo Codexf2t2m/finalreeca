@@ -1,3 +1,4 @@
+// SeatSelection.tsx
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -39,6 +40,7 @@ interface SeatSelectionProps {
   onProceed: () => void;
   searchData: SearchData;
   isReturnTrip?: boolean;
+  maxSelectableSeats?: number;
 }
 
 const fetchTripBookings = async (tripId: string) => {
@@ -56,7 +58,7 @@ const fetchTripBookings = async (tripId: string) => {
 };
 
 const generateSeatLayoutWithBookings = (
-  totalSeats = 63, // changed from 57 to 63
+  totalSeats = 63,
   occupiedSeats: string[] = [],
   bookedSeats: string[] = []
 ): Seat[] => {
@@ -97,7 +99,8 @@ export default function SeatSelection({
   selectedSeats,
   onProceed,
   searchData,
-  isReturnTrip = false
+  isReturnTrip = false,
+  maxSelectableSeats = 60,
 }: SeatSelectionProps) {
   const [seatLayout, setSeatLayout] = useState<Seat[]>([]);
   const [isLoadingSeats, setIsLoadingSeats] = useState(true);
@@ -147,6 +150,8 @@ export default function SeatSelection({
   }, [selectedBus.id, selectedBus.totalSeats, selectedBus.occupiedSeats]);
 
   const handleSeatClick = (seatId: string) => {
+    const isSelected = selectedSeats.includes(seatId);
+    if (!isSelected && selectedSeats.length >= maxSelectableSeats) return;
     setSeatLayout(prev => prev.map(seat =>
       seat.id === seatId
         ? { ...seat, isSelected: !seat.isSelected }

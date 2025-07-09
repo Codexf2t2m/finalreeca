@@ -381,6 +381,7 @@ export default function BookingApp() {
                     departureDate: searchData.returnDate || new Date(),
                   }}
                   isReturnTrip={true}
+                  maxSelectableSeats={selectedDepartureSeats.length}
                 />
               </div>
             )}

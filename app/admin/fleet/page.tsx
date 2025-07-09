@@ -80,10 +80,10 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
         {
           routeName: routes[0]?.name || '',
           departureTime: times[0]?.time || '07:00',
-          totalSeats: 50,
-          availableSeats: 50,
+          totalSeats: 60,
+          availableSeats: 60,
           serviceType: 'Morning Bus',
-          fare: 400,
+          fare: 500,
           durationMinutes: 480,
           promoActive: false,
           hasDeparted: false,
@@ -96,10 +96,10 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
         {
           routeName: routes[0]?.name || '',
           departureTime: times[1]?.time || '15:00',
-          totalSeats: 50,
-          availableSeats: 50,
+          totalSeats: 60,
+          availableSeats: 60,
           serviceType: 'Afternoon Bus',
-          fare: 400,
+          fare: 500,
           durationMinutes: 480,
           promoActive: false,
           hasDeparted: false,
@@ -112,10 +112,10 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
         {
           routeName: routes[1]?.name || '',
           departureTime: times[2]?.time || '08:00',
-          totalSeats: 50,
-          availableSeats: 50,
+          totalSeats: 60,
+          availableSeats: 60,
           serviceType: 'Morning Bus',
-          fare: 400,
+          fare: 500,
           durationMinutes: 480,
           promoActive: false,
           hasDeparted: false,
@@ -128,10 +128,10 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
         {
           routeName: routes[1]?.name || '',
           departureTime: times[3]?.time || '17:00',
-          totalSeats: 50,
-          availableSeats: 50,
+          totalSeats: 60,
+          availableSeats: 60,
           serviceType: 'Afternoon Bus',
-          fare: 400,
+          fare: 500,
           durationMinutes: 480,
           promoActive: false,
           hasDeparted: false,
@@ -153,18 +153,17 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
   };
 
   const handleSave = async () => {
-    const generateWeeklyTrips = (): Trip[] => {
+    const generateYearlyTrips = (): Trip[] => {
       const trips: Trip[] = [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 365; i++) {
         const tripDate = new Date(today);
         tripDate.setDate(today.getDate() + i);
 
         baseTrips.forEach((baseTrip) => {
           const [hours, minutes] = baseTrip.departureTime.split(':').map(Number);
-
           const departureDateTime = new Date(tripDate);
           departureDateTime.setHours(hours, minutes, 0, 0);
 
@@ -172,14 +171,13 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
             ...baseTrip,
             departureDate: departureDateTime.toISOString()
           };
-
           trips.push(newTrip);
         });
       }
       return trips;
     };
 
-    const tripsToSave = generateWeeklyTrips();
+    const tripsToSave = generateYearlyTrips();
     onSave(tripsToSave);
     onClose();
   };
@@ -250,7 +248,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
           ))}
         </div>
         <Button onClick={handleSave} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
-          Save and Generate Weekly Trips
+          Save and Generate Yearly Trips
         </Button>
       </DialogContent>
     </Dialog>
@@ -263,10 +261,10 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
       routeName: '',
       departureDate: new Date().toISOString(),
       departureTime: '',
-      totalSeats: 50,
-      availableSeats: 50,
+      totalSeats: 60,
+      availableSeats: 60,
       serviceType: 'Morning Bus',
-      fare: 400,
+      fare: 500,
       durationMinutes: 480,
       promoActive: false,
       hasDeparted: false,
@@ -280,7 +278,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : false;
-
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
@@ -313,7 +310,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           </SelectContent>
         </Select>
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Date</label>
         <Input
@@ -329,7 +325,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           required
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Departure Time</label>
         <Select
@@ -349,7 +344,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           </SelectContent>
         </Select>
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Available Seats</label>
         <Input
@@ -361,7 +355,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           required
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Total Seats</label>
         <Input
@@ -373,7 +366,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           required
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Service Type</label>
         <Select
@@ -392,7 +384,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           </SelectContent>
         </Select>
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Fare</label>
         <Input
@@ -404,7 +395,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           required
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Duration (Minutes)</label>
         <Input
@@ -416,7 +406,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           required
         />
       </div>
-
       <div className="flex items-center space-x-2 pt-2">
         <Checkbox
           id="promoActive"
@@ -427,7 +416,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
         />
         <label htmlFor="promoActive" className="text-sm font-medium text-gray-700">Promo Active</label>
       </div>
-
       <div className="flex items-center space-x-2 pt-2">
         <Checkbox
           id="hasDeparted"
@@ -439,7 +427,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
         />
         <label htmlFor="hasDeparted" className="text-sm font-medium text-gray-700">Has Departed</label>
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Route Origin</label>
         <Input
@@ -449,7 +436,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           placeholder="Route Origin"
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Route Destination</label>
         <Input
@@ -459,7 +445,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           placeholder="Route Destination"
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Boarding Point</label>
         <Input
@@ -469,7 +454,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           placeholder="Boarding Point"
         />
       </div>
-
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Dropping Point</label>
         <Input
@@ -479,7 +463,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           placeholder="Dropping Point"
         />
       </div>
-
       <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full">
         {trip ? 'Update Trip' : 'Create Trip'}
       </Button>
@@ -545,7 +528,6 @@ const FleetManagementPage = () => {
           },
           body: JSON.stringify(trip),
         });
-
         if (!response.ok) {
           throw new Error('Failed to save trip');
         }
@@ -580,11 +562,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify(trip),
       });
-
       if (!response.ok) {
         throw new Error('Failed to save trip');
       }
-
       const data = await response.json();
       setTrips(prevTrips => {
         if (trip.id) {
@@ -612,11 +592,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify({ id: tripId, hasDeparted: true }),
       });
-
       if (!response.ok) {
         throw new Error('Failed to mark trip as departed');
       }
-
       const data = await response.json();
       setTrips(prevTrips => prevTrips.map(t => t.id === tripId ? data : t));
     } catch (error) {
@@ -637,11 +615,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify({ id: tripId }),
       });
-
       if (!response.ok) {
         throw new Error('Failed to delete trip');
       }
-
       setTrips(prevTrips => prevTrips.filter(t => t.id !== tripId));
     } catch (error) {
       console.error('Error deleting trip:', error);
@@ -657,7 +633,6 @@ const FleetManagementPage = () => {
     selectedDateStart.setHours(0, 0, 0, 0);
     const selectedDateEnd = new Date(selectedDate);
     selectedDateEnd.setHours(23, 59, 59, 999);
-
     return tripDate >= selectedDateStart && tripDate <= selectedDateEnd;
   });
 
@@ -677,7 +652,6 @@ const FleetManagementPage = () => {
             </div>
           </div>
         </header>
-
         <div className="container mx-auto px-4 py-8 flex-1">
           {isLoading ? (
             <LoadingSpinner />
@@ -687,7 +661,6 @@ const FleetManagementPage = () => {
                 <TabsTrigger value="schedule">Daily Schedule</TabsTrigger>
                 <TabsTrigger value="timetable">Route Timetable</TabsTrigger>
               </TabsList>
-
               <TabsContent value="schedule">
                 <h2 className="text-2xl font-bold mb-4">Daily Schedule</h2>
                 <div className="mb-4">
@@ -756,7 +729,6 @@ const FleetManagementPage = () => {
                   </Table>
                 )}
               </TabsContent>
-
               <TabsContent value="timetable">
                 <h2 className="text-2xl font-bold mb-4">Route Timetable</h2>
                 <div className="mb-4 flex space-x-4">
@@ -829,7 +801,6 @@ const FleetManagementPage = () => {
           )}
         </div>
       </div>
-
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -849,7 +820,6 @@ const FleetManagementPage = () => {
           )}
         </DialogContent>
       </Dialog>
-
       <AutomateTripsModal
         isOpen={isAutomateModalOpen}
         onClose={() => setIsAutomateModalOpen(false)}
@@ -857,7 +827,6 @@ const FleetManagementPage = () => {
         routes={routes}
         times={times}
       />
-
       <ErrorModal message={error} onClose={() => setError(null)} />
     </div>
   );

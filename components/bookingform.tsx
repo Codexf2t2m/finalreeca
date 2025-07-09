@@ -64,9 +64,7 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 className="object-contain"
               />
               {/* Plate number styling - positioned at front */}
-              <div className="absolute bottom-6 left-8 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
-                B300CAA
-              </div>
+              
             </div>
             <div className="relative">
               <Image
@@ -77,9 +75,7 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 className="object-contain"
               />
               {/* Plate number at the spot where "STANDARD" was */}
-              <div className="absolute bottom-2 right-2 bg-white border-2 border-gray-800 text-gray-900 px-3 py-1 rounded-sm text-sm font-bold shadow-lg">
-                B300CAB
-              </div>
+              
             </div>
           </div>
         </div>
@@ -200,7 +196,7 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                   <SelectValue placeholder="1" />
                 </SelectTrigger>
                 <SelectContent>
-                  {[...Array(50)].map((_, i) => (
+                  {[...Array(60)].map((_, i) => (
                     <SelectItem key={i + 1} value={(i + 1).toString()}>
                       {i + 1}
                     </SelectItem>

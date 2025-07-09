@@ -1,87 +1,100 @@
 import React from "react";
 
-interface BookingData {
-  id: string;
-  bookingRef: string;
-  passengerName: string;
-  email: string;
-  phone: string;
-  passengers: number;
+interface Passenger {
+  name: string;
+  seat: string;
+  title?: string;
+}
+
+interface TripData {
   route: string;
-  date: Date | string;
+  date: string | Date;
   time: string;
   bus: string;
   boardingPoint: string;
   droppingPoint: string;
   seats: string[];
+  passengers?: Passenger[];
+}
+
+interface BookingData {
+  bookingRef: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string | null;
   totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
   bookingStatus: string;
-  specialRequests?: string;
-  passengerList?: { name: string; seat: string }[]; // Add this for multiple passengers
+  passengerList: Passenger[];
+  departureTrip: TripData;
+  returnTrip?: TripData;
 }
 
 interface PrintableTicketProps {
   bookingData: BookingData;
+  tripType: "departure" | "return";
 }
 
-export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData }) => {
-  // Helper function to ensure we have a Date object
-  const ensureDate = (dateInput: Date | string): Date => {
-    if (dateInput instanceof Date) {
-      return dateInput;
-    }
-    return new Date(dateInput);
+export const PrintableTicket: React.FC<PrintableTicketProps> = ({
+  bookingData,
+  tripType,
+}) => {
+  const formatDate = (dateInput: Date | string, formatStr: string) => {
+    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return "Invalid date";
+
+    return date.toLocaleDateString("en-US", {
+      weekday: formatStr.includes("EEEE") ? "long" : undefined,
+      month: formatStr.includes("MMMM")
+        ? "long"
+        : formatStr.includes("MMM")
+        ? "short"
+        : undefined,
+      day: formatStr.includes("dd") ? "2-digit" : undefined,
+      year: formatStr.includes("yyyy") ? "numeric" : undefined,
+    });
   };
 
-  // Format date function
-  const formatDate = (date: Date | string, formatStr: string) => {
-    const dateObj = ensureDate(date);
-    const options: Intl.DateTimeFormatOptions = {};
-    
-    if (formatStr.includes('EEEE')) {
-      options.weekday = 'long';
-    }
-    if (formatStr.includes('MMMM')) {
-      options.month = 'long';
-    } else if (formatStr.includes('MMM')) {
-      options.month = 'short';
-    }
-    if (formatStr.includes('dd')) {
-      options.day = '2-digit';
-    }
-    if (formatStr.includes('yyyy')) {
-      options.year = 'numeric';
-    }
-    
-    return dateObj.toLocaleDateString('en-US', options);
-  };
+  const trip = tripType === "departure" ? bookingData.departureTrip : bookingData.returnTrip;
+  if (!trip) return null;
 
-  // Generate QR code data
-  const bookingDate = ensureDate(bookingData.date);
+  const sortedSeats = [...trip.seats].sort((a, b) => {
+    const rowA = parseInt(a.match(/\d+/)?.[0] || "0");
+    const rowB = parseInt(b.match(/\d+/)?.[0] || "0");
+    if (rowA !== rowB) return rowA - rowB;
+    return a.localeCompare(b);
+  });
+
+  // Get passengers for this trip
+  let tripPassengers: Passenger[] = trip.passengers || [];
+  
+  // If no passengers in trip data, use passengerList
+  if (tripPassengers.length === 0) {
+    tripPassengers = bookingData.passengerList
+      .filter(p => trip.seats.includes(p.seat))
+      .sort((a, b) => sortedSeats.indexOf(a.seat) - sortedSeats.indexOf(b.seat));
+  }
+
   const qrData = {
     ref: bookingData.bookingRef,
-    name: bookingData.passengerName,
-    route: bookingData.route,
-    date: bookingDate.toISOString().split('T')[0],
-    time: bookingData.time,
-    seats: bookingData.seats.join(','),
-    amount: bookingData.totalAmount
+    name: bookingData.userName,
+    route: trip.route,
+    date: trip.date instanceof Date ? trip.date.toISOString() : trip.date,
+    time: trip.time,
+    seats: sortedSeats.join(","),
+    passengers: tripPassengers.map(p => ({ name: p.name, seat: p.seat })),
+    amount: bookingData.totalAmount,
+    tripType,
   };
-  
-  const qrString = JSON.stringify(qrData);
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrString)}`;
 
-  // Use passengerList if provided, else fallback to single passenger
-  const passengerList: { name: string; seat: string }[] =
-    bookingData.passengerList && bookingData.passengerList.length > 0
-      ? bookingData.passengerList
-      : [{ name: bookingData.passengerName, seat: bookingData.seats.join(", ") }];
+  const qrString = JSON.stringify(qrData);
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+    qrString
+  )}`;
 
   return (
-    <div className="max-w-4xl mx-auto bg-white p-8 font-sans" style={{ fontFamily: 'Arial, sans-serif' }}>
-      {/* Header */}
+    <div className="max-w-4xl mx-auto bg-white p-8 font-sans mb-8">
       <div className="flex justify-between items-start mb-8">
         <div className="flex items-center">
           <div className="flex gap-1 mr-4">
@@ -97,12 +110,13 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
         <div className="text-right">
           <h2 className="text-3xl font-bold text-gray-800 mb-2">BUS TICKET</h2>
           <p className="text-lg font-semibold text-teal-600">#{bookingData.bookingRef}</p>
+          <p className="text-sm font-medium text-gray-700 mt-1">
+            {tripType === "departure" ? "DEPARTURE" : "RETURN"} TRIP
+          </p>
         </div>
       </div>
 
-      {/* Company & Passenger Details */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-        {/* Company */}
         <div className="md:col-span-1">
           <h3 className="font-bold text-gray-800 mb-2">REECA TRAVEL</h3>
           <div className="text-sm text-gray-600 space-y-1">
@@ -116,9 +130,11 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             <p>WWW.REECATRAVEL.CO.BW</p>
           </div>
         </div>
-        {/* Passenger List */}
+
         <div className="md:col-span-2">
-          <h3 className="font-bold text-gray-800 mb-2">Passenger Details</h3>
+          <h3 className="font-bold text-gray-800 mb-2">
+            Passenger Manifest ({tripType === "departure" ? "Departure" : "Return"})
+          </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-200 rounded">
               <thead>
@@ -126,112 +142,145 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">#</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Name</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Seat</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Email</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Phone</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Title</th>
                 </tr>
               </thead>
               <tbody>
-                {passengerList.map((p, idx) => (
-                  <tr key={idx} className="border-t border-gray-100">
-                    <td className="px-3 py-2 text-xs">{idx + 1}</td>
-                    <td className="px-3 py-2 text-xs">{p.name}</td>
-                    <td className="px-3 py-2 text-xs">{p.seat}</td>
-                    <td className="px-3 py-2 text-xs">{bookingData.email}</td>
-                    <td className="px-3 py-2 text-xs">{bookingData.phone}</td>
+                {tripPassengers.length > 0 ? (
+                  tripPassengers.map((passenger, idx) => (
+                    <tr key={idx} className="border-t border-gray-100">
+                      <td className="px-3 py-2 text-xs">{idx + 1}</td>
+                      <td className="px-3 py-2 text-xs">{passenger.name}</td>
+                      <td className="px-3 py-2 text-xs font-bold">{passenger.seat}</td>
+                      <td className="px-3 py-2 text-xs">{passenger.title || "N/A"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-2 text-xs text-gray-500 text-center">
+                      No passenger data available
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
           <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-600">
-            <span>Passengers: <span className="font-semibold">{bookingData.passengers}</span></span>
-            <span>Status: <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span></span>
-            <span>Date Issued: <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span></span>
-            <span>Booking Date: <span className="font-semibold">{formatDate(bookingData.date, "dd MMM yyyy")}</span></span>
+            <span>
+              Passengers: <span className="font-semibold">{tripPassengers.length}</span>
+            </span>
+            <span>
+              Seats: <span className="font-semibold">{sortedSeats.join(", ")}</span>
+            </span>
+            <span>
+              Status:{" "}
+              <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span>
+            </span>
+            <span>
+              Date Issued:{" "}
+              <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Journey Details Table */}
       <div className="mb-8">
         <div className="bg-gray-100 p-2 mb-4">
           <h3 className="font-bold text-gray-800">Journey Details</h3>
         </div>
-        
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="border border-gray-300 p-3 text-left font-semibold">Description</th>
-              <th className="border border-gray-300 p-3 text-center font-semibold">Details</th>
-              <th className="border border-gray-300 p-3 text-right font-semibold">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border border-gray-300 p-3">
-                <div className="font-semibold text-gray-800">BUS TICKET - {bookingData.route}</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  <p><strong>Date:</strong> {formatDate(bookingData.date, "EEEE, MMMM dd, yyyy")}</p>
-                  <p><strong>Time:</strong> {bookingData.time}</p>
-                  <p><strong>Bus:</strong> {bookingData.bus}</p>
-                  <p><strong>Boarding:</strong> {bookingData.boardingPoint}</p>
-                  <p><strong>Dropping:</strong> {bookingData.droppingPoint}</p>
-                  <p><strong>Seats:</strong> {bookingData.seats.join(', ')}</p>
-                </div>
-              </td>
-              <td className="border border-gray-300 p-3 text-center">
-                <div className="font-semibold">{bookingData.passengers}</div>
-                <div className="text-sm text-gray-600">Passenger(s)</div>
-              </td>
-              <td className="border border-gray-300 p-3 text-right font-semibold">
-                P {bookingData.totalAmount.toFixed(2)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Totals */}
-        <div className="flex justify-end mt-4">
-          <div className="w-64">
-            <div className="flex justify-between py-2 border-b">
-              <span>Sub Total:</span>
-              <span className="font-semibold">P {bookingData.totalAmount.toFixed(2)}</span>
+        <div className="border border-gray-300 rounded-lg p-4">
+          <div className="font-semibold text-gray-800 text-lg mb-2">
+            BUS TICKET - {trip.route}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p>
+                <strong>Date:</strong> {formatDate(trip.date, "EEEE, MMMM dd, yyyy")}
+              </p>
+              <p>
+                <strong>Time:</strong> {trip.time}
+              </p>
+              <p>
+                <strong>Bus:</strong> {trip.bus}
+              </p>
             </div>
-            <div className="flex justify-between py-2 text-lg font-bold">
+            <div>
+              <p>
+                <strong>Boarding:</strong> {trip.boardingPoint}
+              </p>
+              <p>
+                <strong>Dropping:</strong> {trip.droppingPoint}
+              </p>
+              <p>
+                <strong>Seats:</strong> {sortedSeats.join(", ")}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <div className="w-64 border-t border-gray-300 pt-2">
+            <div className="flex justify-between py-1">
               <span>Total:</span>
-              <span>P {bookingData.totalAmount.toFixed(2)}</span>
+              <span className="font-bold">P {bookingData.totalAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Payment Information */}
       <div className="mb-8">
         <div className="bg-gray-100 p-2 mb-2">
           <h3 className="font-bold text-gray-800">Payment Information</h3>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p><strong>Payment Method:</strong> {bookingData.paymentMethod}</p>
-            <p><strong>Payment Status:</strong> <span className={`font-semibold ${bookingData.paymentStatus === 'Paid' ? 'text-green-600' : 'text-red-600'}`}>{bookingData.paymentStatus}</span></p>
+            <p>
+              <strong>Payment Method:</strong> {bookingData.paymentMethod}
+            </p>
+            <p>
+              <strong>Payment Status:</strong>
+              <span
+                className={`font-semibold ml-1 ${
+                  bookingData.paymentStatus === "paid"
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
+                {bookingData.paymentStatus}
+              </span>
+            </p>
           </div>
           <div>
-            <p><strong>Booking Status:</strong> <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span></p>
+            <p>
+              <strong>Booking Status:</strong>
+              <span className="font-semibold text-green-600 ml-1">
+                {bookingData.bookingStatus}
+              </span>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Special Requests */}
-      {bookingData.specialRequests && (
-        <div className="mb-8">
-          <div className="bg-gray-100 p-2 mb-2">
-            <h3 className="font-bold text-gray-800">Special Requests</h3>
-          </div>
-          <p className="text-sm text-gray-700">{bookingData.specialRequests}</p>
+      <div className="mb-8">
+        <div className="bg-gray-100 p-2 mb-2">
+          <h3 className="font-bold text-gray-800">Payer Information</h3>
         </div>
-      )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p>
+              <strong>Name:</strong> {bookingData.userName}
+            </p>
+            <p>
+              <strong>Email:</strong> {bookingData.userEmail}
+            </p>
+          </div>
+          <div>
+            <p>
+              <strong>Phone:</strong> {bookingData.userPhone || "N/A"}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* QR Code and Terms */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <div className="bg-gray-100 p-2 mb-2">
@@ -244,84 +293,33 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             <p>• Baggage allowance: 20kg per passenger</p>
             <p>• Present this ticket (digital or printed) at boarding</p>
           </div>
-          
           <div className="mt-4">
             <div className="bg-gray-100 p-2 mb-2">
               <h3 className="font-bold text-gray-800">Terms & Conditions</h3>
             </div>
             <p className="text-xs text-gray-700">
-              Ticket is valid only for the specified date, time, and route. 
-              Changes subject to availability and additional charges may apply.
+              Ticket is valid only for the specified date, time, and route. Changes subject to
+              availability and additional charges may apply.
             </p>
           </div>
         </div>
-        
         <div className="text-center">
           <div className="bg-gray-100 p-2 mb-4">
             <h3 className="font-bold text-gray-800">Booking QR Code</h3>
           </div>
           <div className="flex justify-center mb-4">
             <div className="border-2 border-gray-300 p-4 rounded-lg bg-white">
-              <img 
-                src={qrCodeUrl} 
-                alt="Booking QR Code" 
-                className="w-32 h-32"
-                onError={(e) => {
-                  // Fallback to a placeholder if QR service fails
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-              <div className="hidden w-32 h-32 bg-gray-200 flex items-center justify-center rounded">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">📱</div>
-                  <div className="text-xs">QR Code</div>
-                </div>
-              </div>
+              <img src={qrCodeUrl} alt="Booking QR Code" className="w-32 h-32" />
             </div>
           </div>
-          <p className="text-xs text-gray-600">
-            Scan this QR code for quick verification
-          </p>
+          <p className="text-xs text-gray-600">Scan this QR code for quick verification</p>
         </div>
       </div>
 
-      {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-600">
         <p>Thank you for choosing REECA TRAVEL for your journey!</p>
         <p>For support, contact us at +26773061124 or admin@reecatravel.co.bw</p>
       </div>
-
-      {/* Print Button */}
-      <div className="mt-8 text-center no-print">
-        <button
-          onClick={() => window.print()}
-          className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-lg"
-        >
-          Print Ticket
-        </button>
-      </div>
-
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-          .bg-gray-100 {
-            background-color: #f3f4f6 !important;
-          }
-          .bg-gray-50 {
-            background-color: #f9fafb !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
-
-export default PrintableTicket;
