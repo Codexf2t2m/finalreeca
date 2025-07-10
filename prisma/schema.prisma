@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,7 +10,7 @@ datasource db {
 }
 
 model Trip {
-  id               String    @id @default(uuid())
+  id               String   @id @default(uuid())
   serviceType      String
   routeName        String
   routeOrigin      String
@@ -19,16 +20,17 @@ model Trip {
   totalSeats       Int
   availableSeats   Int
   occupiedSeats    String?
-  fare             Float
+  fare             Int
   durationMinutes  Int
   boardingPoint    String
   droppingPoint    String
-  promoActive      Boolean   @default(false)
-  hasDeparted      Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  bookings         Booking[] @relation("TripBooking")
-  returnBookings   Booking[] @relation("ReturnTripBooking")
+  promoActive      Boolean  @default(false)
+  hasDeparted      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  bookings       Booking[] @relation("TripBooking")
+  returnBookings Booking[] @relation("ReturnTripBooking")
 }
 
 model Booking {
@@ -37,14 +39,14 @@ model Booking {
   trip                Trip      @relation("TripBooking", fields: [tripId], references: [id])
   returnTripId        String?
   returnTrip          Trip?     @relation("ReturnTripBooking", fields: [returnTripId], references: [id])
-  passengers          Json? // Store passengers directly as JSON
   userName            String
   userEmail           String
   userPhone           String?
-  seats               String // JSON array of seat numbers
-  seatCount           Int // Number of seats booked
+  seats               String
+  returnSeats         String?
+  seatCount           Int
   totalPrice          Float
-  paymentMode         String // Added payment mode
+  paymentMode         String
   boardingPoint       String
   droppingPoint       String
   returnBoardingPoint String?
@@ -55,10 +57,25 @@ model Booking {
   bookingStatus       String    @default("confirmed")
   promoCode           String?
   discountAmount      Float     @default(0)
-  competitorInfo      Json? // Store competitor details
+  competitorInfo      Json?
   scanned             Boolean   @default(false)
   lastScanned         DateTime?
   scannerId           String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+
+  passengers Passenger[]
+}
+
+model Passenger {
+  id         String   @id @default(uuid())
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
+  firstName  String
+  lastName   String
+  seatNumber String
+  title      String
+  isReturn   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

@@ -42,34 +42,23 @@ export default function PaymentGateway({
   useEffect(() => {
     const initiatePayment = async () => {
       try {
-        // Prepare DPO request with passengers
+        // Prepare Stripe request with all booking data
         const requestData = {
-          tripId: bookingData.tripId,
-          orderId: bookingData.orderId,
-          totalPrice: bookingData.totalPrice,
-          userName: bookingData.userName,
-          userEmail: bookingData.userEmail,
-          boardingPoint: bookingData.boardingPoint,
-          droppingPoint: bookingData.droppingPoint,
-          selectedSeats: bookingData.selectedSeats,
-          returnTripId: bookingData.returnTripId,
-          returnBoardingPoint: bookingData.returnBoardingPoint,
-          returnDroppingPoint: bookingData.returnDroppingPoint,
-          passengers: bookingData.passengers, // Pass passenger data
+          ...bookingData,
         };
 
-        // Call DPO service
-        const response = await fetch('/api/payment', {
+        // Call Stripe session API
+        const response = await fetch('/api/create-stripe-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
         });
         const data = await response.json();
-        console.log("DPO payment API response:", data);
-        if (data.success && data.paymentUrl) {
-          window.location.href = data.paymentUrl;
+        console.log('Stripe payment API response:', data);
+        if (data.url) {
+          window.location.href = data.url;
         } else {
-          setError(data.error || 'Failed to create payment token. Please try again.');
+          setError(data.error || 'Failed to create Stripe session. Please try again.');
           setIsProcessing(false);
         }
       } catch (err) {

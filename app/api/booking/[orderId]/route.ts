@@ -1,165 +1,96 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+// app/api/booking/[orderId]/route.ts
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-interface PassengerResponse {
-  name: string;
-  seat: string;
-  title?: string;
-}
+const prisma = new PrismaClient();
 
-interface TripData {
-  route: string;
-  date: string;
-  time: string;
-  bus: string;
-  boardingPoint: string;
-  droppingPoint: string;
-  seats: string[];
-}
+// Fix API route signature for Next.js App Router (await params)
+export async function GET(request: Request, context: { params: Promise<{ orderId: string }> }) {
+  const { orderId } = await context.params;
 
-interface BookingResponse {
-  id: string;
-  bookingRef: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string | null;
-  totalAmount: number;
-  paymentMethod: string;
-  paymentStatus: string;
-  bookingStatus: string;
-  passengerList: PassengerResponse[];
-  departureTrip: TripData | null;
-  returnTrip: TripData | null;
-}
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const bookingId = searchParams.get("id");
-  const orderId = searchParams.get("orderId");
-
-  if (!bookingId && !orderId) {
+  if (!orderId) {
     return NextResponse.json(
-      { success: false, error: "Missing booking ID or order ID" },
+      { success: false, error: "Missing order ID" },
       { status: 400 }
     );
   }
 
   try {
-    let booking: any;
-    let passengers: PassengerResponse[] = [];
+    const booking = await prisma.booking.findUnique({
+      where: { orderId },
+      include: {
+        passengers: true,
+        trip: true,
+        returnTrip: true,
+      },
+    });
 
-    if (orderId) {
-      // Fetch booking by order ID
-      const { data: bookingData, error: bookingError } = await supabase
-        .from("Booking")
-        .select(
-          `*,
-          Trip!trip_id (
-            route_name,
-            departure_date,
-            departure_time,
-            service_type,
-            boarding_point,
-            dropping_point,
-            occupied_seats
-          ),
-          ReturnTrip:Trip!return_trip_id (
-            route_name,
-            departure_date,
-            departure_time,
-            service_type,
-            boarding_point,
-            dropping_point,
-            occupied_seats
-          )`
-        )
-        .eq("order_id", orderId)
-        .single();
-
-      if (bookingError) {
-        return NextResponse.json(
-          { success: false, error: bookingError.message },
-          { status: 404 }
-        );
-      }
-
-      booking = bookingData;
-      passengers = booking.passengers || []; // Get passengers directly from booking
-    } else {
-      // Fetch booking by ID
-      const { data: bookingData, error: bookingError } = await supabase
-        .from("Booking")
-        .select("*")
-        .eq("id", bookingId)
-        .single();
-
-      if (bookingError) {
-        return NextResponse.json(
-          { success: false, error: bookingError.message },
-          { status: 404 }
-        );
-      }
-
-      booking = bookingData;
-      passengers = booking.passengers || []; // Get passengers directly from booking
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: "Booking not found" },
+        { status: 404 }
+      );
     }
 
-    // Helper to parse seat data
-    const parseSeats = (seats: any): string[] => {
-      if (Array.isArray(seats)) return seats;
-      if (typeof seats === "string") {
-        try {
-          return JSON.parse(seats);
-        } catch {
-          return seats.split(",").map((s: string) => s.trim());
-        }
-      }
-      return [];
+    // Parse seats and returnSeats
+    const allSeats = booking.seats ? JSON.parse(booking.seats) : [];
+    const returnSeats = booking.returnSeats ? JSON.parse(booking.returnSeats) : [];
+    // Departure seats: allSeats not in returnSeats
+    const departureSeats = allSeats.filter((seat: string) => !returnSeats.includes(seat));
+    // Return seats: only those in returnSeats
+    const onlyReturnSeats = returnSeats;
+
+    // Map to PrintableTicket format
+    const departureTrip = {
+      route: booking.trip.routeName,
+      date: booking.trip.departureDate,
+      time: booking.trip.departureTime,
+      bus: booking.trip.serviceType,
+      boardingPoint: booking.boardingPoint,
+      droppingPoint: booking.droppingPoint,
+      seats: departureSeats,
+      passengers: booking.passengers
+        .filter(p => !p.isReturn)
+        .map(p => ({
+          name: `${p.firstName} ${p.lastName}`,
+          seat: p.seatNumber,
+          title: p.title,
+          isReturn: p.isReturn,
+        })),
     };
 
-    // Build departure trip
-    const departureTrip: TripData | null = booking.Trip
+    const returnTrip = booking.returnTrip
       ? {
-          route: booking.Trip.route_name,
-          date: new Date(booking.Trip.departure_date).toISOString(),
-          time: booking.Trip.departure_time,
-          bus: booking.Trip.service_type || booking.Trip.route_name,
-          boardingPoint: booking.boarding_point,
-          droppingPoint: booking.dropping_point,
-          seats: parseSeats(booking.Trip.occupied_seats || []),
+          route: booking.returnTrip.routeName,
+          date: booking.returnTrip.departureDate,
+          time: booking.returnTrip.departureTime,
+          bus: booking.returnTrip.serviceType,
+          boardingPoint: booking.returnBoardingPoint,
+          droppingPoint: booking.returnDroppingPoint,
+          seats: onlyReturnSeats,
+          passengers: booking.passengers
+            .filter(p => p.isReturn)
+            .map(p => ({
+              name: `${p.firstName} ${p.lastName}`,
+              seat: p.seatNumber,
+              title: p.title,
+              isReturn: p.isReturn,
+            })),
         }
-      : null;
+      : undefined;
 
-    // Build return trip
-    const returnTrip: TripData | null = booking.ReturnTrip
-      ? {
-          route: booking.ReturnTrip.route_name,
-          date: new Date(booking.ReturnTrip.departure_date).toISOString(),
-          time: booking.ReturnTrip.departure_time,
-          bus: booking.ReturnTrip.service_type || booking.ReturnTrip.route_name,
-          boardingPoint: booking.return_boarding_point,
-          droppingPoint: booking.return_dropping_point,
-          seats: parseSeats(booking.ReturnTrip.occupied_seats || []),
-        }
-      : null;
-
-    // Format response
-    const responseData: BookingResponse = {
-      id: booking.id,
-      bookingRef: booking.order_id,
-      userName: booking.user_name,
-      userEmail: booking.user_email,
-      userPhone: booking.user_phone,
-      totalAmount: booking.total_price,
-      paymentMethod: booking.payment_mode || "Credit Card",
-      paymentStatus: booking.payment_status,
-      bookingStatus: booking.booking_status,
-      passengerList: passengers,
+    return NextResponse.json({
+      bookingRef: booking.orderId,
+      userName: booking.userName,
+      userEmail: booking.userEmail,
+      userPhone: booking.userPhone,
+      totalAmount: booking.totalPrice,
+      paymentMethod: booking.paymentMode,
+      paymentStatus: booking.paymentStatus,
+      bookingStatus: booking.bookingStatus,
       departureTrip,
       returnTrip,
-    };
-
-    return NextResponse.json(responseData);
+    });
   } catch (error: any) {
     console.error("Booking fetch error:", error);
     return NextResponse.json(

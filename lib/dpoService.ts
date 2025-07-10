@@ -10,14 +10,14 @@ export interface CreateTokenRequest {
   boardingPoint: string;
   droppingPoint: string;
   selectedSeats: string[];
-  redirectUrl: string;  // Make sure this is included
-  backUrl: string;      // Make sure this is included
+  redirectUrl: string;
+  backUrl: string;
   promoCode?: string;
   discountAmount?: number;
   returnTripId?: string;
   returnBoardingPoint?: string;
   returnDroppingPoint?: string;
-  
+  returnSeats?: string[];
 }
 
 export interface CreateTokenResponse {
@@ -69,8 +69,6 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
   </Services>
 </API3G>`;
 
-    console.log('[DPO-SERVICE] XML Payload:', xmlPayload);
-
     // Send to DPO
     const response = await axios.post('https://secure.3gdirectpay.com/API/v6/', xmlPayload, {
       headers: {
@@ -80,14 +78,10 @@ export const createToken = async (requestData: CreateTokenRequest): Promise<Crea
       timeout: 20000
     });
 
-    console.log('[DPO-SERVICE] Raw response:', response.data);
-
     // Parse XML response
     const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true, trim: true });
     const result = await parser.parseStringPromise(response.data);
     const api3g = result.API3G || result.api3g;
-
-    console.log('[DPO-SERVICE] Parsed response:', api3g);
 
     if (api3g && api3g.Result === '000' && api3g.TransToken) {
       return {

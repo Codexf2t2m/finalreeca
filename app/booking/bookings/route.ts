@@ -1,38 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
-interface PassengerResponse {
-  name: string;
-  seat: string;
-  title?: string;
-}
-
-interface TripData {
-  route: string;
-  date: string;
-  time: string;
-  bus: string;
-  boardingPoint: string;
-  droppingPoint: string;
-  seats: string[];
-  passengers?: PassengerResponse[];  // Added passengers field
-}
-
-interface BookingResponse {
-  id: string;
-  bookingRef: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string | null;
-  totalAmount: number;
-  paymentMethod: string;
-  paymentStatus: string;
-  bookingStatus: string;
-  passengerList: PassengerResponse[];
-  departureTrip: TripData | null;
-  returnTrip: TripData | null;
-}
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const bookingId = searchParams.get("id");
@@ -47,76 +15,38 @@ export async function GET(req: NextRequest) {
 
   try {
     let booking: any;
-    let passengers: PassengerResponse[] = [];
-
-    if (orderId) {
-      // Fetch booking by order ID
-      const { data: bookingData, error: bookingError } = await supabase
+    const query = orderId
+      ? supabase
         .from("Booking")
-        .select(
-          `*,
-          Trip!trip_id (
-            route_name,
-            departure_date,
-            departure_time,
-            service_type,
-            boarding_point,
-            dropping_point,
-            occupied_seats
-          ),
-          ReturnTrip:Trip!return_trip_id (
-            route_name,
-            departure_date,
-            departure_time,
-            service_type,
-            boarding_point,
-            dropping_point,
-            occupied_seats
-          )`
-        )
+        .select(`
+            *,
+            Trip: trip_id (*),
+            ReturnTrip: return_trip_id (*)
+          `)
         .eq("order_id", orderId)
-        .single();
-
-      if (bookingError) {
-        return NextResponse.json(
-          { success: false, error: bookingError.message },
-          { status: 404 }
-        );
-      }
-
-      booking = bookingData;
-      // Transform passengers to match the expected format
-      passengers = (booking.passengers || []).map((p: any) => ({
-        name: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-        seat: p.seatNumber || '',
-        title: p.title || 'Mr' // Default to Mr if missing
-      }));
-    } else {
-      // Fetch booking by ID
-      const { data: bookingData, error: bookingError } = await supabase
+      : supabase
         .from("Booking")
-        .select("*")
-        .eq("id", bookingId)
-        .single();
+        .select(`
+            *,
+            Trip: trip_id (*),
+            ReturnTrip: return_trip_id (*)
+          `)
+        .eq("id", bookingId);
 
-      if (bookingError) {
-        return NextResponse.json(
-          { success: false, error: bookingError.message },
-          { status: 404 }
-        );
-      }
+    const { data, error } = await query.single();
 
-      booking = bookingData;
-      // Transform passengers to match the expected format
-      passengers = (booking.passengers || []).map((p: any) => ({
-        name: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
-        seat: p.seatNumber || '',
-        title: p.title || 'Mr'
-      }));
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 404 }
+      );
     }
+
+    booking = data;
 
     // Helper to parse seat data
     const parseSeats = (seats: any): string[] => {
+      if (!seats) return [];
       if (Array.isArray(seats)) return seats;
       if (typeof seats === "string") {
         try {
@@ -128,40 +58,56 @@ export async function GET(req: NextRequest) {
       return [];
     };
 
+    // Helper to parse passengers and transform to match PrintableTicket's structure
+    const parsePassengers = (passengersData: any): any[] => {
+      if (!passengersData) return [];
+      try {
+        const parsed = typeof passengersData === 'string'
+          ? JSON.parse(passengersData)
+          : passengersData;
+        // Ensure isReturn is preserved if it exists
+        return parsed.map((p: any) => ({
+          ...p,
+          name: `${p.firstName} ${p.lastName}`,
+          seat: p.seatNumber,
+          isReturn: typeof p.isReturn === 'boolean' ? p.isReturn : false,
+        }));
+      } catch (e) {
+        console.error("Error parsing passengers:", e);
+        return [];
+      }
+    };
+
+    const passengers = parsePassengers(booking.passengers);
+
     // Build departure trip
-    const departureTrip: TripData | null = booking.Trip
-      ? {
-          route: booking.Trip.route_name,
-          date: new Date(booking.Trip.departure_date).toISOString(),
-          time: booking.Trip.departure_time,
-          bus: booking.Trip.service_type || booking.Trip.route_name,
-          boardingPoint: booking.boarding_point,
-          droppingPoint: booking.dropping_point,
-          seats: parseSeats(booking.Trip.occupied_seats || []),
-          passengers: passengers.filter(p => 
-            parseSeats(booking.Trip.occupied_seats || []).includes(p.seat)
-          )
-        }
-      : null;
+    const departureSeats = parseSeats(booking.seats);
+    const departureTrip = {
+      route: booking.Trip?.route_name || "Unknown Route",
+      date: booking.Trip?.departure_date || new Date().toISOString(),
+      time: booking.Trip?.departure_time || "00:00",
+      bus: booking.Trip?.service_type || "Standard Bus",
+      boardingPoint: booking.boarding_point,
+      droppingPoint: booking.dropping_point,
+      seats: departureSeats,
+      passengers: passengers.filter((p: any) => !p.isReturn)
+    };
 
     // Build return trip
-    const returnTrip: TripData | null = booking.ReturnTrip
-      ? {
-          route: booking.ReturnTrip.route_name,
-          date: new Date(booking.ReturnTrip.departure_date).toISOString(),
-          time: booking.ReturnTrip.departure_time,
-          bus: booking.ReturnTrip.service_type || booking.ReturnTrip.route_name,
-          boardingPoint: booking.return_boarding_point,
-          droppingPoint: booking.return_dropping_point,
-          seats: parseSeats(booking.ReturnTrip.occupied_seats || []),
-          passengers: passengers.filter(p => 
-            parseSeats(booking.ReturnTrip.occupied_seats || []).includes(p.seat)
-          )
-        }
-      : null;
+    const returnSeats = parseSeats(booking.return_seats);
+    const returnTrip = booking.return_trip_id ? {
+      route: booking.ReturnTrip?.route_name || "Unknown Route",
+      date: booking.ReturnTrip?.departure_date || new Date().toISOString(),
+      time: booking.ReturnTrip?.departure_time || "00:00",
+      bus: booking.ReturnTrip?.service_type || "Standard Bus",
+      boardingPoint: booking.return_boarding_point,
+      droppingPoint: booking.return_dropping_point,
+      seats: returnSeats,
+      passengers: passengers.filter((p: any) => p.isReturn)
+    } : undefined;
 
     // Format response
-    const responseData: BookingResponse = {
+    const responseData = {
       id: booking.id,
       bookingRef: booking.order_id,
       userName: booking.user_name,
@@ -171,7 +117,6 @@ export async function GET(req: NextRequest) {
       paymentMethod: booking.payment_mode || "Credit Card",
       paymentStatus: booking.payment_status,
       bookingStatus: booking.booking_status,
-      passengerList: passengers,
       departureTrip,
       returnTrip,
     };

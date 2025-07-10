@@ -9,12 +9,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PrintableTicket } from "@/components/printable-ticket";
+import { PrintableTicket, type BookingData, type PrintableTripData } from "@/components/printable-ticket";
 
 interface Passenger {
   name: string;
   seat: string;
   title?: string;
+  isReturn?: boolean;
 }
 
 interface TripData {
@@ -25,7 +26,7 @@ interface TripData {
   boardingPoint: string;
   droppingPoint: string;
   seats: string[];
-  passengers?: Passenger[]; // Add this line
+  passengers?: Passenger[];
 }
 
 interface Booking {
@@ -54,25 +55,26 @@ interface Booking {
 export default function BookingsManagement() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBookingData, setSelectedBookingData] = useState<BookingData | null>(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showPrintTicket, setShowPrintTicket] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [tripTypeFilter, setTripTypeFilter] = useState<'all' | 'departure' | 'return'>('all');
   const [tripTypeForPrint, setTripTypeForPrint] = useState<"departure" | "return">("departure");
   const [loading, setLoading] = useState(false);
 
   // Format date function
-  const formatDate = (date: Date | string, formatStr: string) => {
+  const formatDate = (date: Date | string | undefined, formatStr: string) => {
+    if (!date) return "N/A";
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) return "Invalid date";
-
+    if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "N/A";
     const options: Intl.DateTimeFormatOptions = {};
     if (formatStr.includes("EEEE")) options.weekday = "long";
     if (formatStr.includes("MMMM")) options.month = "long";
     else if (formatStr.includes("MMM")) options.month = "short";
     if (formatStr.includes("dd")) options.day = "2-digit";
     if (formatStr.includes("yyyy")) options.year = "numeric";
-
     return dateObj.toLocaleDateString("en-US", options);
   };
 
@@ -96,7 +98,15 @@ export default function BookingsManagement() {
       booking.bookingRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || booking.bookingStatus.toLowerCase() === statusFilter;
-    return matchesSearch && matchesStatus;
+    let matchesTripType = true;
+    if (tripTypeFilter !== 'all') {
+      if (tripTypeFilter === 'departure') {
+        matchesTripType = !booking.returnTrip;
+      } else {
+        matchesTripType = !!booking.returnTrip;
+      }
+    }
+    return matchesSearch && matchesStatus && matchesTripType;
   });
 
   const handleViewBooking = (booking: Booking) => {
@@ -104,32 +114,60 @@ export default function BookingsManagement() {
     setShowBookingDetails(true);
   };
 
+  // Convert Booking to PrintableTicket's BookingData format
+  const convertToPrintableFormat = (booking: Booking): BookingData => {
+    const departureTrip: PrintableTripData = {
+      route: booking.route,
+      date: booking.date,
+      time: booking.time,
+      bus: booking.bus,
+      boardingPoint: booking.boardingPoint,
+      droppingPoint: booking.droppingPoint,
+      seats: booking.seats,
+      passengers: booking.passengerList || []
+    };
+
+    const returnTrip: PrintableTripData | undefined = booking.returnTrip ? {
+      route: booking.returnTrip.route,
+      date: booking.returnTrip.date,
+      time: booking.returnTrip.time,
+      bus: booking.returnTrip.bus,
+      boardingPoint: booking.returnTrip.boardingPoint,
+      droppingPoint: booking.returnTrip.droppingPoint,
+      seats: booking.returnTrip.seats,
+      passengers: booking.returnTrip.passengers || []
+    } : undefined;
+
+    return {
+      bookingRef: booking.bookingRef,
+      userName: booking.passengerName,
+      userEmail: booking.email,
+      userPhone: booking.phone,
+      totalAmount: booking.totalAmount,
+      paymentMethod: booking.paymentMethod,
+      paymentStatus: booking.paymentStatus,
+      bookingStatus: booking.bookingStatus,
+      departureTrip,
+      returnTrip
+    };
+  };
+
   const handlePrintTicket = async (booking: Booking) => {
     setLoading(true);
     try {
-      // Create merged booking object with passenger data
-      const bookingWithDetails = {
-        ...booking,
-        passengerList: booking.passengerList || [],
-        departureTrip: {
-          ...booking,
-          passengers: booking.passengerList || []
-        },
-        returnTrip: booking.returnTrip ? {
-          ...booking.returnTrip,
-          passengers: booking.passengerList || []
-        } : undefined
-      };
-
-      setSelectedBooking(bookingWithDetails);
+      // Try to fetch from user API endpoint
+      const response = await fetch(`/api/booking/${booking.bookingRef}`);
+      if (!response.ok) throw new Error('Failed to fetch ticket data');
+      
+      const ticketData: BookingData = await response.json();
+      setSelectedBookingData(ticketData);
       setTripTypeForPrint("departure");
       setShowPrintTicket(true);
     } catch (error) {
-      console.error("Error processing booking:", error);
-      setSelectedBooking({
-        ...booking,
-        passengerList: []
-      });
+      console.error("Error fetching ticket data, using fallback:", error);
+      // Fallback to converting admin booking data
+      const convertedData = convertToPrintableFormat(booking);
+      setSelectedBookingData(convertedData);
       setTripTypeForPrint("departure");
       setShowPrintTicket(true);
     } finally {
@@ -175,6 +213,16 @@ export default function BookingsManagement() {
                 <SelectItem value="confirmed">Confirmed</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={tripTypeFilter} onValueChange={value => setTripTypeFilter(value as 'all' | 'departure' | 'return')}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Filter by trip type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Trips</SelectItem>
+                <SelectItem value="departure">Departure Only</SelectItem>
+                <SelectItem value="return">Return Trips</SelectItem>
               </SelectContent>
             </Select>
             <Button className="bg-teal-600 hover:bg-teal-700 text-white">
@@ -250,8 +298,8 @@ export default function BookingsManagement() {
                             booking.bookingStatus === "Confirmed"
                               ? "bg-green-100 text-green-800"
                               : booking.bookingStatus === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
                           )}
                         >
                           {booking.bookingStatus}
@@ -331,7 +379,7 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {selectedBooking.passengerList && selectedBooking.passengerList.length > 0 && (
+              {selectedBooking.passengerList && (selectedBooking.passengerList.length > 0) && (
                 <div className="p-4 bg-gray-100 rounded-lg">
                   <h4 className="font-semibold mb-3 text-gray-800">Passenger List</h4>
                   <table className="w-full">
@@ -343,7 +391,7 @@ export default function BookingsManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedBooking.passengerList.map((passenger, index) => (
+                      {(selectedBooking.passengerList || []).map((passenger, index) => (
                         <tr key={index} className="border-b last:border-0">
                           <td className="p-2">{passenger.name}</td>
                           <td className="p-2">{passenger.seat}</td>
@@ -388,7 +436,7 @@ export default function BookingsManagement() {
               <div className="p-4 bg-amber-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-amber-800">Seat Information</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedBooking.seats.map((seat) => (
+                  {(selectedBooking.seats || []).map((seat) => (
                     <Badge key={seat} className="bg-amber-600 text-white">
                       {seat}
                     </Badge>
@@ -428,8 +476,8 @@ export default function BookingsManagement() {
                         selectedBooking.bookingStatus === "Confirmed"
                           ? "bg-green-100 text-green-800"
                           : selectedBooking.bookingStatus === "Pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                       )}
                     >
                       {selectedBooking.bookingStatus}
@@ -484,12 +532,12 @@ export default function BookingsManagement() {
           <DialogHeader>
             <DialogTitle className="text-teal-900">Print Ticket</DialogTitle>
             <DialogDescription>
-              Print or download ticket for {selectedBooking?.bookingRef}
+              Print or download ticket for {selectedBookingData?.bookingRef}
             </DialogDescription>
           </DialogHeader>
-          {selectedBooking && (
+          {selectedBookingData && (
             <div className="space-y-4">
-              {selectedBooking.returnTrip && (
+              {selectedBookingData.returnTrip && (
                 <div className="flex gap-4 mb-4">
                   <Button
                     variant={tripTypeForPrint === "departure" ? "default" : "outline"}
@@ -508,33 +556,7 @@ export default function BookingsManagement() {
                 </div>
               )}
               <PrintableTicket
-                bookingData={{
-                  bookingRef: selectedBooking.bookingRef,
-                  userName: selectedBooking.passengerName,
-                  userEmail: selectedBooking.email,
-                  userPhone: selectedBooking.phone,
-                  totalAmount: selectedBooking.totalAmount,
-                  paymentMethod: selectedBooking.paymentMethod || "Credit Card",
-                  paymentStatus: selectedBooking.paymentStatus,
-                  bookingStatus: selectedBooking.bookingStatus,
-                  passengerList: selectedBooking.passengerList || [],
-                  departureTrip: {
-                    route: selectedBooking.route,
-                    date: selectedBooking.date,
-                    time: selectedBooking.time,
-                    bus: selectedBooking.bus,
-                    boardingPoint: selectedBooking.boardingPoint,
-                    droppingPoint: selectedBooking.droppingPoint,
-                    seats: selectedBooking.seats,
-                    passengers: selectedBooking.passengerList || []
-                  },
-                  returnTrip: selectedBooking.returnTrip
-                    ? {
-                        ...selectedBooking.returnTrip,
-                        passengers: selectedBooking.returnTrip.passengers || []
-                      }
-                    : undefined
-                }}
+                bookingData={selectedBookingData}
                 tripType={tripTypeForPrint}
               />
             </div>

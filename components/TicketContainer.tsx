@@ -1,17 +1,16 @@
 import React from 'react';
 import { PrintableTicket } from './printable-ticket';
 
-
+// Use the same BookingData interface from printable-ticket
 interface BookingData {
   bookingRef: string;
   userName: string;
   userEmail: string;
-  userPhone: string;
+  userPhone: string | null;
   totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
   bookingStatus: string;
-  passengerList: { name: string; seat: string }[];
   departureTrip: {
     route: string;
     date: string | Date;
@@ -20,6 +19,11 @@ interface BookingData {
     boardingPoint: string;
     droppingPoint: string;
     seats: string[];
+    passengers: {
+      name: string;
+      seat: string;
+      title?: string;
+    }[];
   };
   returnTrip?: {
     route: string;
@@ -29,6 +33,11 @@ interface BookingData {
     boardingPoint: string;
     droppingPoint: string;
     seats: string[];
+    passengers: {
+      name: string;
+      seat: string;
+      title?: string;
+    }[];
   };
 }
 
@@ -39,13 +48,11 @@ interface TicketContainerProps {
 export const TicketContainer: React.FC<TicketContainerProps> = ({ bookingData }) => {
   return (
     <div className="print-container">
-      {/* Departure Ticket */}
       <PrintableTicket 
         bookingData={bookingData} 
         tripType="departure" 
       />
       
-      {/* Return Ticket (if exists) */}
       {bookingData.returnTrip && (
         <div className="mt-12">
           <PrintableTicket 
@@ -55,7 +62,6 @@ export const TicketContainer: React.FC<TicketContainerProps> = ({ bookingData })
         </div>
       )}
       
-      {/* Print Button */}
       <div className="mt-8 text-center no-print">
         <button
           onClick={() => window.print()}
