@@ -3,13 +3,263 @@ import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 import nodemailer from "nodemailer";
 import pdf from "html-pdf";
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { PrintableTicket } from "@/components/printable-ticket";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 });
+
+// Helper function to generate HTML for the ticket
+function generateTicketHTML(bookingData: any) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Reeca Travel Ticket</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .ticket-container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .header {
+                text-align: center;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+            }
+            .company-name {
+                font-size: 28px;
+                font-weight: bold;
+                color: #007bff;
+                margin-bottom: 10px;
+            }
+            .ticket-title {
+                font-size: 18px;
+                color: #666;
+            }
+            .booking-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 30px;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+            }
+            .info-group {
+                flex: 1;
+            }
+            .info-label {
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 5px;
+            }
+            .info-value {
+                color: #666;
+                margin-bottom: 15px;
+            }
+            .trip-section {
+                margin-bottom: 30px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 20px;
+            }
+            .trip-header {
+                font-size: 20px;
+                font-weight: bold;
+                color: #007bff;
+                margin-bottom: 15px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+            .trip-details {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .passengers-section {
+                margin-top: 20px;
+            }
+            .passenger-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 10px;
+                margin-top: 10px;
+            }
+            .passenger-item {
+                padding: 10px;
+                background-color: #f8f9fa;
+                border-radius: 5px;
+                border-left: 4px solid #007bff;
+            }
+            .addons-section {
+                margin-top: 30px;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+            }
+            .addon-item {
+                padding: 10px;
+                margin-bottom: 10px;
+                background-color: white;
+                border-radius: 5px;
+                border-left: 4px solid #28a745;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #ddd;
+                color: #666;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="ticket-container">
+            <div class="header">
+                <div class="company-name">REECA TRAVEL</div>
+                <div class="ticket-title">Bus Ticket</div>
+            </div>
+            
+            <div class="booking-info">
+                <div class="info-group">
+                    <div class="info-label">Booking Reference:</div>
+                    <div class="info-value">${bookingData.bookingRef}</div>
+                    <div class="info-label">Passenger Name:</div>
+                    <div class="info-value">${bookingData.userName}</div>
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">${bookingData.userEmail}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">${bookingData.userPhone}</div>
+                    <div class="info-label">Total Amount:</div>
+                    <div class="info-value">BWP ${bookingData.totalAmount}</div>
+                    <div class="info-label">Payment Status:</div>
+                    <div class="info-value">${bookingData.paymentStatus}</div>
+                </div>
+            </div>
+
+            <div class="trip-section">
+                <div class="trip-header">Departure Trip</div>
+                <div class="trip-details">
+                    <div>
+                        <div class="info-label">Route:</div>
+                        <div class="info-value">${bookingData.departureTrip.route}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Date:</div>
+                        <div class="info-value">${new Date(bookingData.departureTrip.date).toLocaleDateString()}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Time:</div>
+                        <div class="info-value">${bookingData.departureTrip.time}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Bus Type:</div>
+                        <div class="info-value">${bookingData.departureTrip.bus}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Boarding Point:</div>
+                        <div class="info-value">${bookingData.departureTrip.boardingPoint}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Dropping Point:</div>
+                        <div class="info-value">${bookingData.departureTrip.droppingPoint}</div>
+                    </div>
+                </div>
+                
+                <div class="passengers-section">
+                    <div class="info-label">Passengers:</div>
+                    <div class="passenger-list">
+                        ${bookingData.departureTrip.passengers.map((passenger: any) => `
+                            <div class="passenger-item">
+                                <strong>${passenger.name}</strong><br>
+                                Seat: ${passenger.seat}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            ${bookingData.returnTrip ? `
+                <div class="trip-section">
+                    <div class="trip-header">Return Trip</div>
+                    <div class="trip-details">
+                        <div>
+                            <div class="info-label">Route:</div>
+                            <div class="info-value">${bookingData.returnTrip.route}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Date:</div>
+                            <div class="info-value">${new Date(bookingData.returnTrip.date).toLocaleDateString()}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Time:</div>
+                            <div class="info-value">${bookingData.returnTrip.time}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Bus Type:</div>
+                            <div class="info-value">${bookingData.returnTrip.bus}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Boarding Point:</div>
+                            <div class="info-value">${bookingData.returnTrip.boardingPoint}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Dropping Point:</div>
+                            <div class="info-value">${bookingData.returnTrip.droppingPoint}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="passengers-section">
+                        <div class="info-label">Passengers:</div>
+                        <div class="passenger-list">
+                            ${bookingData.returnTrip.passengers.map((passenger: any) => `
+                                <div class="passenger-item">
+                                    <strong>${passenger.name}</strong><br>
+                                    Seat: ${passenger.seat}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+
+            ${bookingData.addons && bookingData.addons.length > 0 ? `
+                <div class="addons-section">
+                    <div class="info-label">Additional Services:</div>
+                    ${bookingData.addons.map((addon: any) => `
+                        <div class="addon-item">
+                            <strong>${addon.name}</strong>
+                            ${addon.details ? `<br><small>${addon.details}</small>` : ''}
+                            ${addon.price ? `<br><strong>BWP ${addon.price}</strong>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+
+            <div class="footer">
+                <p>Thank you for choosing Reeca Travel!</p>
+                <p>Please arrive at the boarding point at least 15 minutes before departure.</p>
+                <p>For inquiries, contact us at info@reecatravel.com</p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+}
 
 export async function POST(req: Request) {
   try {
@@ -98,7 +348,7 @@ export async function POST(req: Request) {
     }
 
     // After successful payment (or if no addon), send updated ticket
-    // Map booking to BookingData shape for PrintableTicket
+    // Map booking to BookingData shape for ticket generation
     const bookingData = {
       bookingRef: updatedBooking.orderId,
       userName: updatedBooking.userName,
@@ -153,10 +403,8 @@ export async function POST(req: Request) {
         : [],
     };
 
-    // Render PrintableTicket to HTML
-    const html = renderToStaticMarkup(
-      React.createElement(PrintableTicket, { bookingData })
-    );
+    // Generate HTML for the ticket
+    const html = generateTicketHTML(bookingData);
 
     // Generate PDF from HTML using html-pdf
     const pdfBuffer: Buffer = await new Promise((resolve, reject) => {
