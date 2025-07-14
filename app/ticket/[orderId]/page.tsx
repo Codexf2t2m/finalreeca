@@ -10,7 +10,6 @@ const TicketPage = () => {
   const [bookingData, setBookingData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tripType, setTripType] = useState<'departure' | 'return'>('departure');
 
   useEffect(() => {
     if (!orderId) return;
@@ -37,6 +36,19 @@ const TicketPage = () => {
 
     fetchBookingData();
   }, [orderId]);
+
+  useEffect(() => {
+    if (bookingData) {
+      fetch("/api/send-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: bookingData.bookingRef,
+          email: bookingData.userEmail,
+        }),
+      });
+    }
+  }, [bookingData]);
 
   if (loading) {
     return (
@@ -85,23 +97,7 @@ const TicketPage = () => {
           >
             Download Ticket (PDF)
           </button>
-          {bookingData.returnTrip ? (
-            <div className="mb-6 flex gap-4">
-              <button
-                className={`px-4 py-2 rounded font-semibold ${tripType === 'departure' ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-                onClick={() => setTripType('departure')}
-              >
-                Departure Ticket
-              </button>
-              <button
-                className={`px-4 py-2 rounded font-semibold ${tripType === 'return' ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-800'}`}
-                onClick={() => setTripType('return')}
-              >
-                Return Ticket
-              </button>
-            </div>
-          ) : null}
-          <PrintableTicket bookingData={bookingData} tripType={tripType} />
+          <PrintableTicket bookingData={bookingData} />
         </div>
       )}
     </div>

@@ -586,7 +586,8 @@ export default function PassengerDetailsForm({
                   firstName: p.firstName,
                   lastName: p.lastName,
                   seatNumber: p.seatNumber,
-                  title: p.title
+                  title: p.title,
+                  isReturn: p.isReturn, // <-- FIX: include isReturn
                 })),
                 userName: contactDetails.name,
                 userEmail: contactDetails.email,

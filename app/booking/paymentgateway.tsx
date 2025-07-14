@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
+import debounce from 'lodash.debounce';
 
 interface BookingData {
   tripId: string;
@@ -10,6 +11,7 @@ interface BookingData {
     lastName: string;
     seatNumber: string;
     title: string;
+    isReturn: boolean; // <-- Add this line
   }[];
   userName: string;
   userEmail: string;
@@ -38,38 +40,51 @@ export default function PaymentGateway({
 }: PaymentGatewayProps) {
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState('');
+  const isProcessingRef = useRef(false);
+
+  const createSession = async (paymentData: BookingData) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    try {
+      // Prepare Stripe request with all booking data
+      const requestData = {
+        ...paymentData,
+      };
+
+      // Call Stripe session API
+      const response = await fetch('/api/create-stripe-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+      const data = await response.json();
+      console.log('Stripe payment API response:', data);
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || 'Failed to create Stripe session. Please try again.');
+        setIsProcessing(false);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred during payment processing');
+      setIsProcessing(false);
+      console.error('Payment initiation failed:', err);
+    } finally {
+      isProcessingRef.current = false;
+    }
+  };
+
+  const debouncedCreateSession = useCallback(
+    debounce(createSession, 1000),
+    []
+  );
 
   useEffect(() => {
-    const initiatePayment = async () => {
-      try {
-        // Prepare Stripe request with all booking data
-        const requestData = {
-          ...bookingData,
-        };
-
-        // Call Stripe session API
-        const response = await fetch('/api/create-stripe-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestData),
-        });
-        const data = await response.json();
-        console.log('Stripe payment API response:', data);
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          setError(data.error || 'Failed to create Stripe session. Please try again.');
-          setIsProcessing(false);
-        }
-      } catch (err) {
-        setError('An unexpected error occurred during payment processing');
-        setIsProcessing(false);
-        console.error('Payment initiation failed:', err);
-      }
-    };
-
-    initiatePayment();
-  }, [bookingData]);
+    console.log('Booking data passengers:', bookingData.passengers);
+    console.log('Departure passengers:', bookingData.passengers.filter(p => !p.isReturn));
+    console.log('Return passengers:', bookingData.passengers.filter(p => p.isReturn));
+    debouncedCreateSession(bookingData);
+  }, [bookingData, debouncedCreateSession]);
 
   return (
     <div className="max-w-6xl mx-auto my-8 px-4">

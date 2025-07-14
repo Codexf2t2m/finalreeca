@@ -18,6 +18,7 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react"
+import { prisma } from "@/lib/prisma"
 
 // API Endpoints
 const VALIDATE_TICKET_API = "/api/validate-ticket";
@@ -61,6 +62,7 @@ export default function LiveTicketScanner() {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [scanCount, setScanCount] = useState(0)
   const [lastScanTime, setLastScanTime] = useState<number>(0)
+  const [tripsToday, setTripsToday] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -377,6 +379,32 @@ export default function LiveTicketScanner() {
     }
   };
 
+  useEffect(() => {
+    async function fetchTripsToday() {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+      // Replace with your API endpoint that returns today's trips
+      const response = await fetch(`/api/trips-today?start=${startOfDay.toISOString()}&end=${endOfDay.toISOString()}`);
+      const data = await response.json();
+      setTripsToday(data.trips);
+    }
+    fetchTripsToday();
+  }, []);
+
+  useEffect(() => {
+    async function requestCamera() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        // Camera permission granted
+      } catch (err) {
+        alert("Camera access is required to scan tickets. Please allow camera permission.");
+      }
+    }
+    requestCamera();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       <header className="bg-white border-b shadow-sm">
@@ -664,3 +692,4 @@ export default function LiveTicketScanner() {
     </div>
   );
 }
+

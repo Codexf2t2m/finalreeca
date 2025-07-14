@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PrintableTicket, type BookingData, type PrintableTripData } from "@/components/printable-ticket";
+import { PrintableTicket, type BookingData } from "@/components/printable-ticket";
+import * as XLSX from "xlsx";
 
 interface Passenger {
   name: string;
@@ -60,8 +61,6 @@ export default function BookingsManagement() {
   const [showPrintTicket, setShowPrintTicket] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [tripTypeFilter, setTripTypeFilter] = useState<'all' | 'departure' | 'return'>('all');
-  const [tripTypeForPrint, setTripTypeForPrint] = useState<"departure" | "return">("departure");
   const [loading, setLoading] = useState(false);
 
   // Format date function
@@ -98,15 +97,7 @@ export default function BookingsManagement() {
       booking.bookingRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || booking.bookingStatus.toLowerCase() === statusFilter;
-    let matchesTripType = true;
-    if (tripTypeFilter !== 'all') {
-      if (tripTypeFilter === 'departure') {
-        matchesTripType = !booking.returnTrip;
-      } else {
-        matchesTripType = !!booking.returnTrip;
-      }
-    }
-    return matchesSearch && matchesStatus && matchesTripType;
+    return matchesSearch && matchesStatus;
   });
 
   const handleViewBooking = (booking: Booking) => {
@@ -116,7 +107,7 @@ export default function BookingsManagement() {
 
   // Convert Booking to PrintableTicket's BookingData format
   const convertToPrintableFormat = (booking: Booking): BookingData => {
-    const departureTrip: PrintableTripData = {
+    const departureTrip = {
       route: booking.route,
       date: booking.date,
       time: booking.time,
@@ -127,7 +118,7 @@ export default function BookingsManagement() {
       passengers: booking.passengerList || []
     };
 
-    const returnTrip: PrintableTripData | undefined = booking.returnTrip ? {
+    const returnTrip = booking.returnTrip ? {
       route: booking.returnTrip.route,
       date: booking.returnTrip.date,
       time: booking.returnTrip.time,
@@ -161,14 +152,12 @@ export default function BookingsManagement() {
       
       const ticketData: BookingData = await response.json();
       setSelectedBookingData(ticketData);
-      setTripTypeForPrint("departure");
       setShowPrintTicket(true);
     } catch (error) {
       console.error("Error fetching ticket data, using fallback:", error);
       // Fallback to converting admin booking data
       const convertedData = convertToPrintableFormat(booking);
       setSelectedBookingData(convertedData);
-      setTripTypeForPrint("departure");
       setShowPrintTicket(true);
     } finally {
       setLoading(false);
@@ -186,6 +175,48 @@ export default function BookingsManagement() {
           : booking
       )
     );
+  };
+
+  // Excel export function
+  const handleExportExcel = () => {
+    // Prepare detailed data for export
+    const exportData = bookings.map((booking) => ({
+      BookingRef: booking.bookingRef,
+      PassengerName: booking.passengerName,
+      Email: booking.email,
+      Phone: booking.phone,
+      Passengers: booking.passengers,
+      Route: booking.route,
+      Date: booking.date instanceof Date ? booking.date.toISOString() : booking.date,
+      Time: booking.time,
+      Bus: booking.bus,
+      BoardingPoint: booking.boardingPoint,
+      DroppingPoint: booking.droppingPoint,
+      Seats: booking.seats.join(", "),
+      TotalAmount: booking.totalAmount,
+      PaymentMethod: booking.paymentMethod,
+      PaymentStatus: booking.paymentStatus,
+      BookingStatus: booking.bookingStatus,
+      SpecialRequests: booking.specialRequests,
+      // Flatten passenger list for export
+      PassengerList: booking.passengerList
+        ? booking.passengerList.map(
+            (p) =>
+              `${p.name} (${p.seat}${p.title ? ", " + p.title : ""}${
+                p.isReturn ? ", Return" : ", Departure"
+              })`
+          ).join("; ")
+        : "",
+      // Return trip details if present
+      ReturnTrip: booking.returnTrip
+        ? `Route: ${booking.returnTrip.route}, Date: ${booking.returnTrip.date}, Time: ${booking.returnTrip.time}, Bus: ${booking.returnTrip.bus}, Boarding: ${booking.returnTrip.boardingPoint}, Dropping: ${booking.returnTrip.droppingPoint}, Seats: ${booking.returnTrip.seats.join(", ")}`
+        : "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
+    XLSX.writeFile(workbook, "reeca_bookings.xlsx");
   };
 
   return (
@@ -215,19 +246,12 @@ export default function BookingsManagement() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={tripTypeFilter} onValueChange={value => setTripTypeFilter(value as 'all' | 'departure' | 'return')}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by trip type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Trips</SelectItem>
-                <SelectItem value="departure">Departure Only</SelectItem>
-                <SelectItem value="return">Return Trips</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleExportExcel}
+            >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              Export to Excel
             </Button>
           </div>
         </CardContent>
@@ -537,28 +561,7 @@ export default function BookingsManagement() {
           </DialogHeader>
           {selectedBookingData && (
             <div className="space-y-4">
-              {selectedBookingData.returnTrip && (
-                <div className="flex gap-4 mb-4">
-                  <Button
-                    variant={tripTypeForPrint === "departure" ? "default" : "outline"}
-                    onClick={() => setTripTypeForPrint("departure")}
-                    disabled={loading}
-                  >
-                    Departure Ticket
-                  </Button>
-                  <Button
-                    variant={tripTypeForPrint === "return" ? "default" : "outline"}
-                    onClick={() => setTripTypeForPrint("return")}
-                    disabled={loading}
-                  >
-                    Return Ticket
-                  </Button>
-                </div>
-              )}
-              <PrintableTicket
-                bookingData={selectedBookingData}
-                tripType={tripTypeForPrint}
-              />
+              <PrintableTicket bookingData={selectedBookingData} />
             </div>
           )}
         </DialogContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -13,6 +13,9 @@ import BookingForm from "@/components/bookingform";
 import TripManagement from "./management/tripmanagement";
 import BusSchedules from "./booking/busschedule";
 import PassengerDetailsForm from "./booking/passengerdetails/page";
+import HireBusModal from "./booking/hirebusmodal";
+import { Bus } from "lucide-react"; 
+
 
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
@@ -30,6 +33,9 @@ export default function BookingApp() {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isReturnTripSelection, setIsReturnTripSelection] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(true); // Set true when booking is open
+  const [showHireModal, setShowHireModal] = useState(false);
 
   // Robust date handling for DD/MM/YYYY format
   const parseDate = (dateStr: string): Date => {
@@ -145,6 +151,18 @@ export default function BookingApp() {
     setShowRequestForm(false);
     setBookingComplete(true);
   };
+
+  useEffect(() => {
+    if (activeTab !== "manage" || !bookingOpen) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      setShowLeaveModal(true);
+      e.returnValue = ""; // Show browser dialog
+      return "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [activeTab, bookingOpen]);
 
   if (bookingComplete) {
     return (
@@ -264,6 +282,16 @@ export default function BookingApp() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        <div className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40">
+          <button
+            className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 to-teal-600 text-white rounded-r-full shadow-lg hover:scale-105 transition-all"
+            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.12)" }}
+            onClick={() => setShowHireModal(true)}
+          >
+            <Bus className="w-7 h-7" />
+            <span className="font-bold text-lg">Hire a Bus</span>
+          </button>
+        </div>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "book" | "manage")} className="max-w-6xl mx-auto">
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-amber-100">
             <TabsTrigger
@@ -285,7 +313,6 @@ export default function BookingApp() {
               Manage Trips
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="book">
             {currentStep === "search" && (
               <div>
@@ -420,10 +447,93 @@ export default function BookingApp() {
           </TabsContent>
 
           <TabsContent value="manage">
-            <TripManagement bookings={bookings} setBookings={setBookings} />
+            <div className="max-w-xl mx-auto bg-white p-6 rounded-lg shadow mb-8">
+              <h2 className="text-2xl font-bold text-teal-900 mb-4">Manage Your Trip</h2>
+              <form
+                className="space-y-4"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const bookingRef = (formData.get("bookingRef") as string).trim();
+                  const idNumber = (formData.get("idNumber") as string).trim();
+                  const email = (formData.get("email") as string)?.trim() || "";
+                  // Fetch booking data from backend
+                  const res = await fetch(`/api/booking/lookup`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bookingRef, contactIdNumber: idNumber, email }), // <-- FIXED
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    setBookings([data]); // Show only the found booking
+                  } else {
+                    alert("Booking not found. Please check your details.");
+                  }
+                }}
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Booking Reference</label>
+                  <input name="bookingRef" required className="mt-1 block w-full border rounded px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">ID Number</label>
+                  <input name="idNumber" required className="mt-1 block w-full border rounded px-3 py-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email (optional)</label>
+                  <input name="email" type="email" className="mt-1 block w-full border rounded px-3 py-2" />
+                </div>
+                <button type="submit" className="w-full bg-teal-600 text-white py-2 rounded font-semibold mt-2">Find My Booking</button>
+              </form>
+            </div>
+            {/* Show booking details and actions if a booking is found */}
+            {bookings.length > 0 && (
+              <TripManagement bookings={bookings} setBookings={setBookings} />
+            )}
           </TabsContent>
         </Tabs>
       </div>
+      {showHireModal && (
+        <HireBusModal
+          onClose={() => setShowHireModal(false)}
+          onSubmit={async (formData) => {
+            // Send inquiry to backend
+            await fetch("/api/inquiries", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(formData),
+            });
+            setShowHireModal(false);
+            alert("Your hire inquiry has been submitted. We'll contact you soon!");
+          }}
+        />
+      )}
+      {activeTab === "manage" && showLeaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow">
+            <h2 className="text-lg font-bold mb-2">Leave Booking?</h2>
+            <p>Do you want to discard your booking or continue?</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                className="bg-red-500 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  setBookingOpen(false);
+                  setShowLeaveModal(false);
+                  // Optionally clear sensitive data here
+                }}
+              >
+                Discard
+              </button>
+              <button
+                className="bg-teal-600 text-white px-4 py-2 rounded"
+                onClick={() => setShowLeaveModal(false)}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -29,20 +29,17 @@ interface BookingData {
   bookingStatus: string;
   departureTrip: TripData;
   returnTrip?: TripData;
+  addons?: { name: string; details?: string; price?: string }[]; // Added addons field
 }
 
 interface PrintableTicketProps {
   bookingData: BookingData;
-  tripType: "departure" | "return";
 }
 
 // Define PrintableTripData as an alias for TripData
 type PrintableTripData = TripData;
 
-export const PrintableTicket: React.FC<PrintableTicketProps> = ({
-  bookingData,
-  tripType,
-}) => {
+export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData }) => {
   const formatDate = (dateInput: Date | string | undefined, formatStr: string) => {
     if (!dateInput) return "N/A";
     const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
@@ -59,53 +56,122 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({
     });
   };
 
-  // Get trip based on type
-  const trip = tripType === "departure"
-    ? bookingData.departureTrip
-    : bookingData.returnTrip;
-
-  if (!trip) return null;
-
-  // Sort passengers by seat number, filter by isReturn if present
-  const sortedPassengers = [...trip.passengers]
-    .filter(p => {
-      if (typeof p.isReturn === 'boolean') {
-        return tripType === 'departure' ? !p.isReturn : p.isReturn;
-      }
-      // fallback: if no isReturn, show all
-      return true;
-    })
-    .sort((a, b) => {
+  // Helper to render trip details
+  const renderTripSection = (trip: TripData, label: string) => {
+    if (!trip) return null;
+    const sortedPassengers = [...trip.passengers].sort((a, b) => {
       const numA = parseInt(a.seat.match(/\d+/)?.[0] || "0");
       const numB = parseInt(b.seat.match(/\d+/)?.[0] || "0");
       if (numA !== numB) return numA - numB;
       return a.seat.localeCompare(b.seat);
     });
+    const sortedSeats = [...trip.seats].sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)?.[0] || "0");
+      const numB = parseInt(b.match(/\d+/)?.[0] || "0");
+      if (numA !== numB) return numA - numB;
+      return a.localeCompare(b);
+    });
+    return (
+      <div className="mb-8">
+        <div className="bg-gray-100 p-2 mb-2">
+          <h3 className="font-bold text-gray-800">{label} Trip Details</h3>
+        </div>
+        <div className="border border-gray-300 rounded-lg p-3 md:p-4 mb-4">
+          <div className="font-semibold text-gray-800 text-base md:text-lg mb-1 md:mb-2">
+            BUS TICKET - {trip.route}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
+            <div>
+              <p>
+                <strong>Date:</strong> {formatDate(trip.date, "EEEE, MMMM dd, yyyy")}
+              </p>
+              <p>
+                <strong>Time:</strong> {trip.time}
+              </p>
+              <p>
+                <strong>Bus:</strong> {trip.bus}
+              </p>
+            </div>
+            <div>
+              <p>
+                <strong>Boarding:</strong> {trip.boardingPoint}
+              </p>
+              <p>
+                <strong>Dropping:</strong> {trip.droppingPoint}
+              </p>
+              <p>
+                <strong>Seats:</strong> {sortedSeats.join(", ")}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-x-auto mb-4">
+          <table className="min-w-full border border-gray-200 rounded text-xs md:text-sm">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">#</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Name</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Seat</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Title</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPassengers.length > 0 ? (
+                sortedPassengers.map((passenger, idx) => (
+                  <tr key={idx} className="border-t border-gray-100">
+                    <td className="px-2 md:px-3 py-1 md:py-2">{idx + 1}</td>
+                    <td className="px-2 md:px-3 py-1 md:py-2">{passenger.name}</td>
+                    <td className="px-2 md:px-3 py-1 md:py-2 font-bold">{passenger.seat}</td>
+                    <td className="px-2 md:px-3 py-1 md:py-2">{passenger.title || 'Mr'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
+                    No passenger data available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex flex-wrap gap-3 md:gap-4 mt-2 md:mt-4 text-xs md:text-sm text-gray-600">
+          <span>
+            Passengers: <span className="font-semibold">{sortedPassengers.length}</span>
+          </span>
+          <span>
+            Seats: <span className="font-semibold">{sortedSeats.join(", ")}</span>
+          </span>
+          <span>
+            Status: <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span>
+          </span>
+          <span>
+            Date Issued: <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span>
+          </span>
+        </div>
+      </div>
+    );
+  };
 
-  // Sort seats numerically
-  const sortedSeats = [...trip.seats].sort((a, b) => {
-    const numA = parseInt(a.match(/\d+/)?.[0] || "0");
-    const numB = parseInt(b.match(/\d+/)?.[0] || "0");
-    if (numA !== numB) return numA - numB;
-    return a.localeCompare(b);
-  });
-
+  // QR code data includes both trips if roundtrip
   const qrData = {
     ref: bookingData.bookingRef,
     name: bookingData.userName,
-    route: trip.route,
-    date: trip.date instanceof Date ? trip.date.toISOString() : trip.date,
-    time: trip.time,
-    seats: sortedSeats.join(","),
-    passengers: sortedPassengers.map(p => ({ name: p.name, seat: p.seat })),
+    trips: [bookingData.departureTrip, bookingData.returnTrip]
+      .filter((trip): trip is TripData => !!trip) // TypeScript guard for linting
+      .map(trip => ({
+        route: trip.route,
+        date: trip.date instanceof Date ? trip.date.toISOString() : trip.date,
+        time: trip.time,
+        seats: trip.seats,
+        passengers: trip.passengers.map(p => ({ name: p.name, seat: p.seat })),
+      })),
     amount: bookingData.totalAmount,
-    tripType,
+    type: bookingData.returnTrip ? "Roundtrip" : "Departure",
   };
 
   const qrString = JSON.stringify(qrData);
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-    qrString
-  )}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrString)}`;
 
   return (
     <div
@@ -152,7 +218,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({
           <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">BUS TICKET</h2>
           <p className="text-base md:text-lg font-semibold text-teal-600">#{bookingData.bookingRef}</p>
           <p className="text-xs md:text-sm font-medium text-gray-700 mt-1">
-            {tripType === "departure" ? "DEPARTURE" : "RETURN"} TRIP
+            {bookingData.returnTrip ? "ROUNDTRIP" : "DEPARTURE TRIP"}
           </p>
         </div>
       </div>
@@ -172,98 +238,16 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({
         </div>
         <div className="md:col-span-2">
           <h3 className="font-bold text-gray-800 mb-1 md:mb-2">
-            Passenger Manifest ({tripType === "departure" ? "Departure" : "Return"})
+            Passenger Manifest
           </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-200 rounded text-xs md:text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">#</th>
-                  <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Name</th>
-                  <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Seat</th>
-                  <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Title</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPassengers.length > 0 ? (
-                  sortedPassengers.map((passenger, idx) => (
-                    <tr key={idx} className="border-t border-gray-100">
-                      <td className="px-2 md:px-3 py-1 md:py-2">{idx + 1}</td>
-                      <td className="px-2 md:px-3 py-1 md:py-2">{passenger.name}</td>
-                      <td className="px-2 md:px-3 py-1 md:py-2 font-bold">{passenger.seat}</td>
-                      <td className="px-2 md:px-3 py-1 md:py-2">{passenger.title || 'Mr'}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
-                      No passenger data available
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-wrap gap-3 md:gap-4 mt-2 md:mt-4 text-xs md:text-sm text-gray-600">
-            <span>
-              Passengers: <span className="font-semibold">{sortedPassengers.length}</span>
-            </span>
-            <span>
-              Seats: <span className="font-semibold">{sortedSeats.join(", ")}</span>
-            </span>
-            <span>
-              Status: <span className="font-semibold text-green-600">{bookingData.bookingStatus}</span>
-            </span>
-            <span>
-              Date Issued: <span className="font-semibold">{formatDate(new Date(), "dd MMM yyyy")}</span>
-            </span>
+          <div className="flex flex-col gap-4">
+            {renderTripSection(bookingData.departureTrip, "Departure")}
+            {bookingData.returnTrip && renderTripSection(bookingData.returnTrip, "Return")}
           </div>
         </div>
       </div>
       <div className="mb-6 md:mb-8">
         <div className="bg-gray-100 p-2 mb-2 md:mb-4">
-          <h3 className="font-bold text-gray-800">Journey Details</h3>
-        </div>
-        <div className="border border-gray-300 rounded-lg p-3 md:p-4">
-          <div className="font-semibold text-gray-800 text-base md:text-lg mb-1 md:mb-2">
-            BUS TICKET - {trip.route}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
-            <div>
-              <p>
-                <strong>Date:</strong> {formatDate(trip.date, "EEEE, MMMM dd, yyyy")}
-              </p>
-              <p>
-                <strong>Time:</strong> {trip.time}
-              </p>
-              <p>
-                <strong>Bus:</strong> {trip.bus}
-              </p>
-            </div>
-            <div>
-              <p>
-                <strong>Boarding:</strong> {trip.boardingPoint}
-              </p>
-              <p>
-                <strong>Dropping:</strong> {trip.droppingPoint}
-              </p>
-              <p>
-                <strong>Seats:</strong> {sortedSeats.join(", ")}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end mt-2 md:mt-4">
-          <div className="w-48 md:w-64 border-t border-gray-300 pt-2">
-            <div className="flex justify-between py-1">
-              <span>Total:</span>
-              <span className="font-bold">P {bookingData.totalAmount.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mb-6 md:mb-8">
-        <div className="bg-gray-100 p-2 mb-2">
           <h3 className="font-bold text-gray-800">Payment Information</h3>
         </div>
         <div className="grid grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
@@ -348,6 +332,18 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({
           <p className="text-xs text-gray-600">Scan this QR code for quick verification</p>
         </div>
       </div>
+      {bookingData.addons && bookingData.addons.length > 0 && (
+        <div className="mb-6 md:mb-8">
+          <div className="bg-gray-100 p-2 mb-2">
+            <h3 className="font-bold text-gray-800">Addons</h3>
+          </div>
+          <ul className="list-disc pl-5 text-xs md:text-sm text-gray-700">
+            {bookingData.addons.map((addon, idx) => (
+              <li key={idx}>{addon.name} - {addon.details} {addon.price ? `(${addon.price})` : ""}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-6 md:mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-600">
         <p>Thank you for choosing REECA TRAVEL for your journey!</p>
         <p>For support, contact us at +26773061124 or admin@reecatravel.co.bw</p>

@@ -49,15 +49,17 @@ export const TicketContainer: React.FC<TicketContainerProps> = ({ bookingData })
   return (
     <div className="print-container">
       <PrintableTicket 
-        bookingData={bookingData} 
-        tripType="departure" 
+        bookingData={bookingData} // Remove tripType
       />
       
       {bookingData.returnTrip && (
         <div className="mt-12">
           <PrintableTicket 
-            bookingData={bookingData} 
-            tripType="return" 
+            bookingData={{
+              ...bookingData,
+              departureTrip: bookingData.returnTrip,
+              returnTrip: undefined
+            }} // Show only return trip if needed
           />
         </div>
       )}

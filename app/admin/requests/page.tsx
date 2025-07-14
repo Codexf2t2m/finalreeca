@@ -1,6 +1,6 @@
 // app/admin/requests/page.tsx
 "use client"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,23 +10,24 @@ import { Button } from "@/components/ui/button";
 import { Download, Eye, Search, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 
 
 interface Inquiry {
   id: string;
-  requestRef: string;
-  passengerName: string;
+  companyName: string;
+  contactPerson: string;
   email: string;
   phone: string;
-  route: string;
-  date: Date;
-  time: string;
   passengers: number;
+  date: string;
+  time: string;
+  origin: string;
+  destination: string;
+  specialRequests?: string;
   status: string;
-  requestedAt: Date;
-  specialRequests: string;
-  adminNotes: string;
+  requestedAt: string;
 }
 
 export default function InquiriesManagement() {
@@ -36,10 +37,19 @@ export default function InquiriesManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  useEffect(() => {
+    async function fetchInquiries() {
+      const res = await fetch("/api/inquiries");
+      const data = await res.json();
+      setInquiries(data.inquiries || []);
+    }
+    fetchInquiries();
+  }, []);
+
   const filteredInquiries = inquiries.filter((inquiry) => {
     const matchesSearch =
-      inquiry.passengerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inquiry.requestRef.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inquiry.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inquiry.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inquiry.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || inquiry.status.toLowerCase() === statusFilter;
@@ -56,6 +66,27 @@ export default function InquiriesManagement() {
     setInquiries((prev) =>
       prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
     );
+  };
+
+  const handleExportExcel = () => {
+    const exportData = inquiries.map((inq) => ({
+      "Company Name": inq.companyName,
+      "Contact Person": inq.contactPerson,
+      "Email": inq.email,
+      "Phone": inq.phone,
+      "Passengers": inq.passengers,
+      "Date": inq.date,
+      "Time": inq.time,
+      "Origin": inq.origin,
+      "Destination": inq.destination,
+      "Special Requests": inq.specialRequests || "",
+      "Status": inq.status,
+      "Requested At": inq.requestedAt,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bus Hire Inquiries");
+    XLSX.writeFile(workbook, "bus_hire_inquiries.xlsx");
   };
 
   return (
@@ -86,7 +117,7 @@ export default function InquiriesManagement() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={handleExportExcel}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -106,66 +137,35 @@ export default function InquiriesManagement() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-semibold text-gray-700">Inquiry Ref</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Passenger</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Route</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Date & Time</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Passengers</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Actions</th>
+                <tr>
+                  <th>Company</th>
+                  <th>Contact Person</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Passengers</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Origin</th>
+                  <th>Destination</th>
+                  <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredInquiries.map((inquiry) => (
-                  <tr key={inquiry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-3">
-                      <span className="font-mono text-sm font-semibold text-teal-600">{inquiry.requestRef}</span>
-                    </td>
-                    <td className="p-3">
-                      <div>
-                        <p className="font-semibold text-gray-900">{inquiry.passengerName}</p>
-                        <p className="text-sm text-gray-600">{inquiry.email}</p>
-                        <p className="text-sm text-gray-600">{inquiry.phone}</p>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{inquiry.route}</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{format(inquiry.date, "MMM dd, yyyy")}</p>
-                      <p className="text-xs text-gray-600">{inquiry.time}</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{inquiry.passengers}</p>
-                    </td>
-                    <td className="p-3">
-                      <div className="space-y-1">
-                        <Badge
-                          className={cn(
-                            "text-xs",
-                            inquiry.status === "Approved"
-                              ? "bg-green-100 text-green-800"
-                              : inquiry.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800",
-                          )}
-                        >
-                          {inquiry.status}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewInquiry(inquiry)}
-                          className="text-teal-600 border-teal-600 hover:bg-teal-50"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredInquiries.map((inq) => (
+                  <tr key={inq.id}>
+                    <td>{inq.companyName}</td>
+                    <td>{inq.contactPerson}</td>
+                    <td>{inq.email}</td>
+                    <td>{inq.phone}</td>
+                    <td>{inq.passengers}</td>
+                    <td>{inq.date}</td>
+                    <td>{inq.time}</td>
+                    <td>{inq.origin}</td>
+                    <td>{inq.destination}</td>
+                    <td>{inq.status}</td>
+                    <td>
+                      {/* Actions */}
                     </td>
                   </tr>
                 ))}
@@ -180,17 +180,18 @@ export default function InquiriesManagement() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-teal-900">Inquiry Details</DialogTitle>
-            <DialogDescription>Complete information for inquiry {selectedInquiry?.requestRef}</DialogDescription>
+            <DialogDescription>
+              Complete information for inquiry {selectedInquiry?.companyName}
+            </DialogDescription>
           </DialogHeader>
           {selectedInquiry && (
             <div className="space-y-6">
-              {/* Passenger Information */}
               <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-gray-800">Passenger Information</h4>
+                <h4 className="font-semibold mb-3 text-gray-800">Contact Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.passengerName}</span>
+                    <span className="text-gray-600">Contact Person:</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.contactPerson}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Email:</span>
@@ -212,12 +213,16 @@ export default function InquiriesManagement() {
                 <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-teal-600">Route:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.route}</span>
+                    <span className="text-teal-600">Origin:</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.origin}</span>
+                  </div>
+                  <div>
+                    <span className="text-teal-600">Destination:</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.destination}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{format(selectedInquiry.date, "EEEE, MMMM dd, yyyy")}</span>
+                    <span className="font-semibold ml-2">{selectedInquiry.date}</span>
                   </div>
                   <div>
                     <span className="text-teal-600">Time:</span>

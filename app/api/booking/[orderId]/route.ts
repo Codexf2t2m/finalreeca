@@ -55,7 +55,7 @@ export async function GET(request: Request, context: { params: Promise<{ orderId
           name: `${p.firstName} ${p.lastName}`,
           seat: p.seatNumber,
           title: p.title,
-          isReturn: p.isReturn,
+          isReturn: false,
         })),
     };
 
@@ -74,7 +74,7 @@ export async function GET(request: Request, context: { params: Promise<{ orderId
               name: `${p.firstName} ${p.lastName}`,
               seat: p.seatNumber,
               title: p.title,
-              isReturn: p.isReturn,
+              isReturn: true,
             })),
         }
       : undefined;

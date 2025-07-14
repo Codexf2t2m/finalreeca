@@ -7,6 +7,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  
 }
 
 model Trip {
@@ -64,6 +65,9 @@ model Booking {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
+  contactIdNumber     String
+  addons Json? 
+
   passengers Passenger[]
 }
 
@@ -76,6 +80,23 @@ model Passenger {
   seatNumber String
   title      String
   isReturn   Boolean  @default(false)
+  boarded    Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model Inquiry {
+  id             String   @id @default(uuid())
+  companyName    String
+  contactPerson  String
+  email          String
+  phone          String
+  passengers     Int
+  date           String
+  time           String
+  origin         String
+  destination    String
+  specialRequests String?
+  status         String   @default("pending")
+  requestedAt    DateTime @default(now())
 }

@@ -6,6 +6,7 @@ interface Passenger {
   seat: string;
   title?: string;
   isReturn?: boolean; // Assuming isReturn is a boolean indicating return trip
+  boarded?: boolean; // Assuming boarded is a boolean indicating if the passenger has boarded
 }
 
 interface PassengerManifestProps {
@@ -34,6 +35,7 @@ export const PassengerManifest: React.FC<PassengerManifestProps> = ({ passengers
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Name</th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Seat</th>
             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Title</th>
+            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700">Boarded</th>
           </tr>
         </thead>
         <tbody>
@@ -44,11 +46,12 @@ export const PassengerManifest: React.FC<PassengerManifestProps> = ({ passengers
                 <td className="px-3 py-2 text-xs">{passenger.name}</td>
                 <td className="px-3 py-2 text-xs font-bold">{passenger.seat}</td>
                 <td className="px-3 py-2 text-xs">{passenger.title}</td>
+                <td className="px-3 py-2 text-xs">{passenger.boarded ? "Yes" : "No"}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={4} className="px-3 py-2 text-xs text-gray-500 text-center">
+              <td colSpan={5} className="px-3 py-2 text-xs text-gray-500 text-center">
                 No passenger data available
               </td>
             </tr>
