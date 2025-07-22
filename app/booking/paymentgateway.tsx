@@ -25,6 +25,7 @@ interface BookingData {
   returnTripId?: string;
   returnBoardingPoint?: string;
   returnDroppingPoint?: string;
+  discountAmount?: number;
 }
 
 interface PaymentGatewayProps {

@@ -16,7 +16,6 @@ import PassengerDetailsForm from "./booking/passengerdetails/page";
 import HireBusModal from "./booking/hirebusmodal";
 import { Bus } from "lucide-react"; 
 
-
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
     "search" | "schedules" | "departure-seats" | "return-schedules" | "return-seats" | "passenger-details"
@@ -36,6 +35,7 @@ export default function BookingApp() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(true); // Set true when booking is open
   const [showHireModal, setShowHireModal] = useState(false);
+  const [agent, setAgent] = useState<{ name: string; email: string } | null>(null);
 
   // Robust date handling for DD/MM/YYYY format
   const parseDate = (dateStr: string): Date => {
@@ -164,6 +164,22 @@ export default function BookingApp() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [activeTab, bookingOpen]);
 
+  useEffect(() => {
+    // Try to fetch agent info on mount
+    fetch("/api/agent/me")
+      .then(async res => {
+        if (res.ok) {
+          const agentData = await res.json();
+          setAgent(agentData);
+          console.log("BookingApp: Agent detected", agentData);
+        } else {
+          setAgent(null);
+          console.log("BookingApp: No agent detected");
+        }
+      })
+      .catch(() => setAgent(null));
+  }, []);
+
   if (bookingComplete) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-amber-50 to-teal-50">
@@ -258,6 +274,13 @@ export default function BookingApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
+      {agent && (
+        <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-center">
+          <span className="text-amber-800 font-semibold text-lg">
+            Booking as Agent: {agent.name}
+          </span>
+        </div>
+      )}
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -282,16 +305,6 @@ export default function BookingApp() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="fixed left-0 top-1/2 transform -translate-y-1/2 z-40">
-          <button
-            className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-amber-500 to-teal-600 text-white rounded-r-full shadow-lg hover:scale-105 transition-all"
-            style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.12)" }}
-            onClick={() => setShowHireModal(true)}
-          >
-            <Bus className="w-7 h-7" />
-            <span className="font-bold text-lg">Hire a Bus</span>
-          </button>
-        </div>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "book" | "manage")} className="max-w-6xl mx-auto">
           <TabsList className="grid w-full grid-cols-2 mb-8 bg-amber-100">
             <TabsTrigger
@@ -316,6 +329,7 @@ export default function BookingApp() {
           <TabsContent value="book">
             {currentStep === "search" && (
               <div>
+                {/* Bus Hire Button - only visible on landing/search page */}
                 <div className="text-center mb-8">
                   <h1 className="text-4xl font-bold mb-4 text-teal-900">Book Your Journey with Reeca Travel</h1>
                   <p className="text-xl text-amber-700">
@@ -493,21 +507,6 @@ export default function BookingApp() {
           </TabsContent>
         </Tabs>
       </div>
-      {showHireModal && (
-        <HireBusModal
-          onClose={() => setShowHireModal(false)}
-          onSubmit={async (formData) => {
-            // Send inquiry to backend
-            await fetch("/api/inquiries", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(formData),
-            });
-            setShowHireModal(false);
-            alert("Your hire inquiry has been submitted. We'll contact you soon!");
-          }}
-        />
-      )}
       {activeTab === "manage" && showLeaveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow">

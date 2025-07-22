@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
-import { Wifi, Luggage, CheckCircle2 } from "lucide-react";
+import { Wifi, Luggage, Snowflake } from "lucide-react";
 
 interface Trip {
   id: string;
   routeOrigin: string;
   routeDestination: string;
-  departureDate: string;
+  departureDate: string | Date;
   departureTime: string;
   durationMinutes: number;
   fare: number;
@@ -18,6 +18,7 @@ interface Trip {
   totalSeats: number;
   promoActive?: boolean;
   promoPrice?: number;
+  hasDeparted?: boolean;
 }
 
 const morningBusImg = "/images/scania-irizar-vip.png";
@@ -105,11 +106,16 @@ export default function BusSchedules({
 
   // Optimized fetch with caching
   const fetchTrips = useCallback(async () => {
-    const departureDateStr = dateUtils.toISODateString(searchData.departureDate);
-    const cacheKey = `${searchData.from}-${searchData.to}-${departureDateStr}`;
-    const cached = tripsCache.get(cacheKey);
+    const departureDateStr = dateUtils.toISODateString(days[selectedDay]?.date);
+    const params = new URLSearchParams({
+      from: searchData.from,
+      to: searchData.to,
+      departureDate: departureDateStr
+    });
+    const url = `/api/trips?${params.toString()}`;
     
     // Check if we have valid cached data
+    const cached = tripsCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setTrips(cached.data);
       return;
@@ -117,15 +123,6 @@ export default function BusSchedules({
 
     setLoading(true);
     try {
-      // Build query parameters
-      const params = new URLSearchParams({
-        from: searchData.from,
-        to: searchData.to,
-        departureDate: departureDateStr
-      });
-      
-      const url = `/api/trips?${params.toString()}`;
-      
       const res = await fetch(url);
       
       if (!res.ok) {
@@ -142,7 +139,7 @@ export default function BusSchedules({
       const data: Trip[] = await res.json();
       
       // Cache the results
-      tripsCache.set(cacheKey, { data, timestamp: Date.now() });
+      tripsCache.set(url, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
       console.error("Error fetching trips:", error);
@@ -151,11 +148,11 @@ export default function BusSchedules({
     } finally {
       setLoading(false);
     }
-  }, [searchData, dateUtils]);
+  }, [searchData, dateUtils, selectedDay, days]);
 
   useEffect(() => {
     fetchTrips();
-  }, [fetchTrips]);
+  }, [fetchTrips, selectedDay]);
 
   // Fixed filtered trips
   const filteredTrips = useMemo(() => {
@@ -167,8 +164,7 @@ export default function BusSchedules({
       const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
                           trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
       const matchesDate = tripDate === selectedDateStr;
-      
-      return matchesRoute && matchesDate && tripDate;
+      return matchesRoute && matchesDate && tripDate && !trip.hasDeparted;
     });
   }, [trips, selectedDay, days, searchData, dateUtils]);
 
@@ -182,8 +178,15 @@ export default function BusSchedules({
     let arrivalDate: Date | null = null;
 
     try {
-      departureDate = new Date(trip.departureDate);
+      // Combine departureDate and departureTime
+      const depDateStr = typeof trip.departureDate === "string"
+        ? trip.departureDate
+        : (trip.departureDate as Date).toISOString();
+      const depTimeStr = trip.departureTime || "00:00";
+      const [hours, minutes] = depTimeStr.split(":").map(Number);
+      departureDate = new Date(depDateStr);
       if (!isNaN(departureDate.getTime())) {
+        departureDate.setHours(hours, minutes, 0, 0);
         arrivalDate = new Date(departureDate);
         arrivalDate.setMinutes(arrivalDate.getMinutes() + trip.durationMinutes);
       }
@@ -214,12 +217,12 @@ export default function BusSchedules({
     const features = [
       { icon: <Wifi className="w-5 h-5 text-teal-600" />, label: "WiFi" },
       { icon: <Luggage className="w-5 h-5 text-teal-600" />, label: "Baggage" },
-      { icon: <CheckCircle2 className="w-5 h-5 text-teal-600" />, label: "AC" },
+      { icon: <Snowflake className="w-5 h-5 text-teal-600" />, label: "AC" },
       // Add more icons/labels as needed
     ];
 
     return (
-      <div className="grid grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors">
+      <div className="flex flex-col md:grid md:grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors rounded-lg mb-2">
         <div className="col-span-2">
           <div className="flex items-center space-x-3">
             <div className="w-28 h-20 bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
@@ -281,14 +284,14 @@ export default function BusSchedules({
           {!isFull ? (
             <Button
               onClick={handleSelectBus}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm"
+              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm w-full md:w-auto"
             >
-              SELECT SEATS
+              BOOK SEATS
             </Button>
           ) : (
             <Button
               onClick={handleRequestBus}
-              className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2 text-sm font-semibold"
+              className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2 text-sm font-semibold w-full md:w-auto"
             >
               REQUEST
             </Button>

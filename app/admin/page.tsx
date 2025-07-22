@@ -51,6 +51,7 @@ interface DashboardData {
 }
 
 export default function DashboardOverview() {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "schedule">("dashboard");
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +187,7 @@ export default function DashboardOverview() {
           <CardTitle className="text-teal-900">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Link href="/admin/validate-ticket" className="block">
               <Button
                 variant="outline"
@@ -196,20 +197,31 @@ export default function DashboardOverview() {
                 <span>Validate Tickets</span>
               </Button>
             </Link>
-            <Button
-              variant="outline"
-              className="w-full h-20 border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 flex flex-col items-center justify-center"
-            >
-              <FileText className="h-6 w-6 mb-1" />
-              <span>Generate Reports</span>
-            </Button>
+            <Link href="/admin/agents" className="block">
+              <Button
+                variant="outline"
+                className="w-full h-20 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 flex flex-col items-center justify-center"
+              >
+                <Users className="h-6 w-6 mb-1" />
+                <span>Agents</span>
+              </Button>
+            </Link>
             <Link href="/admin/fleet" className="block">
               <Button
                 variant="outline"
                 className="w-full h-20 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 flex flex-col items-center justify-center"
               >
-                <Bus className="h-6 w-6 mb-1" />
-                <span>Manage Fleet</span>
+                <Users className="h-6 w-6 mb-1" />
+                <span>Fleet</span>
+              </Button>
+            </Link>
+            <Link href="/admin/busschedule" className="block">
+              <Button
+                variant="outline"
+                className="w-full h-20 border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 flex flex-col items-center justify-center"
+              >
+                <Users className="h-6 w-6 mb-1" />
+                <span>Schedule</span>
               </Button>
             </Link>
           </div>

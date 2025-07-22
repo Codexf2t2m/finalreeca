@@ -113,15 +113,11 @@ export default function SeatSelection({
 
         const bookedSeats: string[] = bookings
           .filter((booking: any) => booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'paid')
-          .reduce((seats: string[], booking: any) => {
-            try {
-              const parsedSeats = JSON.parse(booking.seats);
-              return [...seats, ...parsedSeats];
-            } catch (e) {
-              console.error('Error parsing booked seats:', e);
-              return seats;
-            }
-          }, []);
+          .flatMap((booking: any) =>
+            booking.passengers
+              .filter((p: any) => p.isReturn === isReturnTrip) // isReturnTrip: true for return, false for departure
+              .map((p: any) => p.seatNumber)
+          );
 
         let occupiedSeats: string[] = [];
         if (selectedBus.occupiedSeats) {
@@ -187,7 +183,7 @@ export default function SeatSelection({
           <Loader2 className="w-16 h-16 text-teal-600 mx-auto mb-4 animate-spin" />
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Loading Seat Layout...</h2>
           <p className="text-muted-foreground">
-            Fetching current booking information for trip {selectedBus.id}
+            Fetching current booking information for trip 
           </p>
         </div>
       </div>

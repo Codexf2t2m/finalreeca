@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
 import PaymentGateway from "../paymentgateway";
+import { PolicyModal } from "@/components/PolicyModal";
 
 interface Passenger {
   id: string;
@@ -67,14 +68,15 @@ export default function PassengerDetailsForm({
 }: PassengerDetailsFormProps) {
   const getBoardingPoints = (key: string): BoardingPoint[] => {
     if (!boardingPoints || typeof boardingPoints !== 'object') {
-      return [{ id: 'default', name: 'Default Bus Terminal', times: [] }];
+      return [{ id: 'default', name: 'Default', times: [] }];
     }
-    const normalizedKey = key || 'default';
+    // Lowercase only for lookup, not for display
+    const normalizedKey = key.trim().toLowerCase() || 'default';
     const points = boardingPoints[normalizedKey];
     if (!points || !Array.isArray(points)) {
       return [{
         id: 'default',
-        name: `${normalizedKey.charAt(0).toUpperCase()}${normalizedKey.slice(1)} Bus Terminal`,
+        name: key.trim(), // Use original casing for fallback
         times: []
       }];
     }
@@ -147,6 +149,8 @@ export default function PassengerDetailsForm({
 
   const [paymentMode, setPaymentMode] = useState('Credit Card');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
 
   const [departureBoardingPoint, setDepartureBoardingPoint] = useState('');
   const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
@@ -237,6 +241,33 @@ export default function PassengerDetailsForm({
     return `RT-${tripIdShort}-${timestamp}`;
   };
 
+  const [agent, setAgent] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/agent/me")
+      .then(async res => {
+        if (res.ok) {
+          const agentData = await res.json();
+          setAgent(agentData);
+        } else {
+          setAgent(null);
+        }
+      })
+      .catch(() => setAgent(null));
+  }, []);
+
+  const agentDiscount = agent ? Math.round(grandTotal * 0.10) : 0;
+  const finalTotal = agent ? grandTotal - agentDiscount : grandTotal;
+
+  // Example for displaying dropping/boarding points
+  const formatPoint = (point: string) => {
+    if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
+      return "OR Tambo Airport";
+    }
+    // Add more mappings as needed
+    return point;
+  };
+
   return (
     <div className="max-w-6xl mx-auto my-8 px-4">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
@@ -275,9 +306,15 @@ export default function PassengerDetailsForm({
                   <p className="font-semibold">P {returnTotal.toFixed(2)}</p>
                 </div>
               )}
+              {agent && (
+                <div className="flex justify-between pt-2">
+                  <p className="font-bold text-lg text-amber-700">Agent Discount (10%):</p>
+                  <p className="font-bold text-amber-700">-P {agentDiscount.toFixed(2)}</p>
+                </div>
+              )}
               <div className="flex justify-between pt-2">
                 <p className="font-bold text-lg">Grand Total:</p>
-                <p className="font-bold text-teal-600 text-xl">P {grandTotal.toFixed(2)}</p>
+                <p className="font-bold text-teal-600 text-xl">P {finalTotal.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -463,7 +500,7 @@ export default function PassengerDetailsForm({
                         <option value="">Select boarding point</option>
                         {departureOriginPoints.map((point) => (
                           <option key={point.id} value={point.name}>
-                            {point.name}
+                            {formatPoint(point.name)}
                           </option>
                         ))}
                       </select>
@@ -480,7 +517,7 @@ export default function PassengerDetailsForm({
                         <option value="">Select dropping point</option>
                         {departureDestinationPoints.map((point) => (
                           <option key={point.id} value={point.name}>
-                            {point.name}
+                          {formatPoint(point.name)}
                           </option>
                         ))}
                       </select>
@@ -503,7 +540,7 @@ export default function PassengerDetailsForm({
                           <option value="">Select boarding point</option>
                           {returnOriginPoints.map((point) => (
                             <option key={point.id} value={point.name}>
-                              {point.name}
+                            {formatPoint(point.name)}
                             </option>
                           ))}
                         </select>
@@ -520,7 +557,7 @@ export default function PassengerDetailsForm({
                           <option value="">Select dropping point</option>
                           {returnDestinationPoints.map((point) => (
                             <option key={point.id} value={point.name}>
-                              {point.name}
+                            {formatPoint(point.name)}
                             </option>
                           ))}
                         </select>
@@ -554,19 +591,28 @@ export default function PassengerDetailsForm({
             <Checkbox
               id="terms"
               checked={agreedToTerms}
-              onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+              onCheckedChange={(checked) => {
+                setAgreedToTerms(!!checked);
+                if (checked) setShowPolicyModal(true);
+              }}
             />
             <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              By continuing you agree to our TERMS & CONDITIONS and Cancellation Policies
+              By continuing you agree to our <span className="underline text-teal-700 cursor-pointer" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
             </label>
           </div>
 
           <Button
-            onClick={handleSubmit}
+            onClick={() => {
+              if (!policyAccepted) {
+                setShowPolicyModal(true);
+                return;
+              }
+              handleSubmit();
+            }}
             disabled={!agreedToTerms}
             className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg text-lg"
           >
-            PROCEED TO PAYMENT (P {grandTotal.toFixed(2)})
+            Pay (P {finalTotal.toFixed(2)})
           </Button>
         </div>
       </div>
@@ -580,7 +626,8 @@ export default function PassengerDetailsForm({
             <PaymentGateway
               bookingData={{
                 tripId: departureBus?.id,
-                totalPrice: grandTotal,
+                totalPrice: finalTotal,
+                discountAmount: agentDiscount,
                 selectedSeats: [...(departureSeats || []), ...(returnSeats || [])],
                 passengers: passengers.map(p => ({
                   firstName: p.firstName,
@@ -608,6 +655,17 @@ export default function PassengerDetailsForm({
           )}
         </DialogContent>
       </Dialog>
+
+      <PolicyModal
+        isOpen={showPolicyModal}
+        onClose={() => setShowPolicyModal(false)}
+        onAgree={() => {
+          setPolicyAccepted(true);
+          setShowPolicyModal(false);
+        }}
+        agreed={policyAccepted}
+        setAgreed={setPolicyAccepted}
+      />
     </div>
   );
 }

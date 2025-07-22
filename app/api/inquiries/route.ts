@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       time: data.time,
       origin: data.origin,
       destination: data.destination,
+      returnDate: data.returnDate, // <-- Add this line
       specialRequests: data.specialRequests,
       status: "pending",
       requestedAt: new Date(),

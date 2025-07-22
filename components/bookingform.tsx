@@ -12,18 +12,26 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Bus } from "lucide-react";
+import HireBusModal from "@/app/booking/hirebusmodal";
+
 
 interface BookingFormProps {
-  onSearch: (data: any) => void;
+  onSearch?: (data: any) => void;
+  agentMode?: boolean;
 }
 
-export default function BookingForm({ onSearch }: BookingFormProps) {
+export default function BookingForm({ onSearch, agentMode = false, agentInfo }: BookingFormProps & { agentInfo?: any }) {
   const [fromLocation, setFromLocation] = useState("Gaborone");
   const [toLocation, setToLocation] = useState("OR Tambo Airport");
   const [departureDate, setDepartureDate] = useState<Date>();
   const [returnDate, setReturnDate] = useState<Date>();
   const [isReturnTrip, setIsReturnTrip] = useState(true);
   const [totalSeats, setTotalSeats] = useState("1");
+  const [clientName, setClientName] = useState(agentMode && agentInfo ? agentInfo.name : "");
+  const [clientEmail, setClientEmail] = useState(agentMode && agentInfo ? agentInfo.email : "");
+  const [clientPhone, setClientPhone] = useState("");
+  const [showHireModal, setShowHireModal] = useState(false);
 
   // Get today's date without time for proper date comparison
   const getToday = () => {
@@ -39,14 +47,50 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
   };
 
   const handleSearch = () => {
-    if (fromLocation && toLocation && departureDate) {
-      onSearch({
-        from: fromLocation,
-        to: toLocation,
-        date: departureDate, // Changed from departureDate to date to match parent component
-        returnDate: isReturnTrip ? returnDate : null,
-        seats: Number.parseInt(totalSeats),
+    if (onSearch) {
+      // For search-only mode (landing page)
+      if (fromLocation && toLocation && departureDate) {
+        onSearch({
+          from: fromLocation,
+          to: toLocation,
+          date: departureDate,
+          returnDate: isReturnTrip ? returnDate : null,
+          seats: Number.parseInt(totalSeats),
+        });
+      }
+      return;
+    }
+
+    // For agent booking mode
+    if (agentMode) {
+      if (!clientName || !clientEmail) {
+        alert("Please enter client name and email.");
+        return;
+      }
+      // Call booking API for agent
+      fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: fromLocation,
+          to: toLocation,
+          date: departureDate,
+          returnDate: isReturnTrip ? returnDate : null,
+          seats: Number.parseInt(totalSeats),
+          clientName,
+          clientEmail,
+          clientPhone,
+          agentBooking: true,
+        }),
+      }).then(async res => {
+        if (res.ok) {
+          alert("Booking successful!");
+          setClientName(""); setClientEmail(""); setClientPhone("");
+        } else {
+          alert("Booking failed.");
+        }
       });
+      return;
     }
   };
 
@@ -204,15 +248,71 @@ export default function BookingForm({ onSearch }: BookingFormProps) {
                 </SelectContent>
               </Select>
             </div>
+            {/* Coach Hire Button - moved here after passenger selection */}
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-teal-600 text-white rounded-full shadow hover:scale-105 transition-all ml-4"
+              type="button"
+              onClick={() => setShowHireModal(true)}
+            >
+              <Bus className="w-5 h-5" />
+              <span className="font-semibold">Coach Hire</span>
+            </button>
           </div>
+
+          {agentMode && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <Label className="text-sm font-medium text-white">Client Name</Label>
+                <Input
+                  value={clientName}
+                  onChange={e => setClientName(e.target.value)}
+                  required
+                  disabled={agentMode}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-white">Client Email</Label>
+                <Input
+                  type="email"
+                  value={clientEmail}
+                  onChange={e => setClientEmail(e.target.value)}
+                  required
+                  disabled={agentMode}
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-white">Client Phone</Label>
+                <Input
+                  value={clientPhone}
+                  onChange={e => setClientPhone(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
 
           <Button
             onClick={handleSearch}
             className="w-full md:w-auto h-12 bg-amber-500 text-gray-900 hover:bg-amber-400 font-semibold text-lg rounded-lg px-8"
           >
-            SEARCH BUSES
+            {agentMode ? "BOOK FOR CLIENT" : "SEARCH BUSES"}
           </Button>
         </div>
+
+        {/* Coach Hire Modal */}
+        {showHireModal && (
+          <HireBusModal
+            onClose={() => setShowHireModal(false)}
+            onSubmit={async (formData) => {
+              await fetch("/api/inquiries", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+              });
+              setShowHireModal(false);
+              alert("Your hire inquiry has been submitted. We'll contact you soon!");
+            }}
+          />
+        )}
       </div>
     </div>
   );

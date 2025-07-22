@@ -69,6 +69,9 @@ model Booking {
   addons Json? 
 
   passengers Passenger[]
+
+  agentId    String?  // nullable for normal bookings
+  agent      Agent?   @relation(fields: [agentId], references: [id])
 }
 
 model Passenger {
@@ -96,7 +99,18 @@ model Inquiry {
   time           String
   origin         String
   destination    String
+  returnDate     String   // <-- Add this line
   specialRequests String?
   status         String   @default("pending")
   requestedAt    DateTime @default(now())
+}
+
+model Agent {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String   // hashed
+  createdAt DateTime @default(now())
+  bookings  Booking[]
+  approved  Boolean  @default(false) // <-- Add this line
 }

@@ -27,6 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         bookingStatus: true,
         paymentStatus: true,
         createdAt: true,
+        agent: { select: { id: true, name: true, email: true } },
+        passengers: true,
       },
       orderBy: {
         createdAt: 'desc',

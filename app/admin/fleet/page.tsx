@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch"; // Import your Switch component
 
 interface Trip {
   id?: string;
@@ -84,7 +85,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
           availableSeats: 60,
           serviceType: 'Morning Bus',
           fare: 500,
-          durationMinutes: 480,
+          durationMinutes: 390,
           promoActive: false,
           hasDeparted: false,
           routeOrigin: 'Gaborone',
@@ -100,7 +101,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
           availableSeats: 60,
           serviceType: 'Afternoon Bus',
           fare: 500,
-          durationMinutes: 480,
+          durationMinutes: 390,
           promoActive: false,
           hasDeparted: false,
           routeOrigin: 'Gaborone',
@@ -116,7 +117,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
           availableSeats: 60,
           serviceType: 'Morning Bus',
           fare: 500,
-          durationMinutes: 480,
+          durationMinutes: 390,
           promoActive: false,
           hasDeparted: false,
           routeOrigin: 'OR Tambo Airport',
@@ -132,7 +133,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({ isOpen, onClose
           availableSeats: 60,
           serviceType: 'Afternoon Bus',
           fare: 500,
-          durationMinutes: 480,
+          durationMinutes: 390,
           promoActive: false,
           hasDeparted: false,
           routeOrigin: 'OR Tambo Airport',
@@ -265,7 +266,7 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
       availableSeats: 60,
       serviceType: 'Morning Bus',
       fare: 500,
-      durationMinutes: 480,
+      durationMinutes: 390,
       promoActive: false,
       hasDeparted: false,
       routeOrigin: '',
@@ -479,6 +480,7 @@ const FleetManagementPage = () => {
   const [currentTrip, setCurrentTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoDepart, setAutoDepart] = useState(true); // Default ON
 
   const routes: Route[] = [
     { id: '1', name: 'Gaborone to OR Tambo Airport' },
@@ -495,6 +497,24 @@ const FleetManagementPage = () => {
   useEffect(() => {
     fetchTrips();
   }, []);
+
+  useEffect(() => {
+    if (!autoDepart) return;
+    const interval = setInterval(() => {
+      trips.forEach(trip => {
+        if (!trip.hasDeparted) {
+          const now = new Date();
+          const tripDate = new Date(trip.departureDate);
+          const [hours, minutes] = trip.departureTime.split(":").map(Number);
+          tripDate.setHours(hours, minutes, 0, 0);
+          if (now >= tripDate) {
+            handleMarkDeparted(trip.id!);
+          }
+        }
+      });
+    }, 60000); // check every minute
+    return () => clearInterval(interval);
+  }, [autoDepart, trips]);
 
   const fetchTrips = async () => {
     setIsLoading(true);
@@ -642,6 +662,15 @@ const FleetManagementPage = () => {
         <header className="bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <h1 className="text-xl font-bold text-teal-900">Fleet Management Dashboard</h1>
+            <div className="flex space-x-2 items-center">
+              <Switch checked={autoDepart} onCheckedChange={setAutoDepart} />
+              <span className="ml-2 text-sm font-medium text-indigo-700">Auto Depart</span>
+            </div>
+            {autoDepart ? (
+              <div className="text-green-700 text-xs mt-1">Auto Depart is ON: Buses will be marked as departed automatically when their time is due.</div>
+            ) : (
+              <div className="text-red-700 text-xs mt-1">Auto Depart is OFF: Buses will NOT be marked as departed automatically.</div>
+            )}
             <div className="flex space-x-2">
               <Button onClick={handleAutomateWeeklyTrips} className="bg-blue-600 hover:bg-blue-700 text-white">
                 Automate Trips

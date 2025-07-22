@@ -52,31 +52,38 @@ interface Booking {
 }
 
 export default function LiveTicketScanner() {
-  const [searchRef, setSearchRef] = useState("")
-  const [scannerActive, setScannerActive] = useState(false)
-  const [scanning, setScanning] = useState(false)
-  const [validationResult, setValidationResult] = useState<Booking | null>(null)
-  const [validationStatus, setValidationStatus] = useState<"valid" | "invalid" | "already-scanned" | null>(null)
-  const [showDetails, setShowDetails] = useState(false)
-  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [scanCount, setScanCount] = useState(0)
-  const [lastScanTime, setLastScanTime] = useState<number>(0)
-  const [tripsToday, setTripsToday] = useState<any[]>([]);
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const workerRef = useRef<Worker | null>(null)
+  const [searchRef, setSearchRef] = useState("");
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [validationResult, setValidationResult] = useState<Booking | null>(null);
+  const [validationStatus, setValidationStatus] = useState<"valid" | "invalid" | "already-scanned" | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [scanCount, setScanCount] = useState(0);
+  const [lastScanTime, setLastScanTime] = useState<number>(0);
+  const [tripsToday, setTripsToday] = useState<Trip[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<string>("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const workerRef = useRef<Worker | null>(null);
 
-  // Clean up on unmount
   useEffect(() => {
-    return () => {
-      stopScanner()
-      if (workerRef.current) {
-        workerRef.current.terminate()
-      }
+    async function fetchTripsToday() {
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const response = await fetch(`/api/trips-today?start=${startOfDay.toISOString()}&end=${endOfDay.toISOString()}`);
+      const data = await response.json();
+      setTripsToday(data.trips || []);
     }
-  }, [])
+    fetchTripsToday();
+    return () => {
+      stopScanner();
+      if (workerRef.current) workerRef.current.terminate();
+    };
+  }, []);
 
   // Initialize QR code worker
   useEffect(() => {
@@ -190,6 +197,7 @@ export default function LiveTicketScanner() {
   };
 
   const startScanner = async () => {
+    if (!selectedTripId) return alert("Please select a trip first.");
     setScannerActive(true);
     setScanning(true);
     setScanCount(0);
@@ -268,6 +276,7 @@ export default function LiveTicketScanner() {
 
   const handleManualSearch = () => {
     if (!searchRef.trim()) return;
+    if (!selectedTripId) return alert("Please select a trip first.");
     validateTicket(searchRef.trim());
   };
 
@@ -275,7 +284,7 @@ export default function LiveTicketScanner() {
     setScanning(true);
     
     try {
-      const response = await fetch(`${VALIDATE_TICKET_API}?ref=${encodeURIComponent(reference)}`);
+      const response = await fetch(`${VALIDATE_TICKET_API}?ref=${encodeURIComponent(reference)}&tripId=${selectedTripId}`);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -379,32 +388,6 @@ export default function LiveTicketScanner() {
     }
   };
 
-  useEffect(() => {
-    async function fetchTripsToday() {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-      // Replace with your API endpoint that returns today's trips
-      const response = await fetch(`/api/trips-today?start=${startOfDay.toISOString()}&end=${endOfDay.toISOString()}`);
-      const data = await response.json();
-      setTripsToday(data.trips);
-    }
-    fetchTripsToday();
-  }, []);
-
-  useEffect(() => {
-    async function requestCamera() {
-      try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
-        // Camera permission granted
-      } catch (err) {
-        alert("Camera access is required to scan tickets. Please allow camera permission.");
-      }
-    }
-    requestCamera();
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       <header className="bg-white border-b shadow-sm">
@@ -439,6 +422,23 @@ export default function LiveTicketScanner() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Trip selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold mb-2 text-teal-900">Select Trip for Today</label>
+                <select
+                  value={selectedTripId}
+                  onChange={e => setSelectedTripId(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">-- Select a trip --</option>
+                  {tripsToday.map(trip => (
+                    <option key={trip.id} value={trip.id}>
+                      {trip.routeName} | {formatDate(trip.departureDate)} {trip.departureTime}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {!scannerActive && !showDetails && (
                 <div className="space-y-6">
                   <div className="text-center">
@@ -446,16 +446,15 @@ export default function LiveTicketScanner() {
                       Validate passenger tickets by scanning QR code or entering booking reference
                     </p>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       onClick={startScanner}
+                      disabled={!selectedTripId}
                       className="h-32 bg-teal-600 hover:bg-teal-700 text-white flex flex-col items-center justify-center gap-2"
                     >
                       <Camera className="h-8 w-8" />
                       <span className="font-semibold">Scan QR Code</span>
                     </Button>
-
                     <div className="h-32 border-2 border-dashed border-gray-300 rounded-md p-4 flex flex-col items-center justify-center gap-2">
                       <div className="w-full space-y-2">
                         <div className="flex gap-2">
@@ -465,10 +464,11 @@ export default function LiveTicketScanner() {
                             onChange={(e) => setSearchRef(e.target.value)}
                             className="flex-1"
                             onKeyPress={(e) => e.key === 'Enter' && handleManualSearch()}
+                            disabled={!selectedTripId}
                           />
                           <Button 
                             onClick={handleManualSearch} 
-                            disabled={!searchRef.trim() || scanning}
+                            disabled={!searchRef.trim() || scanning || !selectedTripId}
                           >
                             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                           </Button>

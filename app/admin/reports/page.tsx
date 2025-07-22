@@ -51,6 +51,9 @@ export default function ReportsPage() {
   const [selectedRoute, setSelectedRoute] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
+  // Agent sales data
+  const [agentSales, setAgentSales] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchRouteSales = async () => {
       try {
@@ -65,6 +68,12 @@ export default function ReportsPage() {
       }
     };
     fetchRouteSales();
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/reports/sales-by-agent")
+      .then(res => res.json())
+      .then(data => setAgentSales(data));
   }, []);
 
   // Get all unique routes and months for filters
@@ -369,6 +378,33 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sales by Agents Table */}
+      <Card className="border-0 shadow-lg mt-8">
+        <CardHeader>
+          <CardTitle className="text-teal-900">Sales by Agents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Name</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {agentSales.map((a: any) => (
+                <tr key={a.id}>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{a.name}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{a.bookings}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">P {a.revenue.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
     </div>

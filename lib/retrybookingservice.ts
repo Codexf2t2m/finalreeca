@@ -1,6 +1,17 @@
 import { prisma } from '@/lib/prisma';
+import { cookies } from "next/headers";
 
 export async function createBookingWithRetry(data: any, maxRetries = 3) {
+  const cookieStore = await cookies();
+  const agentId = cookieStore.get("agent_token")?.value || null;
+  // Use discountAmount from data
+  const discountAmount = data.discountAmount || 0;
+
+  console.log("Booking API: agentId from cookie:", agentId);
+  if (agentId) {
+    console.log("Applying 10% agent discount for agentId:", agentId, "Discount:", discountAmount, "Final price:", data.totalPrice);
+  }
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await prisma.$transaction(async (tx) => {
@@ -27,10 +38,13 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             returnDroppingPoint: data.returnDroppingPoint || null,
             returnSeats: data.returnSeats?.length ? JSON.stringify(data.returnSeats) : null,
             promoCode: data.promoCode || null,
-            discountAmount: data.discountAmount || 0,
+            discountAmount: discountAmount,
             contactIdNumber: data.contactDetails?.idNumber,
+            agentId: agentId || null,
           },
         });
+
+        console.log("Creating booking with agentId:", agentId, "Discount:", discountAmount, "Final price:", data.totalPrice);
 
         if (data.passengers?.length) {
           await tx.passenger.createMany({
@@ -48,6 +62,32 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
 
         const savedPassengers = await prisma.passenger.findMany({ where: { bookingId: created.id } });
         console.log("Saved passengers:", savedPassengers);
+
+        // After creating booking and passengers
+        if (data.departureSeats?.length) {
+          const existingTrip = await tx.trip.findUnique({ where: { id: data.tripId } });
+          await tx.trip.update({
+            where: { id: data.tripId },
+            data: {
+              occupiedSeats: JSON.stringify([
+                ...(JSON.parse(existingTrip?.occupiedSeats || "[]")),
+                ...data.departureSeats
+              ])
+            }
+          });
+        }
+        if (data.returnSeats?.length && data.returnTripId) {
+          const returnTrip = await tx.trip.findUnique({ where: { id: data.returnTripId } });
+          await tx.trip.update({
+            where: { id: data.returnTripId },
+            data: {
+              occupiedSeats: JSON.stringify([
+                ...(JSON.parse(returnTrip?.occupiedSeats || "[]")),
+                ...data.returnSeats
+              ])
+            }
+          });
+        }
 
         return await tx.booking.findUnique({
           where: { orderId: data.orderId },

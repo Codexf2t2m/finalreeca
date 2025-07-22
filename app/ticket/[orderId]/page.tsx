@@ -39,6 +39,7 @@ const TicketPage = () => {
 
   useEffect(() => {
     if (bookingData) {
+      // Send ticket email
       fetch("/api/send-ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,6 +48,16 @@ const TicketPage = () => {
           email: bookingData.userEmail,
         }),
       });
+
+      // Check if agent is logged in and redirect after 8 seconds
+      fetch("/api/agent/me")
+        .then(async res => {
+          if (res.ok) {
+            setTimeout(() => {
+              router.push("/agent/dashboard");
+            }, 9000); // 8 seconds to view ticket
+          }
+        });
     }
   }, [bookingData]);
 
