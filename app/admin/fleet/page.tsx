@@ -251,8 +251,8 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
     fare: '',
     availableSeats: '',
     totalSeats: '',
-    serviceType: '',
-    departureTime: '',
+    serviceType: 'keep-current',
+    departureTime: 'keep-current',
     boardingPoint: '',
     droppingPoint: ''
   });
@@ -348,7 +348,7 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
                     <SelectValue placeholder="Keep current" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Keep current</SelectItem>
+                    <SelectItem value="keep-current">Keep current</SelectItem>
                     <SelectItem value="Morning Bus">Morning Bus</SelectItem>
                     <SelectItem value="Afternoon Bus">Afternoon Bus</SelectItem>
                   </SelectContent>
@@ -361,7 +361,7 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
                     <SelectValue placeholder="Keep current" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Keep current</SelectItem>
+                    <SelectItem value="keep-current">Keep current</SelectItem>
                     {times.map((time) => (
                       <SelectItem key={time.id} value={time.time}>{time.time}</SelectItem>
                     ))}
@@ -1296,7 +1296,7 @@ CROSS JOIN base_trips bt;`;
                       <SelectValue placeholder="Select a route" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All routes</SelectItem>
+                      <SelectItem value="all">All routes</SelectItem>
                       {routes.map((route) => (
                         <SelectItem key={route.id} value={route.name}>{route.name}</SelectItem>
                       ))}
