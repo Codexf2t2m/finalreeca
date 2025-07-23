@@ -15,7 +15,6 @@ import Image from "next/image";
 import { Bus } from "lucide-react";
 import HireBusModal from "@/app/booking/hirebusmodal";
 
-
 interface BookingFormProps {
   onSearch?: (data: any) => void;
   agentMode?: boolean;
@@ -60,7 +59,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
       }
       return;
     }
-
     // For agent booking mode
     if (agentMode) {
       if (!clientName || !clientEmail) {
@@ -107,8 +105,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
                 height={168}
                 className="object-contain"
               />
-              {/* Plate number styling - positioned at front */}
-              
             </div>
             <div className="relative">
               <Image
@@ -118,8 +114,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
                 height={168}
                 className="object-contain"
               />
-              {/* Plate number at the spot where "STANDARD" was */}
-              
             </div>
           </div>
         </div>
@@ -130,7 +124,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
           </div>
         </div>
       </div>
-
       <div className="bg-teal-600 text-white p-4 md:p-6 rounded-xl -mt-6 relative z-10 mx-4 md:mx-auto max-w-5xl shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-1">
@@ -145,7 +138,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-1">
             <Label className="text-sm font-medium text-white">To</Label>
             <Select value={toLocation} onValueChange={setToLocation}>
@@ -158,7 +150,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-1">
             <Label className="text-sm font-medium text-white">Departure Date</Label>
             <Popover>
@@ -177,12 +168,11 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
                   selected={departureDate}
                   onSelect={setDepartureDate}
                   initialFocus
-                  disabled={isDateBeforeToday} // Fixed: Now allows today's date
+                  disabled={isDateBeforeToday}
                 />
               </PopoverContent>
             </Popover>
           </div>
-
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-white">Return Date</Label>
@@ -219,7 +209,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
                   onSelect={setReturnDate}
                   initialFocus
                   disabled={(date) => {
-                    // Return date cannot be before departure date (or today if no departure date selected)
                     const minDate = departureDate || getToday();
                     const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                     const minDateCheck = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
@@ -230,7 +219,6 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
             </Popover>
           </div>
         </div>
-
         <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-4">
           <div className="flex items-center space-x-4 w-full md:w-auto">
             <div className="space-y-1">
@@ -248,19 +236,9 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
                 </SelectContent>
               </Select>
             </div>
-            {/* Coach Hire Button - moved here after passenger selection */}
-            <button
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-teal-600 text-white rounded-full shadow hover:scale-105 transition-all ml-4"
-              type="button"
-              onClick={() => setShowHireModal(true)}
-            >
-              <Bus className="w-5 h-5" />
-              <span className="font-semibold">Coach Hire</span>
-            </button>
           </div>
-
           {agentMode && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 w-full">
               <div>
                 <Label className="text-sm font-medium text-white">Client Name</Label>
                 <Input
@@ -289,16 +267,22 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
               </div>
             </div>
           )}
-
-          <Button
-            onClick={handleSearch}
-            className="w-full md:w-auto h-12 bg-amber-500 text-gray-900 hover:bg-amber-400 font-semibold text-lg rounded-lg px-8"
-          >
-            {agentMode ? "BOOK FOR CLIENT" : "SEARCH BUSES"}
-          </Button>
+          <div className="flex gap-4 w-full md:w-auto">
+            <Button
+              onClick={() => setShowHireModal(true)}
+              className="w-full md:w-auto h-12 bg-transparent border-2 border-amber-500 text-white hover:bg-amber-500 font-semibold text-lg rounded-lg px-8 flex items-center gap-2"
+            >
+              <Bus className="w-5 h-5" />
+              <span>Coach Hire</span>
+            </Button>
+            <Button
+              onClick={handleSearch}
+              className="w-full md:w-auto h-12 bg-amber-500 text-gray-900 hover:bg-amber-400 font-semibold text-lg rounded-lg px-8"
+            >
+              {agentMode ? "BOOK FOR CLIENT" : "SEARCH BUSES"}
+            </Button>
+          </div>
         </div>
-
-        {/* Coach Hire Modal */}
         {showHireModal && (
           <HireBusModal
             onClose={() => setShowHireModal(false)}

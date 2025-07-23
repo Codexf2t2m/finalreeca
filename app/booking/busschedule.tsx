@@ -1,9 +1,10 @@
+// BusSchedules.tsx
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
-import { Wifi, Luggage, Snowflake } from "lucide-react";
+import { Wifi, Luggage, Snowflake, Coffee, BatteryCharging } from "lucide-react";
 
 interface Trip {
   id: string;
@@ -31,12 +32,11 @@ interface BusSchedulesProps {
   isReturnTrip?: boolean;
 }
 
-// Cache for trips data
 const tripsCache = new Map<string, { data: Trip[]; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-export default function BusSchedules({ 
-  searchData, 
+export default function BusSchedules({
+  searchData,
   onSelectBus,
   boardingPoints,
   isReturnTrip = false
@@ -45,7 +45,6 @@ export default function BusSchedules({
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fixed date utilities with proper timezone handling
   const dateUtils = useMemo(() => {
     const isValidDate = (date: any): date is Date | string => {
       return date && !isNaN(new Date(date).getTime());
@@ -55,7 +54,6 @@ export default function BusSchedules({
       if (!date || !isValidDate(date)) return "";
       try {
         const d = new Date(date);
-        // Use local date components to avoid timezone shifts
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
@@ -78,22 +76,17 @@ export default function BusSchedules({
     return { isValidDate, toISODateString, safeFormat };
   }, []);
 
-  // Fixed days array with proper date handling
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       let baseDate;
       try {
-        // Ensure we're working with the correct date
         const inputDate = new Date(searchData.departureDate);
         if (isNaN(inputDate.getTime())) throw new Error("Invalid date");
-        
-        // Create date in local timezone to avoid timezone shifts
         baseDate = new Date(inputDate.getFullYear(), inputDate.getMonth(), inputDate.getDate());
       } catch {
         const today = new Date();
         baseDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       }
-      
       const date = addDays(baseDate, i);
       return {
         date,
@@ -104,7 +97,6 @@ export default function BusSchedules({
     });
   }, [searchData.departureDate, dateUtils]);
 
-  // Optimized fetch with caching
   const fetchTrips = useCallback(async () => {
     const departureDateStr = dateUtils.toISODateString(days[selectedDay]?.date);
     const params = new URLSearchParams({
@@ -113,8 +105,7 @@ export default function BusSchedules({
       departureDate: departureDateStr
     });
     const url = `/api/trips?${params.toString()}`;
-    
-    // Check if we have valid cached data
+
     const cached = tripsCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setTrips(cached.data);
@@ -124,7 +115,6 @@ export default function BusSchedules({
     setLoading(true);
     try {
       const res = await fetch(url);
-      
       if (!res.ok) {
         const errorText = await res.text();
         let errorData;
@@ -135,16 +125,13 @@ export default function BusSchedules({
         }
         throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
       }
-      
       const data: Trip[] = await res.json();
-      
-      // Cache the results
       tripsCache.set(url, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
       console.error("Error fetching trips:", error);
       alert(`Error loading trips: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTrips([]); // Set empty array on error
+      setTrips([]);
     } finally {
       setLoading(false);
     }
@@ -154,17 +141,15 @@ export default function BusSchedules({
     fetchTrips();
   }, [fetchTrips, selectedDay]);
 
-  // Fixed filtered trips
   const filteredTrips = useMemo(() => {
     const selectedDate = days[selectedDay]?.date;
     const selectedDateStr = dateUtils.toISODateString(selectedDate);
-
     return trips.filter((trip) => {
       const tripDate = dateUtils.toISODateString(trip.departureDate);
       const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
                           trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
       const matchesDate = tripDate === selectedDateStr;
-      return matchesRoute && matchesDate && tripDate && !trip.hasDeparted;
+      return matchesRoute && matchesDate && tripDate;
     });
   }, [trips, selectedDay, days, searchData, dateUtils]);
 
@@ -173,12 +158,10 @@ export default function BusSchedules({
     const busImg = isMorning ? morningBusImg : afternoonBusImg;
     const durationHours = Math.floor(trip.durationMinutes / 60);
     const durationMinutes = trip.durationMinutes % 60;
-
     let departureDate: Date | null = null;
     let arrivalDate: Date | null = null;
 
     try {
-      // Combine departureDate and departureTime
       const depDateStr = typeof trip.departureDate === "string"
         ? trip.departureDate
         : (trip.departureDate as Date).toISOString();
@@ -194,7 +177,9 @@ export default function BusSchedules({
       // Handle invalid dates gracefully
     }
 
+    const isDeparted = trip.hasDeparted || false;
     const isFull = trip.availableSeats === 0;
+
     const handleSelectBus = () => {
       onSelectBus({
         ...trip,
@@ -212,13 +197,12 @@ export default function BusSchedules({
       }, isReturnTrip);
     };
 
-    // --- ICONS: Add features here ---
-    // You can customize these based on your data model
     const features = [
       { icon: <Wifi className="w-5 h-5 text-teal-600" />, label: "WiFi" },
       { icon: <Luggage className="w-5 h-5 text-teal-600" />, label: "Baggage" },
       { icon: <Snowflake className="w-5 h-5 text-teal-600" />, label: "AC" },
-      // Add more icons/labels as needed
+      { icon: <Coffee className="w-5 h-5 text-teal-600" />, label: "Snack" },
+      { icon: <BatteryCharging className="w-5 h-5 text-teal-600" />, label: "Charging" },
     ];
 
     return (
@@ -226,25 +210,31 @@ export default function BusSchedules({
         <div className="col-span-2">
           <div className="flex items-center space-x-3">
             <div className="w-28 h-20 bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
-              <Image 
-                src={busImg} 
-                alt={`${trip.serviceType} bus`} 
-                width={84} 
-                height={56} 
+              <Image
+                src={busImg}
+                alt={`${trip.serviceType} bus`}
+                width={84}
+                height={56}
                 className="object-contain"
                 priority={true}
               />
             </div>
             <div>
-              <div className="font-semibold text-gray-900">{trip.serviceType}</div>
+              <div className="font-semibold text-gray-900 flex items-center">
+                {trip.serviceType}
+                {isDeparted && (
+                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Departed
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-gray-600">
                 {trip.routeOrigin} → {trip.routeDestination}
               </div>
               <div className="text-xs text-gray-500">{trip.totalSeats} seats</div>
-              {/* Feature icons */}
               <div className="flex gap-2 mt-1">
                 {features.map((f, idx) => (
-                  <span key={f.label} title={f.label} className="flex items-center">
+                  <span key={idx} title={f.label} className="flex items-center">
                     {f.icon}
                   </span>
                 ))}
@@ -278,10 +268,16 @@ export default function BusSchedules({
         </div>
         <div className="text-right">
           <div className="font-bold text-xl text-teal-600 mb-2">P {trip.fare}/-</div>
-          <div className={`text-xs mb-2 font-medium ${isFull ? "text-red-600" : "text-green-600"}`}>
-            {isFull ? "✗ Bus Full" : `✓ ${trip.availableSeats} seats available`}
+          <div className={`text-xs mb-2 font-medium ${
+            isDeparted ? "text-red-600" :
+            isFull ? "text-red-600" : "text-green-600"
+          }`}>
+            {isDeparted ? "✗ Bus Departed" :
+             isFull ? "✗ Bus Full" : `✓ ${trip.availableSeats} seats available`}
           </div>
-          {!isFull ? (
+          {isDeparted ? (
+            <div className="text-red-600 font-medium">Bus Departed</div>
+          ) : !isFull ? (
             <Button
               onClick={handleSelectBus}
               className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm w-full md:w-auto"
@@ -304,7 +300,6 @@ export default function BusSchedules({
   return (
     <div className="max-w-5xl mx-auto mt-8">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        {/* Header with route information */}
         <div className="p-6 border-b bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
@@ -319,7 +314,6 @@ export default function BusSchedules({
           </div>
         </div>
 
-        {/* Date selector */}
         <div className="flex overflow-x-auto border-b bg-gray-50">
           {days.map((day, index) => (
             <button
@@ -336,7 +330,6 @@ export default function BusSchedules({
           ))}
         </div>
 
-        {/* Trips list */}
         <div className="divide-y">
           <div className="grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold text-gray-700">
             <div className="col-span-2">Bus Details</div>
@@ -345,7 +338,6 @@ export default function BusSchedules({
             <div>Arrival</div>
             <div className="text-right">Fare & Action</div>
           </div>
-
           {loading ? (
             <div className="p-8 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>

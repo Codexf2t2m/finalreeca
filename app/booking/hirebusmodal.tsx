@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Bus, Loader2, CheckCircle } from "lucide-react";
+import { Bus, Loader2 } from "lucide-react";
+import SuccessModal from "@/components/successhiremodal";
 
 export default function HireBusModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (data: any) => Promise<void> }) {
   const [form, setForm] = useState({
@@ -16,11 +17,12 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
     time: "",
     origin: "",
     destination: "",
-    returnDate: "", // <-- Add this line
+    returnDate: "",
     specialRequests: "",
   });
+
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -29,31 +31,39 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await onSubmit(form);
-    setLoading(false);
-    setSubmitted(true);
-    setForm({
-      companyName: "",
-      contactPerson: "",
-      email: "",
-      phone: "",
-      passengers: "",
-      date: "",
-      time: "",
-      origin: "",
-      destination: "",
-      returnDate: "", // <-- Add this line
-      specialRequests: "",
-    });
-    setTimeout(() => {
-      setSubmitted(false);
-      onClose();
-    }, 1800);
+
+    try {
+      await onSubmit(form);
+      setShowSuccessModal(true);
+      setForm({
+        companyName: "",
+        contactPerson: "",
+        email: "",
+        phone: "",
+        passengers: "",
+        date: "",
+        time: "",
+        origin: "",
+        destination: "",
+        returnDate: "",
+        specialRequests: "",
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="bg-white shadow-xl rounded-r-2xl w-full max-w-md p-8 animate-slide-in-left overflow-y-auto"
+      <div
+        className="bg-white shadow-xl rounded-r-2xl w-full max-w-md p-8 animate-slide-in-left overflow-y-auto"
         style={{
           minHeight: "100vh",
           maxHeight: "100vh",
@@ -175,14 +185,16 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
               className="text-gray-900 bg-white border border-gray-300"
             />
           </div>
+          <Button className="mt-6 w-full bg-teal-600 text-white" type="submit" disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? "Submitting..." : "Submit Inquiry"}
+          </Button>
         </form>
-        <Button className="mt-6 w-full bg-teal-600 text-white" type="submit">
-          Submit Inquiry
-        </Button>
-        <Button variant="outline" className="mt-2 w-full bg-teal-600 text-white" onClick={onClose}>
+        <Button variant="outline" className="mt-2 w-full bg-transparent text-teal-600 border-teal-600 hover:bg-teal-50" onClick={onClose} disabled={loading}>
           Cancel
         </Button>
       </div>
+      {showSuccessModal && <SuccessModal onClose={closeSuccessModal} />}
       <div className="flex-1 bg-black bg-opacity-40" onClick={onClose} />
     </div>
   );

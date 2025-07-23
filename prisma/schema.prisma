@@ -113,4 +113,6 @@ model Agent {
   createdAt DateTime @default(now())
   bookings  Booking[]
   approved  Boolean  @default(false) // <-- Add this line
+  suspended        Boolean @default(false)
+  suspensionDate   DateTime?
 }

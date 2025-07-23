@@ -203,7 +203,6 @@ export default function SeatSelection({
               <div className="text-sm text-gray-600">
                 AC, Video ({selectedBus.totalSeats || 57} seats) (2+2 Configuration)
               </div>
-              <div className="text-xs text-gray-500 mt-1">Trip ID: {selectedBus.id}</div>
               <div className="text-xs text-green-600 mt-1">
                 Available: {seatLayout.filter(seat => seat.isAvailable).length} |
                 Occupied: {seatLayout.filter(seat => !seat.isAvailable).length}

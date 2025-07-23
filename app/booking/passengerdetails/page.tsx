@@ -1,11 +1,10 @@
-'use client';
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
 import PaymentGateway from "../paymentgateway";
@@ -70,13 +69,12 @@ export default function PassengerDetailsForm({
     if (!boardingPoints || typeof boardingPoints !== 'object') {
       return [{ id: 'default', name: 'Default', times: [] }];
     }
-    // Lowercase only for lookup, not for display
     const normalizedKey = key.trim().toLowerCase() || 'default';
     const points = boardingPoints[normalizedKey];
     if (!points || !Array.isArray(points)) {
       return [{
         id: 'default',
-        name: key.trim(), // Use original casing for fallback
+        name: key.trim(),
         times: []
       }];
     }
@@ -151,12 +149,10 @@ export default function PassengerDetailsForm({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(false);
-
   const [departureBoardingPoint, setDepartureBoardingPoint] = useState('');
   const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
   const [returnBoardingPoint, setReturnBoardingPoint] = useState('');
   const [returnDroppingPoint, setReturnDroppingPoint] = useState('');
-
   const [openSections, setOpenSections] = useState<SectionState>({
     passengers: true,
     contact: true,
@@ -169,6 +165,28 @@ export default function PassengerDetailsForm({
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  const copyDepartureToReturn = () => {
+    const departurePassengers = passengers.filter(p => !p.isReturn);
+    const returnPassengers = passengers.filter(p => p.isReturn);
+
+    const updatedPassengers = passengers.map(passenger => {
+      if (passenger.isReturn) {
+        const index = returnPassengers.findIndex(rp => rp.id === passenger.id);
+        if (index !== -1 && departurePassengers[index]) {
+          return {
+            ...passenger,
+            title: departurePassengers[index].title,
+            firstName: departurePassengers[index].firstName,
+            lastName: departurePassengers[index].lastName
+          };
+        }
+      }
+      return passenger;
+    });
+
+    setPassengers(updatedPassengers);
   };
 
   const departurePricePerSeat = departureBus?.fare || 0;
@@ -184,6 +202,7 @@ export default function PassengerDetailsForm({
 
   let returnOriginPoints: BoardingPoint[] = [];
   let returnDestinationPoints: BoardingPoint[] = [];
+
   if (returnBus || (returnSeats && returnSeats.length > 0)) {
     const returnOriginKey = ((returnBus?.routeOrigin || searchData.to || '') as string).toLowerCase().trim() || 'default';
     const returnDestinationKey = ((returnBus?.routeDestination || searchData.from || '') as string).toLowerCase().trim() || 'default';
@@ -259,12 +278,10 @@ export default function PassengerDetailsForm({
   const agentDiscount = agent ? Math.round(grandTotal * 0.10) : 0;
   const finalTotal = agent ? grandTotal - agentDiscount : grandTotal;
 
-  // Example for displaying dropping/boarding points
   const formatPoint = (point: string) => {
     if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
       return "OR Tambo Airport";
     }
-    // Add more mappings as needed
     return point;
   };
 
@@ -279,7 +296,6 @@ export default function PassengerDetailsForm({
             Please provide details for all passengers and your contact information
           </p>
         </div>
-
         <div className="p-6 space-y-6">
           <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
             <h3 className="font-bold text-lg text-amber-800 mb-4">Fare Summary</h3>
@@ -318,7 +334,6 @@ export default function PassengerDetailsForm({
               </div>
             </div>
           </div>
-
           <div className="border rounded-lg overflow-hidden">
             <button
               onClick={() => toggleSection('passengers')}
@@ -330,7 +345,15 @@ export default function PassengerDetailsForm({
               {openSections.passengers ? <ChevronUp /> : <ChevronDown />}
             </button>
             {openSections.passengers && (
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                {returnSeats.length > 0 && (
+                  <Button
+                    onClick={copyDepartureToReturn}
+                    className="mb-4 bg-amber-500 hover:bg-amber-600 text-white"
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Copy Departure Details to Return
+                  </Button>
+                )}
                 {passengers.length > 0 ? (
                   passengers.map((passenger) => (
                     <div key={passenger.id} className="border rounded-lg p-4 bg-white">
@@ -378,14 +401,13 @@ export default function PassengerDetailsForm({
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-full text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-gray-500">
                     No passengers to display
                   </div>
                 )}
               </div>
             )}
           </div>
-
           <div className="border rounded-lg overflow-hidden">
             <button
               onClick={() => toggleSection('contact')}
@@ -449,7 +471,6 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-
           <div className="border rounded-lg overflow-hidden">
             <button
               onClick={() => toggleSection('emergency')}
@@ -474,7 +495,6 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-
           <div className="border rounded-lg overflow-hidden">
             <button
               onClick={() => toggleSection('points')}
@@ -568,7 +588,6 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-
           <div className="border rounded-lg p-4 bg-white">
             <h3 className="font-bold text-gray-800 mb-3">Payment Mode</h3>
             <div>
@@ -586,7 +605,6 @@ export default function PassengerDetailsForm({
               </Select>
             </div>
           </div>
-
           <div className="flex items-start space-x-2 pt-2 bg-gray-50 p-4 rounded-lg">
             <Checkbox
               id="terms"
@@ -600,7 +618,6 @@ export default function PassengerDetailsForm({
               By continuing you agree to our <span className="underline text-teal-700 cursor-pointer" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
             </label>
           </div>
-
           <Button
             onClick={() => {
               if (!policyAccepted) {
@@ -616,7 +633,6 @@ export default function PassengerDetailsForm({
           </Button>
         </div>
       </div>
-
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -634,7 +650,7 @@ export default function PassengerDetailsForm({
                   lastName: p.lastName,
                   seatNumber: p.seatNumber,
                   title: p.title,
-                  isReturn: p.isReturn, // <-- FIX: include isReturn
+                  isReturn: p.isReturn,
                 })),
                 userName: contactDetails.name,
                 userEmail: contactDetails.email,
@@ -655,7 +671,6 @@ export default function PassengerDetailsForm({
           )}
         </DialogContent>
       </Dialog>
-
       <PolicyModal
         isOpen={showPolicyModal}
         onClose={() => setShowPolicyModal(false)}

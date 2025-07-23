@@ -1,10 +1,9 @@
 import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '@/lib/prisma'; // make sure you're exporting singleton correctly
+import { prisma } from '@/lib/prisma';
 import { deduplicateRequest } from '@/utils/requestDeduplication';
 import { createBookingWithRetry } from '@/lib/retrybookingservice';
-import { cookies } from "next/headers";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
@@ -40,36 +39,23 @@ interface BookingRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: BookingRequest = await request.json();
-    const cookieStore = await cookies();
-    const agentId = cookieStore.get("agent_token")?.value || null;
 
-    let totalPrice = body.totalPrice;
-    let discountAmount = 0;
+    const { totalPrice, userName, userEmail, selectedSeats, tripId } = body;
 
-    if (agentId) {
-      discountAmount = Math.round(totalPrice * 0.10);
-      totalPrice = totalPrice - discountAmount;
-      console.log(`[Agent Booking] agentId: ${agentId}, Original price: ${body.totalPrice}, Discount: ${discountAmount}, Final price: ${totalPrice}`);
-    } else {
-      console.log(`[Client Booking] No agent, price: ${totalPrice}`);
-    }
-
-    // Pass agentId and discountAmount to booking creation
-    const bookingData = {
-      ...body,
-      agentId,
-      discountAmount,
-      totalPrice,
-    };
-
-    if (!body.tripId || !totalPrice || !body.userName || !body.userEmail || !body.selectedSeats?.length) {
+    if (!tripId || !totalPrice || !userName || !userEmail || !selectedSeats?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const orderId = body.orderId || `RT-${uuidv4().slice(0, 8)}-${Date.now()}`;
     const idempotencyKey = `booking-${orderId}`;
 
-    const booking = await deduplicateRequest(orderId, () => createBookingWithRetry({ ...bookingData, orderId }));
+    const bookingData = {
+      ...body,
+      totalPrice,
+      orderId,
+    };
+
+    const booking = await deduplicateRequest(orderId, () => createBookingWithRetry(bookingData));
 
     if (!booking) {
       return NextResponse.json({
@@ -77,7 +63,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Stripe session creation (outside DB transaction)
+    // Stripe session creation
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -96,12 +82,12 @@ export async function POST(request: NextRequest) {
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment/failed?order_id=${orderId}`,
-      customer_email: body.userEmail,
+      customer_email: userEmail,
       metadata: {
         orderId,
-        tripId: body.tripId,
-        userName: body.userName,
-        userEmail: body.userEmail,
+        tripId,
+        userName,
+        userEmail,
         boardingPoint: body.boardingPoint,
         droppingPoint: body.droppingPoint,
       },
