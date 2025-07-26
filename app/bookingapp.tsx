@@ -275,10 +275,17 @@ export default function BookingApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       {agent && (
-        <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-center">
+        <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-between">
           <span className="text-amber-800 font-semibold text-lg">
             Booking as Agent: {agent.name}
           </span>
+          <Button
+            size="sm"
+            className="bg-teal-600 text-white ml-auto"
+            onClick={() => window.location.href = "/agent/dashboard"}
+          >
+            Go to Dashboard
+          </Button>
         </div>
       )}
       <header className="bg-white border-b shadow-sm">
@@ -306,7 +313,7 @@ export default function BookingApp() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "book" | "manage")} className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-amber-100">
+          <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#febf00]">
             <TabsTrigger
               value="book"
               className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"

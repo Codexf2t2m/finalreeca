@@ -53,6 +53,8 @@ export interface PaymentData {
   tripId: string;
   totalPrice: number;
   selectedSeats: string[];
+  departureSeats: string[]; // <-- add this
+  returnSeats?: string[];   // <-- add this
   userName: string;
   userEmail: string;
   boardingPoint: string;

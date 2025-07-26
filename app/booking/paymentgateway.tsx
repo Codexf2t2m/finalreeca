@@ -6,12 +6,14 @@ interface BookingData {
   tripId: string;
   totalPrice: number;
   selectedSeats: string[];
+  departureSeats: string[]; // <-- ensure this is present
+  returnSeats?: string[];   // <-- ensure this is present
   passengers: {
     firstName: string;
     lastName: string;
     seatNumber: string;
     title: string;
-    isReturn: boolean; // <-- Add this line
+    isReturn: boolean;
   }[];
   userName: string;
   userEmail: string;
@@ -47,9 +49,11 @@ export default function PaymentGateway({
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     try {
-      // Prepare Stripe request with all booking data
+      // Prepare Stripe request with all booking data, including both seat arrays
       const requestData = {
         ...paymentData,
+        departureSeats: paymentData.departureSeats,
+        returnSeats: paymentData.returnSeats,
       };
 
       // Call Stripe session API
@@ -81,9 +85,11 @@ export default function PaymentGateway({
   );
 
   useEffect(() => {
+    // Log for debugging
     console.log('Booking data passengers:', bookingData.passengers);
     console.log('Departure passengers:', bookingData.passengers.filter(p => !p.isReturn));
     console.log('Return passengers:', bookingData.passengers.filter(p => p.isReturn));
+    // Ensure both seat arrays are sent
     debouncedCreateSession(bookingData);
   }, [bookingData, debouncedCreateSession]);
 

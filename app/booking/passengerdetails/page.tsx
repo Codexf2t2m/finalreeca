@@ -415,7 +415,7 @@ export default function PassengerDetailsForm({
               onClick={() => toggleSection('contact')}
               className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
             >
-              <h3 className="font-bold text-lg text-gray-800">Contact Details</h3>
+              <h3 className="font-bold text-lg text-gray-800">CardHolder Details</h3>
               {openSections.contact ? <ChevronUp /> : <ChevronDown />}
             </button>
             {openSections.contact && (
@@ -467,7 +467,7 @@ export default function PassengerDetailsForm({
                   <Input
                     value={contactDetails.idNumber}
                     onChange={(e) => handleContactChange('idNumber', e.target.value)}
-                    placeholder="ID Number"
+                    placeholder="Passport Number"
                   />
                 </div>
               </div>
@@ -647,6 +647,8 @@ export default function PassengerDetailsForm({
                 totalPrice: finalTotal,
                 discountAmount: agentDiscount,
                 selectedSeats: [...(departureSeats || []), ...(returnSeats || [])],
+                departureSeats, // <-- add this
+                returnSeats,    // <-- add this
                 passengers: passengers.map(p => ({
                   firstName: p.firstName,
                   lastName: p.lastName,

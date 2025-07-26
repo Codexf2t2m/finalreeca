@@ -106,8 +106,18 @@ export default function BusSchedules({
     });
     const url = `/api/trips?${params.toString()}`;
 
+    console.log('Fetching trips with URL:', url);
+    console.log('Search params:', {
+      from: searchData.from,
+      to: searchData.to,
+      departureDate: departureDateStr,
+      selectedDay,
+      selectedDate: days[selectedDay]?.date
+    });
+
     const cached = tripsCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('Using cached trips:', cached.data.length);
       setTrips(cached.data);
       return;
     }
@@ -126,6 +136,19 @@ export default function BusSchedules({
         throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
       }
       const data: Trip[] = await res.json();
+      
+      console.log('Received trips from API:', {
+        count: data.length,
+        trips: data.map(t => ({
+          id: t.id,
+          departureDate: t.departureDate,
+          departureTime: t.departureTime,
+          route: `${t.routeOrigin} → ${t.routeDestination}`,
+          availableSeats: t.availableSeats,
+          hasDeparted: t.hasDeparted
+        }))
+      });
+      
       tripsCache.set(url, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
@@ -143,15 +166,63 @@ export default function BusSchedules({
 
   const filteredTrips = useMemo(() => {
     const selectedDate = days[selectedDay]?.date;
-    const selectedDateStr = dateUtils.toISODateString(selectedDate);
-    return trips.filter((trip) => {
-      const tripDate = dateUtils.toISODateString(trip.departureDate);
+    if (!selectedDate) {
+      console.log('No selected date available');
+      return [];
+    }
+    
+    // Create date range for the entire selected day
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    console.log('Filtering trips for date range:', {
+      selectedDate: selectedDate.toISOString(),
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString(),
+      totalTrips: trips.length,
+      searchData: `${searchData.from} → ${searchData.to}`
+    });
+    
+    const filtered = trips.filter((trip) => {
+      // Parse trip departure date
+      const tripDate = new Date(trip.departureDate);
+      
+      // Check if trip date falls within the selected day
+      const matchesDate = tripDate >= startOfDay && tripDate <= endOfDay;
+      
+      // Check route match (case insensitive)
       const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
                           trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
-      const matchesDate = tripDate === selectedDateStr;
-      return matchesRoute && matchesDate && tripDate;
+      
+      const result = matchesRoute && matchesDate;
+      
+      if (result) {
+        console.log('Trip matches:', {
+          tripId: trip.id,
+          tripDate: tripDate.toISOString(),
+          route: `${trip.routeOrigin} → ${trip.routeDestination}`,
+          departureTime: trip.departureTime,
+          hasDeparted: trip.hasDeparted,
+          availableSeats: trip.availableSeats
+        });
+      }
+      
+      return result;
     });
-  }, [trips, selectedDay, days, searchData, dateUtils]);
+
+    console.log('Filtered trips result:', {
+      filteredCount: filtered.length,
+      selectedDay,
+      selectedDate: days[selectedDay]?.date?.toISOString(),
+      searchRoute: `${searchData.from} → ${searchData.to}`,
+      allTripsCount: trips.length
+    });
+
+    return filtered;
+  }, [trips, selectedDay, days, searchData]);
 
   const TripCard = useCallback(({ trip }: { trip: Trip }) => {
     const isMorning = trip.serviceType.includes("Morning");
@@ -272,8 +343,8 @@ export default function BusSchedules({
             isDeparted ? "text-red-600" :
             isFull ? "text-red-600" : "text-green-600"
           }`}>
-            {isDeparted ? "✗ Bus Departed" :
-             isFull ? "✗ Bus Full" : `✓ ${trip.availableSeats} seats available`}
+            {isDeparted ? "" :
+             isFull ? "Bus Full" : `✓ ${trip.availableSeats} seats available`}
           </div>
           {isDeparted ? (
             <div className="text-red-600 font-medium">Bus Departed</div>
@@ -347,10 +418,26 @@ export default function BusSchedules({
             <div className="p-8 text-center text-gray-400">
               No trips found for this day.
               <div className="mt-4 text-sm">
-                <p>Debug info:</p>
+                <p><strong>Debug info:</strong></p>
                 <p>Selected date: {dateUtils.toISODateString(days[selectedDay]?.date)}</p>
                 <p>Total trips available: {trips.length}</p>
                 <p>Route: {searchData.from} → {searchData.to}</p>
+                <p>Selected day index: {selectedDay}</p>
+                <p>Days array length: {days.length}</p>
+                
+                {trips.length > 0 && (
+                  <div className="mt-2">
+                    <p><strong>Available trips:</strong></p>
+                    {trips.slice(0, 3).map(trip => (
+                      <p key={trip.id} className="text-xs">
+                        {new Date(trip.departureDate).toLocaleDateString()} {trip.departureTime} - 
+                        {trip.routeOrigin} → {trip.routeDestination} 
+                        {trip.hasDeparted ? ' (Departed)' : ` (${trip.availableSeats} seats)`}
+                      </p>
+                    ))}
+                    {trips.length > 3 && <p className="text-xs">... and {trips.length - 3} more</p>}
+                  </div>
+                )}
               </div>
               <Button
                 onClick={() => onSelectBus({

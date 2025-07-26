@@ -39,7 +39,6 @@ interface BookingRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: BookingRequest = await request.json();
-
     const { totalPrice, userName, userEmail, selectedSeats, tripId } = body;
 
     if (!tripId || !totalPrice || !userName || !userEmail || !selectedSeats?.length) {

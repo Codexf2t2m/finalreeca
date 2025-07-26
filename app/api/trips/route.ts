@@ -27,51 +27,70 @@ export async function GET(request: Request) {
 
     console.log('API received params:', { from, to, departureDate, returnDate });
 
-    // Build filter conditions
-    const whereConditions: any = {};
+    // Build filter conditions - Fixed logic
+    let whereConditions: any = {};
     
-    if (from || to || departureDate) {
-      const orConditions = [];
+    // If we have specific search criteria, use them
+    if (from && to && departureDate) {
+      // Create date range for the entire day in UTC
+      const startDate = new Date(departureDate + 'T00:00:00.000Z');
+      const endDate = new Date(departureDate + 'T23:59:59.999Z');
       
-      // Outbound trip conditions
-      if (from && to && departureDate) {
-        // Create date range for the entire day in UTC
-        const startDate = new Date(departureDate + 'T00:00:00.000Z');
-        const endDate = new Date(departureDate + 'T23:59:59.999Z');
+      console.log('Outbound date range:', { startDate, endDate });
+      
+      // Use AND conditions for main search - this was the key issue
+      whereConditions = {
+        AND: [
+          { routeOrigin: { equals: from, mode: 'insensitive' } },
+          { routeDestination: { equals: to, mode: 'insensitive' } },
+          { departureDate: { gte: startDate } },
+          { departureDate: { lte: endDate } }
+        ]
+      };
+      
+      // If we also have return date, we need OR logic for both directions
+      if (returnDate) {
+        const returnStartDate = new Date(returnDate + 'T00:00:00.000Z');
+        const returnEndDate = new Date(returnDate + 'T23:59:59.999Z');
         
-        console.log('Outbound date range:', { startDate, endDate });
+        console.log('Return date range:', { returnStartDate, returnEndDate });
         
-        orConditions.push({
-          AND: [
-            { routeOrigin: { equals: from, mode: 'insensitive' } },
-            { routeDestination: { equals: to, mode: 'insensitive' } },
-            { departureDate: { gte: startDate } },
-            { departureDate: { lte: endDate } }
+        whereConditions = {
+          OR: [
+            // Outbound trip
+            {
+              AND: [
+                { routeOrigin: { equals: from, mode: 'insensitive' } },
+                { routeDestination: { equals: to, mode: 'insensitive' } },
+                { departureDate: { gte: startDate } },
+                { departureDate: { lte: endDate } }
+              ]
+            },
+            // Return trip
+            {
+              AND: [
+                { routeOrigin: { equals: to, mode: 'insensitive' } },
+                { routeDestination: { equals: from, mode: 'insensitive' } },
+                { departureDate: { gte: returnStartDate } },
+                { departureDate: { lte: returnEndDate } }
+              ]
+            }
           ]
-        });
+        };
       }
+    } else if (departureDate) {
+      // If only date is provided, filter by date only
+      const startDate = new Date(departureDate + 'T00:00:00.000Z');
+      const endDate = new Date(departureDate + 'T23:59:59.999Z');
       
-      // Return trip conditions
-      if (returnDate && from && to) {
-        const startDate = new Date(returnDate + 'T00:00:00.000Z');
-        const endDate = new Date(returnDate + 'T23:59:59.999Z');
-        
-        console.log('Return date range:', { startDate, endDate });
-        
-        orConditions.push({
-          AND: [
-            { routeOrigin: { equals: to, mode: 'insensitive' } },
-            { routeDestination: { equals: from, mode: 'insensitive' } },
-            { departureDate: { gte: startDate } },
-            { departureDate: { lte: endDate } }
-          ]
-        });
-      }
-      
-      if (orConditions.length > 0) {
-        whereConditions.OR = orConditions;
-      }
+      whereConditions = {
+        AND: [
+          { departureDate: { gte: startDate } },
+          { departureDate: { lte: endDate } }
+        ]
+      };
     }
+    // If no search params, return all trips (you might want to limit this)
 
     console.log('Prisma query conditions:', JSON.stringify(whereConditions, null, 2));
 
