@@ -96,23 +96,49 @@ export default function BookingForm({ onSearch, agentMode = false, agentInfo }: 
     <div className="relative">
       <div className="w-full h-64 md:h-80 rounded-t-xl overflow-hidden relative bg-white">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex gap-8 items-center">
-            <div className="relative">
+          <div className="flex gap-1 md:gap-3 items-center">
+            {/* Mini Bus Left */}
+            <div className="relative flex items-center">
+              <Image
+                src="/images/mbus2.webp"
+                alt="Mini Bus"
+                width={200}
+                height={120}
+                className="object-contain drop-shadow-lg"
+                style={{ maxHeight: 120 }}
+              />
+            </div>
+            {/* Main Bus Left */}
+            <div className="relative flex items-center">
               <Image
                 src="/images/scania-irizar-vip.png"
                 alt="Scania Irizar i6s VIP"
-                width={280}
-                height={168}
-                className="object-contain"
+                width={260}
+                height={140}
+                className="object-contain drop-shadow-lg"
+                style={{ maxHeight: 140 }}
               />
             </div>
-            <div className="relative">
+            {/* Main Bus Right */}
+            <div className="relative flex items-center">
               <Image
                 src="/images/scania-higer-new.png"
                 alt="Scania Higer Touring"
-                width={280}
-                height={168}
-                className="object-contain"
+                width={260}
+                height={140}
+                className="object-contain drop-shadow-lg"
+                style={{ maxHeight: 140 }}
+              />
+            </div>
+            {/* Mini Bus Right */}
+            <div className="relative flex items-center">
+              <Image
+                src="/images/mbus.png"
+                alt="Mini Bus"
+                width={200}
+                height={120}
+                className="object-contain drop-shadow-lg"
+                style={{ maxHeight: 120 }}
               />
             </div>
           </div>

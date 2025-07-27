@@ -16,11 +16,12 @@ import {
 } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import dynamic from "next/dynamic";
+import { Download, ArrowUpRight, Calendar, Route, User, BarChart2 } from "lucide-react";
 
-// Dynamically import chart.js components
-const Bar = dynamic(() => import("react-chartjs-2").then(mod => mod.Bar), { ssr: false });
-const Line = dynamic(() => import("react-chartjs-2").then(mod => mod.Line), { ssr: false });
-const Pie = dynamic(() => import("react-chartjs-2").then(mod => mod.Pie), { ssr: false });
+// Dynamic imports for better performance
+const BarChart = dynamic(() => import("react-chartjs-2").then(mod => mod.Bar), { ssr: false });
+const LineChart = dynamic(() => import("react-chartjs-2").then(mod => mod.Line), { ssr: false });
+const PieChart = dynamic(() => import("react-chartjs-2").then(mod => mod.Pie), { ssr: false });
 
 import {
   Chart as ChartJS,
@@ -72,11 +73,6 @@ interface AgentSales {
   commission: number;
 }
 
-const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-
 const COLORS = {
   primary: "#0d9488",
   secondary: "#f59e0b",
@@ -98,20 +94,21 @@ export default function ReportsPage() {
 
   // KPI Metrics with safe defaults
   const kpis = useMemo(() => {
-    const totalRevenue = routeSales.reduce((sum, route) => sum + (route?.totalRevenue || 0), 0);
-    const totalBookings = routeSales.reduce((sum, route) => sum + (route?.totalBookings || 0), 0);
-    const avgRevenuePerBooking = totalBookings ? totalRevenue / totalBookings : 0;
+    const safeRouteSales = routeSales || [];
+    const safeAgentSales = agentSales || [];
+    
+    const totalRevenue = safeRouteSales.reduce((sum, route) => sum + (route?.totalRevenue || 0), 0);
+    const totalBookings = safeRouteSales.reduce((sum, route) => sum + (route?.totalBookings || 0), 0);
+    const avgRevenuePerBooking = totalBookings > 0 ? totalRevenue / totalBookings : 0;
 
-    // Find best performing route
-    const bestRoute = routeSales.length
-      ? routeSales.reduce((best, current) =>
+    const bestRoute = safeRouteSales.length > 0
+      ? safeRouteSales.reduce((best, current) =>
           (current?.totalRevenue || 0) > (best?.totalRevenue || 0) ? current : best
         )
       : null;
 
-    // Find best performing agent
-    const bestAgent = agentSales.length
-      ? agentSales.reduce((best, current) =>
+    const bestAgent = safeAgentSales.length > 0
+      ? safeAgentSales.reduce((best, current) =>
           (current?.revenue || 0) > (best?.revenue || 0) ? current : best
         )
       : null;
@@ -120,9 +117,15 @@ export default function ReportsPage() {
       totalRevenue,
       totalBookings,
       avgRevenuePerBooking,
-      bestRoute: bestRoute ? `${bestRoute.routeName} (P${(bestRoute.totalRevenue || 0).toLocaleString()})` : "N/A",
-      bestAgent: bestAgent ? `${bestAgent.name} (P${(bestAgent.revenue || 0).toLocaleString()})` : "N/A",
-      peakPerformance: bestRoute ? `${bestRoute.bestDay} at ${bestRoute.times[0]?.departureTime || 'N/A'}` : "N/A"
+      bestRoute: bestRoute 
+        ? `${bestRoute.routeName || 'Unknown'} (P${(bestRoute.totalRevenue || 0).toLocaleString()})` 
+        : "N/A",
+      bestAgent: bestAgent 
+        ? `${bestAgent.name || 'Unknown'} (P${(bestAgent.revenue || 0).toLocaleString()})` 
+        : "N/A",
+      peakPerformance: bestRoute 
+        ? `${bestRoute.bestDay || 'Unknown'} at ${bestRoute.times?.[0]?.departureTime || 'N/A'}` 
+        : "N/A"
     };
   }, [routeSales, agentSales]);
 
@@ -130,20 +133,27 @@ export default function ReportsPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        const [routeRes, agentRes] = await Promise.all([
+          fetch("/api/reports/sales-by-route").then(res => {
+            if (!res.ok) throw new Error("Failed to fetch route sales");
+            return res.json();
+          }),
+          fetch("/api/reports/sales-by-agent").then(res => {
+            if (!res.ok) throw new Error("Failed to fetch agent sales");
+            return res.json();
+          })
+        ]);
 
-        // Fetch route sales
-        const routeRes = await fetch("/api/reports/sales-by-route");
-        if (!routeRes.ok) throw new Error("Failed to fetch sales reports");
-        const routeData = await routeRes.json();
-        setRouteSales(routeData || []);
-
-        // Fetch agent sales
-        const agentRes = await fetch("/api/reports/sales-by-agent");
-        const agentData = await agentRes.json();
-        setAgentSales(agentData || []);
+        // Ensure we have arrays even if the data is malformed
+        setRouteSales(Array.isArray(routeRes) ? routeRes : []);
+        setAgentSales(Array.isArray(agentRes) ? agentRes : []);
 
       } catch (err) {
+        console.error("Fetch error:", err);
         setError(err instanceof Error ? err.message : "An unknown error occurred");
+        setRouteSales([]);
+        setAgentSales([]);
       } finally {
         setLoading(false);
       }
@@ -152,35 +162,42 @@ export default function ReportsPage() {
     fetchData();
   }, []);
 
-  // Filter options
-  const routeOptions = useMemo(
-    () => [
+  // Filter options with memoization
+  const { routeOptions, monthOptions } = useMemo(() => {
+    const safeRouteSales = routeSales || [];
+    
+    const routeOpts = [
       { label: "All Routes", value: "all" },
-      ...(routeSales || []).map((r) => ({
-        label: `${r.routeName} (${r.route})`,
-        value: r.route,
-      })),
-    ],
-    [routeSales]
-  );
-
-  const monthOptions = useMemo(() => {
-    const months = new Set<string>();
-    (routeSales || []).forEach((r) => {
-      if (r.bestMonth) months.add(r.bestMonth);
-    });
-    return [
-      { label: "All Months", value: "all" },
-      ...Array.from(months).map((m) => ({
-        label: `${monthNames[parseInt(m.split("-")[1], 10) - 1]} ${m.split("-")[0]}`,
-        value: m,
+      ...safeRouteSales.map((r) => ({
+        label: `${r.routeName || 'Unknown'} (${r.route || 'N/A'})`,
+        value: r.route || '',
       })),
     ];
+
+    const months = new Set<string>();
+    safeRouteSales.forEach((r) => {
+      if (r.bestMonth) months.add(r.bestMonth);
+    });
+    
+    const monthOpts = [
+      { label: "All Months", value: "all" },
+      ...Array.from(months).map((m) => {
+        const [year, month] = m.split("-");
+        return {
+          label: `${new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long' })} ${year}`,
+          value: m,
+        };
+      }),
+    ];
+
+    return { routeOptions: routeOpts, monthOptions: monthOpts };
   }, [routeSales]);
 
-  // Filtered data with null checks
+  // Filtered data
   const filteredRoutes = useMemo(() => {
-    let filtered = routeSales || [];
+    const safeRouteSales = routeSales || [];
+    let filtered = safeRouteSales;
+    
     if (selectedRoute !== "all") {
       filtered = filtered.filter((r) => r.route === selectedRoute);
     }
@@ -190,53 +207,40 @@ export default function ReportsPage() {
     return filtered;
   }, [routeSales, selectedRoute, selectedMonth]);
 
-  // Prepare data for visualizations with safe access
+  // Chart data preparation
   const chartData = useMemo(() => {
-    // Default empty dataset structures
-    const emptyDataset = {
-      labels: [],
-      datasets: [{ data: [] }]
-    };
-
-    if (!routeSales?.length || !agentSales?.length) {
-      return {
-        routeComparison: emptyDataset,
-        revenueTrend: emptyDataset,
-        revenueDistribution: emptyDataset,
-        topAgents: emptyDataset
-      };
-    }
+    const safeRouteSales = routeSales || [];
+    const safeAgentSales = agentSales || [];
+    const safeFilteredRoutes = filteredRoutes || [];
 
     // Revenue vs Bookings by Route
-    const routeLabels = filteredRoutes.map((r) => r.routeName);
-    const bookingsData = filteredRoutes.map((r) => r.totalBookings || 0);
-    const revenueData = filteredRoutes.map((r) => r.totalRevenue || 0);
+    const routeLabels = safeFilteredRoutes.map((r) => r.routeName || 'Unknown');
+    const bookingsData = safeFilteredRoutes.map((r) => r.totalBookings || 0);
+    const revenueData = safeFilteredRoutes.map((r) => r.totalRevenue || 0);
 
     // Revenue trend by month
     const monthMap: Record<string, number> = {};
-    routeSales.forEach((r) => {
+    safeRouteSales.forEach((r) => {
       if (r.bestMonth) {
         monthMap[r.bestMonth] = (monthMap[r.bestMonth] || 0) + (r.totalRevenue || 0);
       }
     });
 
     const monthsSorted = Object.keys(monthMap).sort();
-    const monthLabels = monthsSorted.map(
-      (m) => `${monthNames[parseInt(m.split("-")[1], 10) - 1]} ${m.split("-")[0]}`
-    );
+    const monthLabels = monthsSorted.map((m) => {
+      const [year, month] = m.split("-");
+      return `${new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'short' })} ${year}`;
+    });
     const monthRevenue = monthsSorted.map((m) => monthMap[m]);
 
-    // Revenue distribution by route
-    const routeRevenueDistribution = filteredRoutes
+    // Top performing data
+    const topRoutes = [...safeFilteredRoutes]
       .sort((a, b) => (b.totalRevenue || 0) - (a.totalRevenue || 0))
-      .slice(0, 5)
-      .map((r) => ({ route: r.routeName, revenue: r.totalRevenue || 0 }));
+      .slice(0, 5);
 
-    // Top performing agents
-    const topAgents = [...agentSales]
+    const topAgents = [...safeAgentSales]
       .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
-      .slice(0, 5)
-      .map((a) => ({ agent: a.name, revenue: a.revenue || 0 }));
+      .slice(0, 5);
 
     return {
       routeComparison: {
@@ -245,14 +249,14 @@ export default function ReportsPage() {
           {
             label: "Bookings",
             data: bookingsData,
-            backgroundColor: COLORS.secondary,
+            backgroundColor: "#f59e0b",
             borderRadius: 6,
             order: 2,
           },
           {
             label: "Revenue (P)",
             data: revenueData,
-            backgroundColor: COLORS.primary,
+            backgroundColor: "#0d9488",
             borderRadius: 6,
             order: 1,
           },
@@ -266,18 +270,18 @@ export default function ReportsPage() {
             data: monthRevenue,
             fill: true,
             backgroundColor: "rgba(13, 148, 136, 0.1)",
-            borderColor: COLORS.primary,
+            borderColor: "#0d9488",
             tension: 0.4,
             pointRadius: 5,
-            pointBackgroundColor: COLORS.primary,
+            pointBackgroundColor: "#0d9488",
           },
         ],
       },
       revenueDistribution: {
-        labels: routeRevenueDistribution.map((r) => r.route),
+        labels: topRoutes.map((r) => r.routeName || 'Unknown'),
         datasets: [
           {
-            data: routeRevenueDistribution.map((r) => r.revenue),
+            data: topRoutes.map((r) => r.totalRevenue || 0),
             backgroundColor: [
               "#0d9488", "#0f766e", "#14b8a6",
               "#f59e0b", "#fbbf24"
@@ -287,12 +291,12 @@ export default function ReportsPage() {
         ],
       },
       topAgents: {
-        labels: topAgents.map((a) => a.agent),
+        labels: topAgents.map((a) => a.name || 'Unknown'),
         datasets: [
           {
             label: "Revenue (P)",
-            data: topAgents.map((a) => a.revenue),
-            backgroundColor: COLORS.accent,
+            data: topAgents.map((a) => a.revenue || 0),
+            backgroundColor: "#3b82f6",
             borderRadius: 6,
           },
         ],
@@ -300,79 +304,92 @@ export default function ReportsPage() {
     };
   }, [filteredRoutes, routeSales, agentSales]);
 
+  // Enhanced Excel export with proper error handling
   const downloadExcel = () => {
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
+    try {
+      const workbook = XLSX.utils.book_new();
+      
+      // 1. Summary Sheet
+      const summaryData = [
+        ["Transport Performance Summary", "", "", ""],
+        ["Generated", new Date().toLocaleString(), "", ""],
+        ["", "", "", ""],
+        ["Key Metrics", "Value", "", ""],
+        ["Total Revenue", `P${kpis.totalRevenue.toLocaleString()}`, "", ""],
+        ["Total Bookings", kpis.totalBookings.toLocaleString(), "", ""],
+        ["Average Revenue per Booking", `P${kpis.avgRevenuePerBooking.toFixed(2)}`, "", ""],
+        ["Top Performing Route", kpis.bestRoute, "", ""],
+        ["Top Performing Agent", kpis.bestAgent, "", ""],
+        ["Peak Performance Time", kpis.peakPerformance, "", ""]
+      ];
 
-    // Route data sheet
-    const routeRows: any[] = [];
-    filteredRoutes.forEach((route) => {
-      route.times.forEach((time) => {
-        routeRows.push({
-          "Route Name": route.routeName,
-          "Route Code": route.route,
-          "Departure Time": time.departureTime,
-          "Bookings": time.bookings,
-          "Revenue": time.revenue,
-          "Best Day": route.bestDay,
-          "Best Month": route.bestMonth,
-        });
-      });
-    });
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
 
-    if (routeRows.length) {
-      const routeSheet = XLSX.utils.json_to_sheet(routeRows);
-      XLSX.utils.book_append_sheet(workbook, routeSheet, "Route Performance");
+      // 2. Route Performance Sheet
+      const routeHeaders = ["Route Name", "Route Code", "Departure Time", "Bookings", "Revenue", "Best Day", "Best Month"];
+      const routeRows = (filteredRoutes || []).flatMap((route) =>
+        (route.times || []).map((time) => [
+          route.routeName || '',
+          route.route || '',
+          time.departureTime || '',
+          time.bookings || 0,
+          time.revenue || 0,
+          route.bestDay || '',
+          route.bestMonth || ''
+        ])
+      );
+
+      if (routeRows.length > 0) {
+        const routeSheet = XLSX.utils.aoa_to_sheet([routeHeaders, ...routeRows]);
+        XLSX.utils.book_append_sheet(workbook, routeSheet, "Route Performance");
+      }
+
+      // 3. Agent Performance Sheet
+      const agentHeaders = ["Agent Name", "Bookings", "Revenue", "Commission", "Avg. Ticket Value"];
+      const agentRows = (agentSales || []).map((agent) => [
+        agent.name || '',
+        agent.bookings || 0,
+        agent.revenue || 0,
+        agent.commission || 0,
+        agent.bookings ? (agent.revenue || 0) / agent.bookings : 0
+      ]);
+
+      if (agentRows.length > 0) {
+        const agentSheet = XLSX.utils.aoa_to_sheet([agentHeaders, ...agentRows]);
+        XLSX.utils.book_append_sheet(workbook, agentSheet, "Agent Performance");
+      }
+
+      // Generate Excel file
+      XLSX.writeFile(workbook, `Transport_Analytics_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err) {
+      console.error("Error generating Excel file:", err);
+      alert("Failed to generate Excel report. Please try again.");
     }
-
-    // Agent data sheet
-    const agentRows = agentSales.map((agent) => ({
-      "Agent Name": agent.name,
-      "Bookings": agent.bookings,
-      "Revenue": agent.revenue,
-      "Commission": agent.commission,
-      "Avg. Ticket Value": agent.bookings ? agent.revenue / agent.bookings : 0,
-    }));
-
-    if (agentRows.length) {
-      const agentSheet = XLSX.utils.json_to_sheet(agentRows);
-      XLSX.utils.book_append_sheet(workbook, agentSheet, "Agent Performance");
-    }
-
-    // KPI summary sheet
-    const kpiData = [
-      ["Metric", "Value"],
-      ["Total Revenue", kpis.totalRevenue],
-      ["Total Bookings", kpis.totalBookings],
-      ["Average Revenue per Booking", kpis.avgRevenuePerBooking],
-      ["Top Performing Route", kpis.bestRoute],
-      ["Top Performing Agent", kpis.bestAgent],
-      ["Peak Performance Time", kpis.peakPerformance]
-    ];
-
-    const kpiSheet = XLSX.utils.aoa_to_sheet(kpiData);
-    XLSX.utils.book_append_sheet(workbook, kpiSheet, "Performance Summary");
-    XLSX.writeFile(workbook, "TransportAnalyticsReport.xlsx");
   };
 
-  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="space-y-4 max-w-4xl w-full">
-          <Skeleton className="h-10 w-1/3" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="h-6 w-3/4 mb-4" />
+      <div className="container mx-auto p-6">
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <Card key={i} className="p-4">
+                <Skeleton className="h-6 w-3/4 mb-2" />
                 <Skeleton className="h-8 w-full" />
               </Card>
             ))}
           </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="p-6 h-80">
-                <Skeleton className="h-64 w-full" />
+              <Card key={i} className="p-6 h-96">
+                <Skeleton className="h-full w-full" />
               </Card>
             ))}
           </div>
@@ -381,21 +398,20 @@ export default function ReportsPage() {
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="text-center p-8 max-w-md">
+      <div className="container mx-auto p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md text-center">
           <CardHeader>
-            <CardTitle className="text-red-500">Data Loading Error</CardTitle>
+            <CardTitle className="text-red-600">Error Loading Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg mb-4">{error}</p>
+            <p className="mb-4 text-gray-600">{error}</p>
             <Button
               onClick={() => window.location.reload()}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-600 hover:bg-red-700"
             >
-              Retry Loading Data
+              Retry
             </Button>
           </CardContent>
         </Card>
@@ -403,33 +419,33 @@ export default function ReportsPage() {
     );
   }
 
-  // Main dashboard
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Transport Performance Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Transport Analytics Dashboard</h1>
           <p className="text-gray-600 mt-2">
-            Insights and analytics for route optimization and revenue growth
+            Comprehensive insights for optimizing operations and revenue
           </p>
         </div>
         <Button
           onClick={downloadExcel}
-          className="bg-teal-700 hover:bg-teal-800 text-white shadow flex items-center gap-2"
+          className="bg-teal-600 hover:bg-teal-700 text-white shadow"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
+          <Download className="h-4 w-4 mr-2" />
           Export Full Report
         </Button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-teal-50 to-teal-100">
+        <Card className="bg-white shadow-sm border border-gray-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-700 text-sm font-medium">Total Revenue</CardTitle>
+            <div className="flex items-center gap-2 text-gray-500">
+              <BarChart2 className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-gray-900">
@@ -437,9 +453,13 @@ export default function ReportsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-amber-100">
+
+        <Card className="bg-white shadow-sm border border-gray-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-700 text-sm font-medium">Total Bookings</CardTitle>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Route className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-gray-900">
@@ -447,9 +467,13 @@ export default function ReportsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+
+        <Card className="bg-white shadow-sm border border-gray-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-700 text-sm font-medium">Avg. Ticket Value</CardTitle>
+            <div className="flex items-center gap-2 text-gray-500">
+              <ArrowUpRight className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Avg. Ticket Value</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-gray-900">
@@ -457,22 +481,30 @@ export default function ReportsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-cyan-50 to-cyan-100">
+
+        <Card className="bg-white shadow-sm border border-gray-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-700 text-sm font-medium">Top Route</CardTitle>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Route className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Top Route</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-bold text-gray-900 truncate">
+            <p className="text-lg font-bold text-gray-900 line-clamp-1">
               {kpis.bestRoute}
             </p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-violet-50 to-violet-100">
+
+        <Card className="bg-white shadow-sm border border-gray-100">
           <CardHeader className="pb-2">
-            <CardTitle className="text-gray-700 text-sm font-medium">Peak Time</CardTitle>
+            <div className="flex items-center gap-2 text-gray-500">
+              <Calendar className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Peak Time</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-bold text-gray-900 truncate">
+            <p className="text-lg font-bold text-gray-900 line-clamp-1">
               {kpis.peakPerformance}
             </p>
           </CardContent>
@@ -480,11 +512,13 @@ export default function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="border-0 shadow-lg">
+      <Card className="bg-white shadow-sm border border-gray-100">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="route-filter" className="block mb-2 font-medium">Route</Label>
+              <Label htmlFor="route-filter" className="block mb-2 text-sm font-medium text-gray-700">
+                Route
+              </Label>
               <Select value={selectedRoute} onValueChange={setSelectedRoute}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select route" />
@@ -500,7 +534,9 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <Label htmlFor="month-filter" className="block mb-2 font-medium">Month</Label>
+              <Label htmlFor="month-filter" className="block mb-2 text-sm font-medium text-gray-700">
+                Month
+              </Label>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select month" />
@@ -516,7 +552,9 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <Label htmlFor="timeframe-filter" className="block mb-2 font-medium">Timeframe</Label>
+              <Label htmlFor="timeframe-filter" className="block mb-2 text-sm font-medium text-gray-700">
+                Timeframe
+              </Label>
               <Select value={timeframe} onValueChange={(v: any) => setTimeframe(v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select timeframe" />
@@ -535,17 +573,17 @@ export default function ReportsPage() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Route Performance */}
-        <Card className="border-0 shadow-lg h-96">
+        <Card className="bg-white shadow-sm border border-gray-100 h-96">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">
-              Route Performance Analysis
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Route Performance
             </CardTitle>
-            <CardDescription>
-              Comparison of bookings and revenue by route
+            <CardDescription className="text-gray-600">
+              Bookings vs Revenue by route
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Bar
+            <BarChart
               data={chartData.routeComparison}
               options={{
                 responsive: true,
@@ -554,8 +592,12 @@ export default function ReportsPage() {
                   legend: { position: "top" },
                   tooltip: {
                     callbacks: {
-                      label: (context) =>
-                        `${context.dataset.label}: ${context.parsed.y.toLocaleString()}`
+                      label: (context) => {
+                        const value = context.parsed?.y ?? context.parsed?.x ?? context.parsed;
+                        return value !== undefined 
+                          ? `${context.dataset.label || ''}: ${value.toLocaleString()}${(context.dataset.label || '').includes('Revenue') ? 'P' : ''}`
+                          : '';
+                      }
                     }
                   }
                 },
@@ -575,17 +617,17 @@ export default function ReportsPage() {
         </Card>
 
         {/* Revenue Trend */}
-        <Card className="border-0 shadow-lg h-96">
+        <Card className="bg-white shadow-sm border border-gray-100 h-96">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">
-              Revenue Trend Analysis
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Revenue Trend
             </CardTitle>
-            <CardDescription>
-              Monthly revenue performance over time
+            <CardDescription className="text-gray-600">
+              Monthly revenue performance
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Line
+            <LineChart
               data={chartData.revenueTrend}
               options={{
                 responsive: true,
@@ -594,8 +636,10 @@ export default function ReportsPage() {
                   legend: { position: "top" },
                   tooltip: {
                     callbacks: {
-                      label: (context) =>
-                        `Revenue: P${context.parsed.y.toLocaleString()}`
+                      label: (context) => {
+                        const value = context.parsed?.y ?? context.parsed?.x ?? context.parsed;
+                        return value !== undefined ? `P${value.toLocaleString()}` : '';
+                      }
                     }
                   }
                 },
@@ -615,17 +659,17 @@ export default function ReportsPage() {
         </Card>
 
         {/* Revenue Distribution */}
-        <Card className="border-0 shadow-lg h-96">
+        <Card className="bg-white shadow-sm border border-gray-100 h-96">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">
+            <CardTitle className="text-lg font-semibold text-gray-900">
               Revenue Distribution
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-600">
               Top revenue-generating routes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Pie
+            <PieChart
               data={chartData.revenueDistribution}
               options={{
                 responsive: true,
@@ -634,8 +678,10 @@ export default function ReportsPage() {
                   legend: { position: "bottom" },
                   tooltip: {
                     callbacks: {
-                      label: (context) =>
-                        `Revenue: P${Number(context.parsed).toLocaleString()}`
+                      label: (context) => {
+                        const value = context.parsed ?? 0;
+                        return `P${Number(value).toLocaleString()} (${Math.round(value / kpis.totalRevenue * 100)}%)`;
+                      }
                     }
                   }
                 }
@@ -645,17 +691,17 @@ export default function ReportsPage() {
         </Card>
 
         {/* Top Agents */}
-        <Card className="border-0 shadow-lg h-96">
+        <Card className="bg-white shadow-sm border border-gray-100 h-96">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">
-              Top Performing Agents
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Top Agents
             </CardTitle>
-            <CardDescription>
-              Revenue contribution by sales agents
+            <CardDescription className="text-gray-600">
+              Revenue by sales agent
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Bar
+            <BarChart
               data={chartData.topAgents}
               options={{
                 indexAxis: "y" as const,
@@ -665,8 +711,10 @@ export default function ReportsPage() {
                   legend: { display: false },
                   tooltip: {
                     callbacks: {
-                      label: (context) =>
-                        `Revenue: P${context.parsed.x.toLocaleString()}`
+                      label: (context) => {
+                        const value = context.parsed?.x ?? context.parsed?.y ?? context.parsed;
+                        return value !== undefined ? `P${value.toLocaleString()}` : '';
+                      }
                     }
                   }
                 },
@@ -688,101 +736,115 @@ export default function ReportsPage() {
 
       {/* Detailed Data */}
       <Tabs defaultValue="routes" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
-          <TabsTrigger value="routes">Route Performance</TabsTrigger>
-          <TabsTrigger value="agents">Agent Performance</TabsTrigger>
+        <TabsList className="bg-white border border-gray-200">
+          <TabsTrigger value="routes" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+            Route Performance
+          </TabsTrigger>
+          <TabsTrigger value="agents" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+            Agent Performance
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="routes">
-          <Card className="border-0 shadow-lg">
+          <Card className="bg-white shadow-sm border border-gray-100">
             <CardHeader>
-              <CardTitle className="text-gray-900">Route Performance Details</CardTitle>
-              <CardDescription>
-                Detailed breakdown by departure time
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Route Performance Details
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Breakdown by departure time
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Route</TableHead>
-                    <TableHead>Departure</TableHead>
-                    <TableHead className="text-right">Bookings</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                    <TableHead>Peak Day</TableHead>
-                    <TableHead>Peak Month</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRoutes.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        No data available for selected filters
-                      </TableCell>
+                      <TableHead className="font-medium text-gray-700">Route</TableHead>
+                      <TableHead className="font-medium text-gray-700">Departure</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700">Peak Day</TableHead>
+                      <TableHead className="font-medium text-gray-700">Peak Month</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredRoutes.flatMap((route) =>
-                      route.times.map((time) => (
-                        <TableRow key={`${route.route}-${time.departureTime}`}>
-                          <TableCell className="font-medium">{route.routeName}</TableCell>
-                          <TableCell>{time.departureTime}</TableCell>
-                          <TableCell className="text-right">{time.bookings}</TableCell>
-                          <TableCell className="text-right">P{time.revenue.toLocaleString()}</TableCell>
-                          <TableCell>{route.bestDay}</TableCell>
-                          <TableCell>
-                            {monthNames[parseInt(route.bestMonth.split("-")[1], 10) - 1]} {route.bestMonth.split("-")[0]}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )
-                  )}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRoutes.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                          No data available for selected filters
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRoutes.flatMap((route) =>
+                        (route.times || []).map((time) => (
+                          <TableRow key={`${route.route || ''}-${time.departureTime || ''}`} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{route.routeName || 'Unknown'}</TableCell>
+                            <TableCell>{time.departureTime || 'N/A'}</TableCell>
+                            <TableCell className="text-right">{(time.bookings || 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-right">P{(time.revenue || 0).toLocaleString()}</TableCell>
+                            <TableCell>{route.bestDay || 'N/A'}</TableCell>
+                            <TableCell>
+                              {route.bestMonth 
+                                ? new Date(route.bestMonth).toLocaleString('default', { month: 'long' }) 
+                                : 'N/A'}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="agents">
-          <Card className="border-0 shadow-lg">
+          <Card className="bg-white shadow-sm border border-gray-100">
             <CardHeader>
-              <CardTitle className="text-gray-900">Agent Performance</CardTitle>
-              <CardDescription>
-                Sales performance by booking agent
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Agent Performance
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Sales performance by agent
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Agent</TableHead>
-                    <TableHead className="text-right">Bookings</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                    <TableHead className="text-right">Commission</TableHead>
-                    <TableHead className="text-right">Avg. Ticket Value</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agentSales.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                        No agent data available
-                      </TableCell>
+                      <TableHead className="font-medium text-gray-700">Agent</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Commission</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Avg. Value</TableHead>
                     </TableRow>
-                  ) : (
-                    agentSales.map((agent) => (
-                      <TableRow key={agent.id}>
-                        <TableCell className="font-medium">{agent.name}</TableCell>
-                        <TableCell className="text-right">{agent.bookings || 0}</TableCell>
-                        <TableCell className="text-right">P{(agent.revenue || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">P{(agent.commission || 0).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
-                          P{agent.bookings ? ((agent.revenue || 0) / agent.bookings).toFixed(2) : 0}
+                  </TableHeader>
+                  <TableBody>
+                    {agentSales.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          No agent data available
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      agentSales.map((agent) => (
+                        <TableRow key={agent.id || ''} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{agent.name || 'Unknown'}</TableCell>
+                          <TableCell className="text-right">{(agent.bookings || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">P{(agent.revenue || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">P{(agent.commission || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">
+                            P{agent.bookings ? ((agent.revenue || 0) / agent.bookings).toFixed(2) : 0}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

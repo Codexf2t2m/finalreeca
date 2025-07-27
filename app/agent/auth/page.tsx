@@ -57,7 +57,7 @@ export default function AgentAuth() {
         {/* Left: Image */}
         <div className="hidden lg:block relative h-[600px]">
           <Image
-            src="https://scontent.fgbe3-1.fna.fbcdn.net/v/t39.30808-6/490288377_1108592554641180_543926921775620148_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeHo-NUzCD65Ynemwu1LsbA_aC8R33kN3CRoLxHfeQ3cJBrTITyWXZQM5DDj91L8d_qYkS_AVue5EhrO2N8vHYdo&_nc_ohc=HVpRAXFCOHgQ7kNvwEKEM2U&_nc_oc=Adk8EBzzIIWuONzxFCRQCnbCASzq3lBrBkAUfhFzob05Pk-8ty6PggEaGhTT55zU1CI&_nc_zt=23&_nc_ht=scontent.fgbe3-1.fna&_nc_gid=TFSY26WjG6QYapdN6hyivQ&oh=00_AfTCtbeHBQbC9LtLfw10e-aJxSPkPJuYkdq-Vqkc5EmKIg&oe=6881E5BE"
+            src="\images\agentlog.jpg"
             alt="Bus travel image"
             fill
             className="object-cover"
@@ -81,7 +81,7 @@ export default function AgentAuth() {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <Image
-                src="https://scontent.fgbe3-1.fna.fbcdn.net/v/t39.30808-6/490440252_1108879161279186_7731004643176883427_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeEXHmXGZsRP_9hvRcmdOEBk1-JoOeb96jnX4mg55v3qOZBZJk_3ZtUDnkXWsqOJ0IhmI6r6fzVsgQ541COknQUo&_nc_ohc=qRS4Bz3FuxIQ7kNvwFvlWhZ&_nc_oc=AdlJXNS-BXp_pSUen_jXzQCNhY1-LWYPAuILnR1Jy_W_-245a1ev24y6kX3FaUuBd_k&_nc_zt=23&_nc_ht=scontent.fgbe3-1.fna&_nc_gid=pDFB9BfJQub07_dmy5UkHQ&oh=00_AfS8ZIeeyr9ny3UaJd9MhbsoPtUzsAyNUWTlzyUCH944hA&oe=6881E529"
+                src="/images/reeca-travel-logo.png"
                 alt="Company Logo"
                 width={60}
                 height={60}

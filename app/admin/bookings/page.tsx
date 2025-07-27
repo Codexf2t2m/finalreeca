@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users } from "lucide-react";
+import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PrintableTicket, type BookingData } from "@/components/printable-ticket";
+import { PrintableTicket } from "@/components/printable-ticket";
 import * as XLSX from "xlsx";
 
 interface Passenger {
@@ -38,7 +38,7 @@ interface Booking {
   phone: string;
   passengers: number;
   route: string;
-  date: Date;
+  date: Date | string;
   time: string;
   bus: string;
   boardingPoint: string;
@@ -48,7 +48,7 @@ interface Booking {
   paymentMethod: string;
   paymentStatus: string;
   bookingStatus: string;
-  specialRequests: string;
+  specialRequests?: string;
   passengerList?: Passenger[];
   returnTrip?: TripData;
 }
@@ -56,24 +56,27 @@ interface Booking {
 export default function BookingsManagement() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [selectedBookingData, setSelectedBookingData] = useState<BookingData | null>(null);
+  const [selectedBookingData, setSelectedBookingData] = useState<any>(null);
   const [showBookingDetails, setShowBookingDetails] = useState(false);
   const [showPrintTicket, setShowPrintTicket] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Format date function
   const formatDate = (date: Date | string | undefined, formatStr: string) => {
     if (!date) return "N/A";
     const dateObj = typeof date === "string" ? new Date(date) : date;
     if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return "N/A";
+    
     const options: Intl.DateTimeFormatOptions = {};
     if (formatStr.includes("EEEE")) options.weekday = "long";
     if (formatStr.includes("MMMM")) options.month = "long";
     else if (formatStr.includes("MMM")) options.month = "short";
     if (formatStr.includes("dd")) options.day = "2-digit";
     if (formatStr.includes("yyyy")) options.year = "numeric";
+    
     return dateObj.toLocaleDateString("en-US", options);
   };
 
@@ -100,131 +103,114 @@ export default function BookingsManagement() {
     return matchesSearch && matchesStatus;
   });
 
+  // Pagination calculations
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBookings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const nextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const prevPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
+
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
   };
 
-  // Convert Booking to PrintableTicket's BookingData format
-  const convertToPrintableFormat = (booking: Booking): BookingData => {
-    const departureTrip = {
-      route: booking.route,
-      date: booking.date,
-      time: booking.time,
-      bus: booking.bus,
-      boardingPoint: booking.boardingPoint,
-      droppingPoint: booking.droppingPoint,
-      seats: booking.seats,
-      passengers: booking.passengerList || []
-    };
-
-    const returnTrip = booking.returnTrip ? {
-      route: booking.returnTrip.route,
-      date: booking.returnTrip.date,
-      time: booking.returnTrip.time,
-      bus: booking.returnTrip.bus,
-      boardingPoint: booking.returnTrip.boardingPoint,
-      droppingPoint: booking.returnTrip.droppingPoint,
-      seats: booking.returnTrip.seats,
-      passengers: booking.returnTrip.passengers || []
-    } : undefined;
-
-    return {
-      bookingRef: booking.bookingRef,
-      userName: booking.passengerName,
-      userEmail: booking.email,
-      userPhone: booking.phone,
-      totalAmount: booking.totalAmount,
-      paymentMethod: booking.paymentMethod,
-      paymentStatus: booking.paymentStatus,
-      bookingStatus: booking.bookingStatus,
-      departureTrip,
-      returnTrip
-    };
-  };
-
   const handlePrintTicket = async (booking: Booking) => {
     setLoading(true);
     try {
-      // Try to fetch from user API endpoint
       const response = await fetch(`/api/booking/${booking.bookingRef}`);
       if (!response.ok) throw new Error('Failed to fetch ticket data');
-      
-      const ticketData: BookingData = await response.json();
+      const ticketData = await response.json();
       setSelectedBookingData(ticketData);
-      setShowPrintTicket(true);
     } catch (error) {
-      console.error("Error fetching ticket data, using fallback:", error);
-      // Fallback to converting admin booking data
-      const convertedData = convertToPrintableFormat(booking);
-      setSelectedBookingData(convertedData);
-      setShowPrintTicket(true);
+      console.error("Error fetching ticket data:", error);
+      // Fallback to basic data if API fails
+      setSelectedBookingData({
+        bookingRef: booking.bookingRef,
+        userName: booking.passengerName,
+        userEmail: booking.email,
+        userPhone: booking.phone,
+        totalAmount: booking.totalAmount,
+        paymentMethod: booking.paymentMethod,
+        paymentStatus: booking.paymentStatus,
+        bookingStatus: booking.bookingStatus,
+        departureTrip: {
+          route: booking.route,
+          date: booking.date,
+          time: booking.time,
+          bus: booking.bus,
+          boardingPoint: booking.boardingPoint,
+          droppingPoint: booking.droppingPoint,
+          seats: booking.seats,
+          passengers: booking.passengerList || []
+        },
+        returnTrip: booking.returnTrip ? {
+          route: booking.returnTrip.route,
+          date: booking.returnTrip.date,
+          time: booking.returnTrip.time,
+          bus: booking.returnTrip.bus,
+          boardingPoint: booking.returnTrip.boardingPoint,
+          droppingPoint: booking.returnTrip.droppingPoint,
+          seats: booking.returnTrip.seats,
+          passengers: booking.returnTrip.passengers || []
+        } : undefined
+      });
     } finally {
       setLoading(false);
+      setShowPrintTicket(true);
     }
   };
 
-  const handleUpdateBookingStatus = (
-    bookingId: string,
-    newStatus: "Confirmed" | "Pending" | "Cancelled"
-  ) => {
-    setBookings((prev) =>
-      prev.map((booking) =>
-        booking.id === bookingId
-          ? { ...booking, bookingStatus: newStatus }
-          : booking
+  const handleUpdateBookingStatus = (bookingId: string, newStatus: "Confirmed" | "Pending" | "Cancelled") => {
+    setBookings(prev =>
+      prev.map(booking =>
+        booking.id === bookingId ? { ...booking, bookingStatus: newStatus } : booking
       )
     );
   };
 
-  // Excel export function
   const handleExportExcel = () => {
-    // Prepare detailed data for export
     const exportData = bookings.map((booking) => ({
-      BookingRef: booking.bookingRef,
-      PassengerName: booking.passengerName,
-      Email: booking.email,
-      Phone: booking.phone,
-      Passengers: booking.passengers,
-      Route: booking.route,
-      Date: booking.date instanceof Date ? booking.date.toISOString() : booking.date,
-      Time: booking.time,
-      Bus: booking.bus,
-      BoardingPoint: booking.boardingPoint,
-      DroppingPoint: booking.droppingPoint,
-      Seats: booking.seats.join(", "),
-      TotalAmount: booking.totalAmount,
-      PaymentMethod: booking.paymentMethod,
-      PaymentStatus: booking.paymentStatus,
-      BookingStatus: booking.bookingStatus,
-      SpecialRequests: booking.specialRequests,
-      // Flatten passenger list for export
-      PassengerList: booking.passengerList
-        ? booking.passengerList.map(
-            (p) =>
-              `${p.name} (${p.seat}${p.title ? ", " + p.title : ""}${
-                p.isReturn ? ", Return" : ", Departure"
-              })`
-          ).join("; ")
-        : "",
-      // Return trip details if present
-      ReturnTrip: booking.returnTrip
-        ? `Route: ${booking.returnTrip.route}, Date: ${booking.returnTrip.date}, Time: ${booking.returnTrip.time}, Bus: ${booking.returnTrip.bus}, Boarding: ${booking.returnTrip.boardingPoint}, Dropping: ${booking.returnTrip.droppingPoint}, Seats: ${booking.returnTrip.seats.join(", ")}`
-        : "",
+      "Booking Ref": booking.bookingRef,
+      "Passenger Name": booking.passengerName,
+      "Email": booking.email,
+      "Phone": booking.phone,
+      "Passengers": booking.passengers,
+      "Route": booking.route,
+      "Date": formatDate(booking.date, "yyyy-MM-dd"),
+      "Time": booking.time,
+      "Bus": booking.bus,
+      "Boarding Point": booking.boardingPoint,
+      "Dropping Point": booking.droppingPoint,
+      "Seats": booking.seats.join(", "),
+      "Total Amount": booking.totalAmount,
+      "Payment Method": booking.paymentMethod,
+      "Payment Status": booking.paymentStatus,
+      "Booking Status": booking.bookingStatus,
+      "Special Requests": booking.specialRequests || "None",
+      "Passenger List": booking.passengerList
+        ? booking.passengerList.map(p => `${p.name} (${p.seat})`).join("; ")
+        : "None",
+      "Return Trip": booking.returnTrip
+        ? `Route: ${booking.returnTrip.route}, Date: ${formatDate(booking.returnTrip.date, "yyyy-MM-dd")}`
+        : "None"
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
-    XLSX.writeFile(workbook, "reeca_bookings.xlsx");
+    XLSX.writeFile(workbook, "bookings_export.xlsx");
   };
 
   return (
     <div className="space-y-6">
-      <Card className="border-0 shadow-lg">
+      <Card className="border border-gray-200 shadow-sm">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -235,141 +221,236 @@ export default function BookingsManagement() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full md:w-auto">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-auto">
+              <Select 
+                value={itemsPerPage.toString()} 
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-full md:w-32">
+                  <SelectValue placeholder="Items per page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 per page</SelectItem>
+                  <SelectItem value="25">25 per page</SelectItem>
+                  <SelectItem value="50">50 per page</SelectItem>
+                  <SelectItem value="100">100 per page</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+              variant="outline"
+              className="border-teal-600 text-teal-600 hover:bg-teal-50"
               onClick={handleExportExcel}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export to Excel
+              Export Excel
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-lg">
+      <Card className="border border-gray-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-teal-900">
-            <Users className="h-5 w-5" />
-            All Bookings ({filteredBookings.length})
-          </CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Bookings Management
+              </CardTitle>
+              <CardDescription className="text-sm text-gray-600">
+                {filteredBookings.length} bookings found
+              </CardDescription>
+            </div>
+            {filteredBookings.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Page {currentPage} of {totalPages}</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left p-3 font-semibold text-gray-700">Booking Ref</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Passenger</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Route</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Date & Time</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Seats</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Amount</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-left p-3 font-semibold text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredBookings.map((booking) => (
-                  <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-3">
-                      <span className="font-mono text-sm font-semibold text-teal-600">{booking.bookingRef}</span>
-                    </td>
-                    <td className="p-3">
-                      <div>
-                        <p className="font-semibold text-gray-900">{booking.passengerName}</p>
-                        <p className="text-sm text-gray-600">{booking.email}</p>
-                        <p className="text-sm text-gray-600">{booking.phone}</p>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{booking.route}</p>
-                      <p className="text-xs text-gray-600">{booking.bus}</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="text-sm font-medium text-gray-900">{formatDate(booking.date, "MMM dd, yyyy")}</p>
-                      <p className="text-xs text-gray-600">{booking.time}</p>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex flex-wrap gap-1">
-                        {booking.seats.map((seat) => (
-                          <Badge key={seat} variant="outline" className="text-xs">
-                            {seat}
+          {filteredBookings.length === 0 ? (
+            <div className="py-12 text-center">
+              <Users className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search or filter criteria
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Booking Ref
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Passenger
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Route
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentItems.map((booking) => (
+                      <tr key={booking.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-teal-600">{booking.bookingRef}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{booking.passengerName}</div>
+                          <div className="text-sm text-gray-500">{booking.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{booking.route}</div>
+                          <div className="text-xs text-gray-500">{booking.bus}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {formatDate(booking.date, "MMM dd, yyyy")}
+                          </div>
+                          <div className="text-xs text-gray-500">{booking.time}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            className={cn(
+                              "text-xs",
+                              booking.bookingStatus === "Confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : booking.bookingStatus === "Pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                            )}
+                          >
+                            {booking.bookingStatus}
                           </Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-600 mt-1">{booking.passengers} passenger(s)</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-bold text-teal-600">P {booking.totalAmount}</p>
-                      <p className="text-xs text-gray-600">{booking.paymentMethod}</p>
-                    </td>
-                    <td className="p-3">
-                      <div className="space-y-1">
-                        <Badge
-                          className={cn(
-                            "text-xs",
-                            booking.bookingStatus === "Confirmed"
-                              ? "bg-green-100 text-green-800"
-                              : booking.bookingStatus === "Pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                          )}
-                        >
-                          {booking.bookingStatus}
-                        </Badge>
-                        <Badge
-                          className={cn(
-                            "text-xs block",
-                            booking.paymentStatus === "Paid"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          )}
-                        >
-                          {booking.paymentStatus}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewBooking(booking)}
+                              className="text-gray-600 hover:text-teal-600"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePrintTicket(booking)}
+                              className="text-gray-600 hover:text-amber-600"
+                              disabled={loading}
+                            >
+                              {loading ? (
+                                <span className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+                              ) : (
+                                <QrCode className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                    <span className="font-medium">
+                      {Math.min(indexOfLastItem, filteredBookings.length)}
+                    </span>{" "}
+                    of <span className="font-medium">{filteredBookings.length}</span> bookings
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={prevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
                         <Button
-                          variant="outline"
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
                           size="sm"
-                          onClick={() => handleViewBooking(booking)}
-                          className="text-teal-600 border-teal-600 hover:bg-teal-50"
+                          onClick={() => paginate(pageNum)}
                         >
-                          <Eye className="h-4 w-4" />
+                          {pageNum}
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePrintTicket(booking)}
-                          className="text-amber-600 border-amber-300 hover:bg-amber-50"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <span className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
-                          ) : (
-                            <QrCode className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      );
+                    })}
+                    {totalPages > 5 && currentPage < totalPages - 2 && (
+                      <span className="flex items-center px-3 text-sm text-gray-700">...</span>
+                    )}
+                    {totalPages > 5 && currentPage < totalPages - 2 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => paginate(totalPages)}
+                      >
+                        {totalPages}
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={nextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -403,7 +484,7 @@ export default function BookingsManagement() {
                 </div>
               </div>
 
-              {selectedBooking.passengerList && (selectedBooking.passengerList.length > 0) && (
+              {selectedBooking.passengerList && selectedBooking.passengerList.length > 0 && (
                 <div className="p-4 bg-gray-100 rounded-lg">
                   <h4 className="font-semibold mb-3 text-gray-800">Passenger List</h4>
                   <table className="w-full">
@@ -415,7 +496,7 @@ export default function BookingsManagement() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedBooking.passengerList || []).map((passenger, index) => (
+                      {selectedBooking.passengerList.map((passenger, index) => (
                         <tr key={index} className="border-b last:border-0">
                           <td className="p-2">{passenger.name}</td>
                           <td className="p-2">{passenger.seat}</td>
@@ -460,7 +541,7 @@ export default function BookingsManagement() {
               <div className="p-4 bg-amber-50 rounded-lg">
                 <h4 className="font-semibold mb-3 text-amber-800">Seat Information</h4>
                 <div className="flex flex-wrap gap-2">
-                  {(selectedBooking.seats || []).map((seat) => (
+                  {selectedBooking.seats.map((seat) => (
                     <Badge key={seat} className="bg-amber-600 text-white">
                       {seat}
                     </Badge>
