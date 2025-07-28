@@ -55,6 +55,10 @@ interface PassengerDetailsFormProps {
   onPaymentComplete: () => void;
 }
 
+function generateOrderId() {
+  return `RT${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 export default function PassengerDetailsForm({
   departureBus,
   returnBus,
@@ -254,12 +258,6 @@ export default function PassengerDetailsForm({
       return;
     }
     onProceedToPayment();
-  };
-
-  const generateOrderId = () => {
-    const timestamp = Date.now();
-    const tripIdShort = departureBus?.id?.slice(-8) || 'DEP';
-    return `RT-${tripIdShort}-${timestamp}`;
   };
 
   const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
@@ -649,12 +647,13 @@ export default function PassengerDetailsForm({
           {departureBus && (
             <PaymentGateway
               bookingData={{
+                orderId: generateOrderId(), // <-- always 6 digits with RT prefix
                 tripId: departureBus?.id,
                 totalPrice: finalTotal,
                 discountAmount: agentDiscount,
                 selectedSeats: [...(departureSeats || []), ...(returnSeats || [])],
-                departureSeats, // <-- add this
-                returnSeats,    // <-- add this
+                departureSeats,
+                returnSeats,
                 passengers: passengers.map(p => ({
                   firstName: p.firstName,
                   lastName: p.lastName,
@@ -667,14 +666,13 @@ export default function PassengerDetailsForm({
                 userPhone: contactDetails.mobile,
                 boardingPoint: departureBoardingPoint,
                 droppingPoint: departureDroppingPoint,
-                orderId: generateOrderId(),
                 contactDetails,
                 emergencyContact,
                 paymentMode,
                 returnTripId: returnBus?.id,
                 returnBoardingPoint,
                 returnDroppingPoint,
-               agentId: agent?.id,
+                agentId: agent?.id,
               }}
               onPaymentComplete={onPaymentComplete}
               setShowPayment={setShowPayment}

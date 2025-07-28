@@ -115,23 +115,31 @@ export async function GET(request: Request) {
 
     const tripsWithAvailability = trips.map(trip => {
       const allBookings = [...trip.bookings, ...trip.returnBookings];
-      
       const occupiedSeats = allBookings.reduce((total, booking) => {
         return total + (booking.seats ? booking.seats.split(',').length : 0);
       }, 0);
-      
-      // Validate and format departure date
+
+      // Calculate hasDeparted
+      let hasDeparted = false;
+      if (trip.departureDate && trip.departureTime) {
+        const depDate = new Date(trip.departureDate);
+        const [hours, minutes] = trip.departureTime.split(":").map(Number);
+        depDate.setHours(hours, minutes, 0, 0);
+        hasDeparted = depDate < new Date();
+      }
+
       let departureDateISO = "";
       if (isValidDate(trip.departureDate)) {
         departureDateISO = new Date(trip.departureDate).toISOString();
       } else {
         console.warn("Invalid departureDate for trip:", trip.id, trip.departureDate);
       }
-      
+
       return {
         ...trip,
         availableSeats: Math.max(0, trip.totalSeats - occupiedSeats),
         departureDate: departureDateISO,
+        hasDeparted, // <-- Add this
       };
     });
 
