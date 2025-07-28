@@ -72,10 +72,24 @@ export default function InquiriesManagement() {
     setShowInquiryDetails(true);
   };
 
-  const handleUpdateInquiryStatus = (inquiryId: string, newStatus: string) => {
+  const handleUpdateInquiryStatus = async (inquiryId: string, newStatus: string) => {
+    await fetch(`/api/inquiries/${inquiryId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
     setInquiries((prev) =>
-      prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
+      prev.map((inquiry) =>
+        inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry
+      )
     );
+  };
+
+  const handleDeleteInquiry = async (inquiryId: string) => {
+    await fetch(`/api/inquiries/${inquiryId}/status`, {
+      method: "DELETE",
+    });
+    setInquiries((prev) => prev.filter((inquiry) => inquiry.id !== inquiryId));
   };
 
   const handleExportExcel = () => {

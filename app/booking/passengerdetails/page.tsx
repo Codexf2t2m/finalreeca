@@ -262,14 +262,14 @@ export default function PassengerDetailsForm({
     return `RT-${tripIdShort}-${timestamp}`;
   };
 
-  const [agent, setAgent] = useState<{ name: string; email: string } | null>(null);
+  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/agent/me")
       .then(async res => {
         if (res.ok) {
           const agentData = await res.json();
-          setAgent(agentData);
+          setAgent(agentData); // agentData should include id, name, email
         } else {
           setAgent(null);
         }
@@ -341,21 +341,27 @@ export default function PassengerDetailsForm({
               onClick={() => toggleSection('passengers')}
               className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
             >
-              <h3 className="font-bold text-lg text-gray-800">
-                Passenger Details ({passengers.length})
-              </h3>
-              {openSections.passengers ? <ChevronUp /> : <ChevronDown />}
-            </button>
-            {openSections.passengers && (
-              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+              <div className="flex items-center gap-4">
+                <h3 className="font-bold text-lg text-gray-800">
+                  Passenger Details ({passengers.length})
+                </h3>
                 {returnSeats.length > 0 && (
                   <Button
-                    onClick={copyDepartureToReturn}
-                    className="mb-4 bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={e => {
+                      e.stopPropagation();
+                      copyDepartureToReturn();
+                    }}
+                    className="ml-2 bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 h-auto text-sm"
+                    tabIndex={-1}
                   >
                     <Copy className="mr-2 h-4 w-4" /> Copy Departure Details to Return
                   </Button>
                 )}
+              </div>
+              {openSections.passengers ? <ChevronUp /> : <ChevronDown />}
+            </button>
+            {openSections.passengers && (
+              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
                 {passengers.length > 0 ? (
                   passengers.map((passenger) => (
                     <div key={passenger.id} className="border rounded-lg p-4 bg-white">
@@ -626,9 +632,13 @@ export default function PassengerDetailsForm({
                 setShowPolicyModal(true);
                 return;
               }
+              if (!agent) {
+                alert("Agent info is still loading. Please wait a moment and try again.");
+                return;
+              }
               handleSubmit();
             }}
-            disabled={!agreedToTerms}
+            disabled={!agreedToTerms || !agent}
             className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg text-lg"
           >
             Pay (P {finalTotal.toFixed(2)})
@@ -668,6 +678,7 @@ export default function PassengerDetailsForm({
                 returnTripId: returnBus?.id,
                 returnBoardingPoint,
                 returnDroppingPoint,
+               agentId: agent?.id,
               }}
               onPaymentComplete={onPaymentComplete}
               setShowPayment={setShowPayment}

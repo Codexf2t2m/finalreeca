@@ -31,6 +31,7 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             promoCode: data.promoCode || null,
             discountAmount: discountAmount,
             contactIdNumber: data.contactDetails?.idNumber,
+            agentId: data.agentId || null,
           },
         });
 
@@ -76,6 +77,8 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             }
           });
         }
+
+        console.log('Received agentId:', data.agentId);
 
         return await tx.booking.findUnique({
           where: { orderId: data.orderId },

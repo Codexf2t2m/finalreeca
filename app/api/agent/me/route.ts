@@ -9,5 +9,5 @@ export async function GET() {
   if (!agentId) return NextResponse.json({}, { status: 401 });
   const agent = await prisma.agent.findUnique({ where: { id: agentId } });
   if (!agent) return NextResponse.json({}, { status: 401 });
-  return NextResponse.json({ name: agent.name, email: agent.email });
+  return NextResponse.json({ id: agent.id, name: agent.name, email: agent.email });
 }

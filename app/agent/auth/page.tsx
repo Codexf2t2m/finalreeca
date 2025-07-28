@@ -57,7 +57,7 @@ export default function AgentAuth() {
         {/* Left: Image */}
         <div className="hidden lg:block relative h-[600px]">
           <Image
-            src="\images\agentlog.jpg"
+            src="/images/agentlog.jpg"
             alt="Bus travel image"
             fill
             className="object-cover"

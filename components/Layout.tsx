@@ -25,7 +25,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("admin/login")
   };
 
   return (
@@ -70,9 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 aria-label="Notifications"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  3
-                </span>
+                
               </Button>
 
               <ThemeToggle />

@@ -7,22 +7,28 @@ export async function GET() {
       id: true,
       name: true,
       bookings: {
+        where: { agentId: { not: null } }, // Only bookings made by agents
         select: {
           id: true,
           totalPrice: true,
-          paymentStatus: true
+          paymentStatus: true,
+          agentId: true,
         }
       }
     }
   });
 
   const sales = agents.map(agent => {
-    const paidBookings = agent.bookings.filter(b => b.paymentStatus === "paid");
+    // Only include bookings where agentId matches this agent
+    const agentBookings = agent.bookings.filter(b => b.agentId === agent.id);
+    const paidBookings = agentBookings.filter(b => b.paymentStatus === "paid");
+    const revenue = paidBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
     return {
       id: agent.id,
       name: agent.name,
       bookings: paidBookings.length,
-      revenue: paidBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0)
+      revenue,
+      commission: revenue * 0.1 // 10% commission
     };
   });
 

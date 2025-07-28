@@ -7,8 +7,6 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { days } = await req.json();
-
     await prisma.agent.update({
       where: { id: params.id },
       data: {

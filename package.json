@@ -47,6 +47,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "cookie": "^1.0.2",
+    "cookies-next": "^6.1.0",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
     "html-entities": "^2.6.0",

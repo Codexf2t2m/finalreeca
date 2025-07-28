@@ -48,6 +48,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -93,10 +94,21 @@ body {
   }
 }
 
-@keyframes slide-in-left {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.card {
+  @apply border border-input rounded-lg shadow-sm hover:shadow-md transition-shadow bg-card;
 }
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .animate-slide-in-left {
-  animation: slide-in-left 0.4s cubic-bezier(.4,0,.2,1) both;
+  animation: slide-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }

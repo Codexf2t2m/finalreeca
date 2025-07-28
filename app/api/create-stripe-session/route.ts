@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/lib/prisma';
 import { deduplicateRequest } from '@/utils/requestDeduplication';
 import { createBookingWithRetry } from '@/lib/retrybookingservice';
+import { cookies } from 'next/headers';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
@@ -34,6 +35,7 @@ interface BookingRequest {
   promoCode?: string;
   discountAmount?: number;
   orderId?: string;
+  agentId?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -48,8 +50,12 @@ export async function POST(request: NextRequest) {
     const orderId = body.orderId || `RT-${uuidv4().slice(0, 8)}-${Date.now()}`;
     const idempotencyKey = `booking-${orderId}`;
 
+    const cookieStore = await cookies();
+    const agentIdFromCookie = cookieStore.get('agent_token')?.value;
+
     const bookingData = {
       ...body,
+      agentId: agentIdFromCookie || body.agentId || null, // Always prefer cookie
       totalPrice,
       orderId,
     };

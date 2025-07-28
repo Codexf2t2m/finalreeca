@@ -6,8 +6,8 @@ interface BookingData {
   tripId: string;
   totalPrice: number;
   selectedSeats: string[];
-  departureSeats: string[]; // <-- ensure this is present
-  returnSeats?: string[];   // <-- ensure this is present
+  departureSeats: string[];
+  returnSeats?: string[];
   passengers: {
     firstName: string;
     lastName: string;
@@ -28,6 +28,7 @@ interface BookingData {
   returnBoardingPoint?: string;
   returnDroppingPoint?: string;
   discountAmount?: number;
+  agentId?: string; // <-- Add this line
 }
 
 interface PaymentGatewayProps {

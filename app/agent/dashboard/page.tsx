@@ -1,9 +1,11 @@
 "use client";
+import { deleteCookie } from "cookies-next";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 
 export default function AgentDashboard() {
   const [agent, setAgent] = useState<{ name: string; email: string; id: string } | null>(null);
@@ -16,7 +18,9 @@ export default function AgentDashboard() {
     setIsLoading(true);
     fetch("/api/agent/me").then(async res => {
       if (res.ok) {
-        setAgent(await res.json());
+        const agentData = await res.json();
+        console.log("[Dashboard] Loaded agent:", agentData);
+        setAgent(agentData);
       } else {
         window.location.href = "/agent/auth";
       }
@@ -27,10 +31,12 @@ export default function AgentDashboard() {
   useEffect(() => {
     if (agent?.id) {
       setIsLoading(true);
+      console.log("[Dashboard] Fetching bookings for agentId:", agent.id);
       fetch(`/api/agent/${agent.id}/bookings`)
         .then(async res => {
           if (res.ok) {
             const data = await res.json();
+            console.log("[Dashboard] Bookings fetched:", data.bookings);
             setBookings(data.bookings || []);
             setStats({
               bookings: data.bookings.length,
@@ -43,6 +49,33 @@ export default function AgentDashboard() {
     }
   }, [agent?.id]);
 
+  const handleExport = () => {
+    const exportData = bookings.map(b => ({
+      "Order ID": b.orderId,
+      "Client": b.userName,
+      "Email": b.userEmail,
+      "Trip": b.trip?.routeName,
+      "Date": new Date(b.trip?.departureDate).toLocaleDateString(),
+      "Time": b.trip?.departureTime,
+      "Seats": b.seatCount,
+      "Amount": b.totalPrice,
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+    XLSX.writeFile(wb, "agent_bookings.xlsx");
+  };
+
+  const handleLogout = () => {
+    // If using cookies-next:
+    deleteCookie("agent_token");
+    window.location.href = "/agent/auth";
+
+    // If not using cookies-next, fallback to:
+    document.cookie = "agent_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    window.location.href = "/agent/auth";
+  };
+
   if (isLoading || !agent) return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
       <div className="text-center space-y-4">
@@ -54,14 +87,14 @@ export default function AgentDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <Image 
-                src="https://scontent.fgbe3-1.fna.fbcdn.net/v/t39.30808-6/490440252_1108879161279186_7731004643176883427_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeEXHmXGZsRP_9hvRcmdOEBk1-JoOeb96jnX4mg55v3qOZBZJk_3ZtUDnkXWsqOJ0IhmI6r6fzVsgQ541COknQUo&_nc_ohc=qRS4Bz3FuxIQ7kNvwFvlWhZ&_nc_oc=AdlJXNS-BXp_pSUen_jXzQCNhY1-LWYPAuILnR1Jy_W_-245a1ev24y6kX3FaUuBd_k&_nc_zt=23&_nc_ht=scontent.fgbe3-1.fna&_nc_gid=pDFB9BfJQub07_dmy5UkHQ&oh=00_AfS8ZIeeyr9ny3UaJd9MhbsoPtUzsAyNUWTlzyUCH944hA&oe=6881E529" 
+                src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={48}
                 height={48}
@@ -81,12 +114,20 @@ export default function AgentDashboard() {
             <div className="h-10 w-10 rounded-full bg-[#009393] flex items-center justify-center text-white font-bold shadow-sm">
               {agent.name.charAt(0).toUpperCase()}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-2 border-[#009393] text-[#009393] hover:bg-[#009393]/10"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-l-4 border-[#009393] hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
@@ -108,11 +149,18 @@ export default function AgentDashboard() {
 
           <Card className="border-l-4 border-[#febf00] hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">TOTAL REVENUE</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">TOTAL Payments</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <div className="text-3xl font-bold text-gray-900">₱{stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">
+                    P{stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </div>
+                  <div className="text-xs text-[#958c55] mt-1">
+                    Commission (10%): <span className="font-semibold">P{(stats.revenue * 0.1).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                </div>
                 <div className="p-3 rounded-full bg-[#febf00]/10 text-[#febf00]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -173,6 +221,7 @@ export default function AgentDashboard() {
                 variant="outline" 
                 size="sm" 
                 className="flex items-center justify-center gap-2 border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
+                onClick={handleExport}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -268,7 +317,7 @@ export default function AgentDashboard() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ₱{b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          P{b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <Button 
@@ -319,13 +368,13 @@ export default function AgentDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2">
               <Image 
-                src="https://scontent.fgbe3-1.fna.fbcdn.net/v/t39.30808-6/490440252_1108879161279186_7731004643176883427_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeEXHmXGZsRP_9hvRcmdOEBk1-JoOeb96jnX4mg55v3qOZBZJk_3ZtUDnkXWsqOJ0IhmI6r6fzVsgQ541COknQUo&_nc_ohc=qRS4Bz3FuxIQ7kNvwFvlWhZ&_nc_oc=AdlJXNS-BXp_pSUen_jXzQCNhY1-LWYPAuILnR1Jy_W_-245a1ev24y6kX3FaUuBd_k&_nc_zt=23&_nc_ht=scontent.fgbe3-1.fna&_nc_gid=pDFB9BfJQub07_dmy5UkHQ&oh=00_AfS8ZIeeyr9ny3UaJd9MhbsoPtUzsAyNUWTlzyUCH944hA&oe=6881E529" 
+                src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={32}
                 height={32}
                 className="rounded-md"
               />
-              <span className="text-sm text-gray-500">© {new Date().getFullYear()} Bus Company. All rights reserved.</span>
+              <span className="text-sm text-gray-500">© {new Date().getFullYear()} Reeca Travel.</span>
             </div>
             <div className="mt-4 md:mt-0 flex space-x-6">
               <a href="#" className="text-sm text-[#009393] hover:text-[#007a7a]">Privacy</a>
