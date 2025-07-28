@@ -232,7 +232,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             <p>GABORONE South-East</p>
             <p>Botswana</p>
             <p>+26773061124</p>
-            <p>aging@reecatravel.co.bw</p>
             <p>WWW.REECATRAVEL.CO.BW</p>
           </div>
         </div>

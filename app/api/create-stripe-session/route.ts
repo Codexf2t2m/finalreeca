@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const orderId = body.orderId || `RT-${uuidv4().slice(0, 8)}-${Date.now()}`;
+    const orderId = body.orderId || Math.floor(100000 + Math.random() * 900000).toString();
     const idempotencyKey = `booking-${orderId}`;
 
     const cookieStore = await cookies();

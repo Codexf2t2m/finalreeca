@@ -632,13 +632,9 @@ export default function PassengerDetailsForm({
                 setShowPolicyModal(true);
                 return;
               }
-              if (!agent) {
-                alert("Agent info is still loading. Please wait a moment and try again.");
-                return;
-              }
               handleSubmit();
             }}
-            disabled={!agreedToTerms || !agent}
+            disabled={!agreedToTerms}
             className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg text-lg"
           >
             Pay (P {finalTotal.toFixed(2)})

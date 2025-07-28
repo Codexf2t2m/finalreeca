@@ -7,7 +7,10 @@ export async function GET(req: NextRequest) {
   const ref = searchParams.get("ref");
   const tripId = searchParams.get("tripId");
 
+  console.log("[SCAN] Incoming QR scan:", { ref, tripId });
+
   if (!ref || !tripId) {
+    console.log("[SCAN] Missing reference or tripId");
     return NextResponse.json({ valid: false, error: "Missing reference or tripId" }, { status: 400 });
   }
 
@@ -26,7 +29,10 @@ export async function GET(req: NextRequest) {
     include: { passengers: true, trip: true, returnTrip: true },
   });
 
+  console.log("[SCAN] Booking found:", booking ? booking.id : "None");
+
   if (!booking) {
+    console.log("[SCAN] No valid booking for this trip today");
     return NextResponse.json({ valid: false, error: "No valid booking for this trip today" }, { status: 404 });
   }
 
