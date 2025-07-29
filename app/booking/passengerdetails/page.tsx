@@ -19,6 +19,8 @@ interface Passenger {
   lastName: string;
   seatNumber: string;
   isReturn: boolean;
+  hasInfant?: boolean;         // <-- NEW
+  infantBirthdate?: string;    // <-- NEW
 }
 
 interface ContactDetails {
@@ -195,11 +197,30 @@ export default function PassengerDetailsForm({
     setPassengers(updatedPassengers);
   };
 
-  const departurePricePerSeat = departureBus?.fare || 0;
-  const returnPricePerSeat = returnBus?.fare || 0;
-  const departureTotal = departurePricePerSeat * (departureSeats?.length || 0);
-  const returnTotal = returnPricePerSeat * (returnSeats?.length || 0);
-  const grandTotal = departureTotal + returnTotal;
+  const departurePricePerSeat: number = departureBus?.fare || 0;
+  const returnPricePerSeat: number = returnBus?.fare || 0;
+  const departureTotal: number = departurePricePerSeat * (departureSeats?.length || 0);
+  const returnTotal: number = returnPricePerSeat * (returnSeats?.length || 0);
+  const infantCount: number = passengers.filter(p => p.hasInfant).length;
+  const infantTotal: number = infantCount * 100;
+  const baseTotal: number = departureTotal + returnTotal + infantTotal;
+  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/agent/me")
+      .then(async res => {
+        if (res.ok) {
+          const agentData = await res.json();
+          setAgent(agentData); // agentData should include id, name, email
+        } else {
+          setAgent(null);
+        }
+      })
+      .catch(() => setAgent(null));
+  }, []);
+
+  const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
+  const finalTotal: number = baseTotal - agentDiscount;
 
   const departureOriginKey = ((departureBus?.routeOrigin || searchData.from || '') as string).toLowerCase().trim() || 'default';
   const departureDestinationKey = ((departureBus?.routeDestination || searchData.to || '') as string).toLowerCase().trim() || 'default';
@@ -216,7 +237,7 @@ export default function PassengerDetailsForm({
     returnDestinationPoints = getBoardingPoints(returnDestinationKey);
   }
 
-  const updatePassenger = (id: string, field: string, value: string) => {
+  const updatePassenger = (id: string, field: string, value: string | boolean) => {
     setPassengers(prev =>
       prev.map(passenger =>
         passenger.id === id ? { ...passenger, [field]: value } : passenger
@@ -257,26 +278,18 @@ export default function PassengerDetailsForm({
       alert('Please agree to the terms and conditions');
       return;
     }
+    if (
+      passengers.some(
+        (p) =>
+          p.hasInfant &&
+          (!p.infantBirthdate || !isValidInfant(p.infantBirthdate))
+      )
+    ) {
+      alert("Each infant must have a valid birthdate and be less than 18 months old.");
+      return;
+    }
     onProceedToPayment();
   };
-
-  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/agent/me")
-      .then(async res => {
-        if (res.ok) {
-          const agentData = await res.json();
-          setAgent(agentData); // agentData should include id, name, email
-        } else {
-          setAgent(null);
-        }
-      })
-      .catch(() => setAgent(null));
-  }, []);
-
-  const agentDiscount = agent ? Math.round(grandTotal * 0.10) : 0;
-  const finalTotal = agent ? grandTotal - agentDiscount : grandTotal;
 
   const formatPoint = (point: string) => {
     if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
@@ -284,6 +297,20 @@ export default function PassengerDetailsForm({
     }
     return point;
   };
+
+  function isValidInfant(birthdate: string): boolean {
+    if (!birthdate) return false;
+    const birth = new Date(birthdate);
+    const now = new Date();
+    const months =
+      (now.getFullYear() - birth.getFullYear()) * 12 +
+      (now.getMonth() - birth.getMonth());
+    // If the day of the month hasn't occurred yet, subtract one month
+    if (now.getDate() < birth.getDate()) {
+      return months - 1 < 18;
+    }
+    return months < 18;
+  }
 
   return (
     <div className="max-w-6xl mx-auto my-8 px-4">
@@ -326,6 +353,12 @@ export default function PassengerDetailsForm({
                 <div className="flex justify-between pt-2">
                   <p className="font-bold text-lg text-amber-700">Agent Discount (10%):</p>
                   <p className="font-bold text-amber-700">-P {agentDiscount.toFixed(2)}</p>
+                </div>
+              )}
+              {infantCount > 0 && (
+                <div className="flex justify-between pt-2">
+                  <p className="font-bold text-lg text-blue-700">Infant Fare (P 100 x {infantCount}):</p>
+                  <p className="font-bold text-blue-700">P {infantTotal.toFixed(2)}</p>
                 </div>
               )}
               <div className="flex justify-between pt-2">
@@ -402,6 +435,39 @@ export default function PassengerDetailsForm({
                             placeholder="Last name"
                             required
                           />
+                        </div>
+                        <div className="grid grid-cols-1 gap-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Infant Details (if any)
+                          </label>
+                          <div className="flex gap-3">
+                            <Checkbox
+                              checked={!!passenger.hasInfant}
+                              onCheckedChange={(checked) => updatePassenger(passenger.id, 'hasInfant', checked)}
+                              className="h-6 w-6"
+                            />
+                            <span className="text-sm text-gray-600">
+                              Check this box if you are bringing an infant
+                            </span>
+                          </div>
+                          {passenger.hasInfant && (
+                            <div className="grid grid-cols-1 gap-3">
+                              <Input
+                                type="date"
+                                value={passenger.infantBirthdate}
+                                onChange={(e) => updatePassenger(passenger.id, 'infantBirthdate', e.target.value)}
+                                placeholder="Infant's Birthdate"
+                                className="w-full"
+                                required
+                                max={new Date().toISOString().split("T")[0]}
+                              />
+                              {passenger.infantBirthdate && !isValidInfant(passenger.infantBirthdate) && (
+                                <span className="text-xs text-red-600">
+                                  Infant must be less than 18 months old.
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -660,6 +726,8 @@ export default function PassengerDetailsForm({
                   seatNumber: p.seatNumber,
                   title: p.title,
                   isReturn: p.isReturn,
+                  hasInfant: !!p.hasInfant,
+                  infantBirthdate: p.infantBirthdate || null,
                 })),
                 userName: contactDetails.name,
                 userEmail: contactDetails.email,

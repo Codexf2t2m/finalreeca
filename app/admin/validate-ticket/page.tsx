@@ -26,6 +26,15 @@ interface Trip {
   droppingPoint: string
 }
 
+interface Passenger {
+  id: string;
+  firstName: string;
+  lastName: string;
+  seatNumber: string;
+  boarded: boolean;
+  isReturn?: boolean;
+}
+
 interface Booking {
   id: string
   orderId: string
@@ -42,6 +51,7 @@ interface Booking {
   bookingStatus: string
   scanned: boolean
   lastScanned?: string | null
+ passengers?: Passenger[];
 }
 
 const VALIDATE_TICKET_API = "/api/validate-ticket"
@@ -385,15 +395,23 @@ export default function LiveTicketScanner() {
     }
   }
 
-  const parseSeats = (seatsJson: string) => {
+  const parseSeats = (seatsJson: string, passengers?: Passenger[]) => {
     try {
-      return JSON.parse(seatsJson).join(", ")
+      const allSeats = JSON.parse(seatsJson);
+      if (passengers) {
+        // Only include seats for main trip passengers
+        const mainTripSeats = passengers.filter(p => !p.isReturn).map(p => p.seatNumber);
+        return mainTripSeats.join(", ");
+      }
+      return allSeats.join(", ");
     } catch {
-      return seatsJson
+      return seatsJson;
     }
   }
 
   return (
+    <>
+    
     <div className="min-h-screen bg-gradient-to-br from-amber-50/30 to-[#009393]/10">
       <header className="bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -523,19 +541,14 @@ export default function LiveTicketScanner() {
                     />
                     
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-48 h-48 border-2 border-white/30 rounded-xl relative">
-                        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#009393] rounded-tl-xl"></div>
-                        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#009393] rounded-tr-xl"></div>
-                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#009393] rounded-bl-xl"></div>
-                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#009393] rounded-br-xl"></div>
-                        
-                        <div className="absolute inset-0 overflow-hidden rounded-xl">
-                          <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-[#febf00] to-transparent opacity-80 animate-pulse" 
-                               style={{
-                                 top: '50%',
-                                 animation: 'scanline 2s linear infinite'
-                               }}></div>
-                        </div>
+                      <div className="absolute inset-0 overflow-hidden rounded-xl">
+                        <div
+                          className="absolute w-full h-1 bg-gradient-to-r from-transparent via-[#febf00] to-transparent opacity-80 animate-pulse"
+                          style={{
+                            top: '50%',
+                            animation: 'scanline 2s linear infinite'
+                          }}
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -561,15 +574,6 @@ export default function LiveTicketScanner() {
                       Reset Camera
                     </Button>
                   </div>
-
-                  {scanning && (
-                    <div className="text-center pt-2">
-                      <div className="flex items-center justify-center gap-2 text-[#009393] text-sm">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Scanning for QR codes...</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -649,7 +653,7 @@ export default function LiveTicketScanner() {
                           </div>
                           <div>
                             <span className="text-gray-600 block text-xs">Seats:</span>
-                            <span className="font-medium text-gray-900">{parseSeats(validationResult.seats)}</span>
+                            <span className="font-medium text-gray-900">{parseSeats(validationResult.seats, validationResult.passengers)}</span>
                           </div>
                           <div>
                             <span className="text-gray-600 block text-xs">Price:</span>
@@ -669,6 +673,72 @@ export default function LiveTicketScanner() {
                           </div>
                         </div>
                       </div>
+
+                      {validationResult && validationResult.passengers && (
+                        <div className="mt-4">
+                          <h4 className="font-semibold mb-2">Passengers on this booking</h4>
+                          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-4">
+                            <table className="min-w-full bg-white text-sm">
+                              <thead>
+                                <tr className="bg-gray-50 text-gray-700">
+                                  <th className="px-4 py-2 text-left font-semibold">#</th>
+                                  <th className="px-4 py-2 text-left font-semibold">Name</th>
+                                  <th className="px-4 py-2 text-left font-semibold">Seat</th>
+                                  <th className="px-4 py-2 text-left font-semibold">Status</th>
+                                  <th className="px-4 py-2 text-left font-semibold"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {validationResult.passengers.map((p: any, idx: number) => (
+                                  <tr
+                                    key={p.id}
+                                    className={
+                                      p.boarded
+                                        ? "bg-green-50/80 text-green-900 font-semibold"
+                                        : idx % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-gray-50"
+                                    }
+                                  >
+                                    <td className="px-4 py-2">{idx + 1}</td>
+                                    <td className="px-4 py-2">{p.firstName} {p.lastName}</td>
+                                    <td className="px-4 py-2 font-mono">{p.seatNumber}</td>
+                                    <td className="px-4 py-2">
+                                      {p.boarded ? (
+                                        <span className="inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
+                                          Boarded
+                                        </span>
+                                      ) : (
+                                        <span className="inline-block px-2 py-1 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                                          Not Boarded
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      {!p.boarded && (
+                                        <Button
+                                          size="sm"
+                                          className="bg-gradient-to-r from-[#009393] to-[#007a7a] text-white rounded shadow hover:from-[#008080] hover:to-[#006666]"
+                                          onClick={async () => {
+                                            await fetch("/api/validate-ticket/board-passenger", {
+                                              method: "POST",
+                                              headers: { "Content-Type": "application/json" },
+                                              body: JSON.stringify({ passengerId: p.id }),
+                                            });
+                                            validateTicket(validationResult.orderId);
+                                          }}
+                                        >
+                                          Mark as Boarded
+                                        </Button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -713,5 +783,6 @@ export default function LiveTicketScanner() {
         }
       `}</style>
     </div>
-  )
+    </>
+  );
 }

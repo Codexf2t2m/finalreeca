@@ -81,6 +81,22 @@ export default function AgentManagementPage() {
     }
   };
 
+  const handleUnsuspend = async (id: string) => {
+    try {
+      const response = await fetch(`/api/agents/${id}/unsuspend`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to unsuspend agent");
+      setAgents(
+        agents.map((a) =>
+          a.id === id ? { ...a, suspended: false, suspensionDate: null } : a
+        )
+      );
+    } catch (error) {
+      console.error("Error unsuspending agent:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-12 text-center">
@@ -218,6 +234,16 @@ export default function AgentManagementPage() {
                       onClick={() => handleSuspend(agent.id)}
                     >
                       Suspend
+                    </Button>
+                  )}
+                  {agent.suspended && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-green-300 hover:bg-green-50 text-green-700"
+                      onClick={() => handleUnsuspend(agent.id)}
+                    >
+                      Unsuspend
                     </Button>
                   )}
                   <Button

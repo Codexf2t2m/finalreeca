@@ -76,6 +76,17 @@ export default function AgentDashboard() {
     window.location.href = "/agent/auth";
   };
 
+  function getMostBookedRoute(bookings: any[]) {
+    if (!bookings.length) return "-";
+    const routeCount: Record<string, number> = {};
+    bookings.forEach(b => {
+      const route = b.trip?.routeName || "Unknown";
+      routeCount[route] = (routeCount[route] || 0) + 1;
+    });
+    const sorted = Object.entries(routeCount).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || "-";
+  }
+
   if (isLoading || !agent) return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
       <div className="text-center space-y-4">
@@ -147,27 +158,25 @@ export default function AgentDashboard() {
             </CardContent>
           </Card>
 
+          {/* Replace TOTAL Payments with Most Booked Route */}
           <Card className="border-l-4 border-[#febf00] hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">TOTAL Payments</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500">MOST ROUTE BOOKED FOR</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-gray-900">
-                    P{stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                  </div>
-                  <div className="text-xs text-[#958c55] mt-1">
-                    Commission (10%): <span className="font-semibold">P{(stats.revenue * 0.1).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {getMostBookedRoute(bookings)}
                   </div>
                 </div>
                 <div className="p-3 rounded-full bg-[#febf00]/10 text-[#febf00]">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a5 5 0 00-10 0v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2z" />
                   </svg>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-gray-500">Generated revenue</p>
+              <p className="mt-2 text-xs text-gray-500">Most frequently booked route</p>
             </CardContent>
           </Card>
 

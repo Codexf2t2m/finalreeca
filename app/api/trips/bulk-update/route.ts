@@ -12,13 +12,13 @@ export async function PUT(request: Request) {
 
     // Build SET clause
     const setClauses: string[] = [];
-    if (updates.fare) setClauses.push(`fare = ${Number(updates.fare)}`);
-    if (updates.availableSeats) setClauses.push(`availableSeats = ${Number(updates.availableSeats)}`);
-    if (updates.totalSeats) setClauses.push(`totalSeats = ${Number(updates.totalSeats)}`);
-    if (updates.serviceType && updates.serviceType !== "keep-current") setClauses.push(`serviceType = '${updates.serviceType}'`);
-    if (updates.departureTime && updates.departureTime !== "keep-current") setClauses.push(`departureTime = '${updates.departureTime}'`);
-    if (updates.boardingPoint) setClauses.push(`boardingPoint = '${updates.boardingPoint}'`);
-    if (updates.droppingPoint) setClauses.push(`droppingPoint = '${updates.droppingPoint}'`);
+    if (updates.fare) setClauses.push(`"fare" = ${Number(updates.fare)}`);
+    if (updates.availableSeats) setClauses.push(`"availableSeats" = ${Number(updates.availableSeats)}`);
+    if (updates.totalSeats) setClauses.push(`"totalSeats" = ${Number(updates.totalSeats)}`);
+    if (updates.serviceType && updates.serviceType !== "keep-current") setClauses.push(`"serviceType" = '${updates.serviceType}'`);
+    if (updates.departureTime && updates.departureTime !== "keep-current") setClauses.push(`"departureTime" = '${updates.departureTime}'`);
+    if (updates.boardingPoint) setClauses.push(`"boardingPoint" = '${updates.boardingPoint}'`);
+    if (updates.droppingPoint) setClauses.push(`"droppingPoint" = '${updates.droppingPoint}'`);
 
     if (setClauses.length === 0) {
       console.error("Bulk update error: No fields to update.");

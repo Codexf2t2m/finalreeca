@@ -51,6 +51,7 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
         route,
         date,
         time,
+        hasInfant: p.hasInfant, // NEW
       }))
   );
 
@@ -92,14 +93,15 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
       
       // Table
       autoTable(doc, {
-        head: [["Name", "Seat", "Title", "Booking Ref", "Agent", "Boarded"]],
+        head: [["Name", "Seat", "Title", "Booking Ref", "Agent", "Infant", "Boarded"]],
         body: currentTripPassengers.map(p => [
           p.name,
           p.seat,
           p.title,
           p.bookingRef,
           p.agent,
-          p.boarded ? "✓" : "✗",
+          p.hasInfant ? "Yes" : "No",
+          p.boarded ? "Boarded" : "Pending",
         ]),
         startY: 80,
         theme: 'grid',
@@ -121,7 +123,16 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
           lineColor: [226, 232, 240], // slate-200
           lineWidth: 0.2
         },
-        margin: { top: 80 }
+        margin: { top: 80 },
+        didParseCell: function (data) {
+          // Highlight boarded rows
+          if (
+            data.section === 'body' &&
+            currentTripPassengers[data.row.index].boarded
+          ) {
+            data.cell.styles.fillColor = [220, 252, 231]; // light green (tailwind green-100)
+          }
+        }
       });
       
       // Footer
@@ -157,6 +168,7 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
         Route: p.route,
         Date: p.date,
         Time: p.time,
+        "Has Infant": p.hasInfant ? "Yes" : "No", // NEW
       }))
     );
     
@@ -170,7 +182,8 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
       { wch: 10 }, // Boarded
       { wch: 30 }, // Route
       { wch: 15 }, // Date
-      { wch: 10 }  // Time
+      { wch: 10 }, // Time
+      { wch: 10 }  // Has Infant
     ];
     
     const workbook = XLSX.utils.book_new();
@@ -193,6 +206,11 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
         </div>
       </div>
     );
+  }
+
+  if (!currentTripPassengers.length) {
+    alert("No passenger data to export.");
+    return;
   }
 
   return (
@@ -252,24 +270,13 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Passenger
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Seat
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Title
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Booking Ref
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Agent
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Boarded
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Passenger</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Seat</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Booking Ref</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Agent</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Infant</th> {/* NEW */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Boarded</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
@@ -298,6 +305,13 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {passenger.agent}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {passenger.hasInfant ? (
+                        <span className="text-green-700 font-semibold">Yes</span>
+                      ) : (
+                        <span className="text-gray-400">No</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${passenger.boarded ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'}`}>

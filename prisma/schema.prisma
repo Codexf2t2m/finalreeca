@@ -84,6 +84,8 @@ model Passenger {
   title      String
   isReturn   Boolean  @default(false)
   boarded    Boolean  @default(false)
+  hasInfant  Boolean  @default(false) // <-- NEW
+  infantBirthdate String?             // <-- NEW
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

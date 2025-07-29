@@ -1,12 +1,16 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest, context: { params: { busId: string } }) {
-  const { busId } = context.params; // Use context.params, not destructuring in the function signature
+  // Await params as required by Next.js App Router
+  const params = await context.params;
+  const busId = params.busId;
+
   const bookings = await prisma.booking.findMany({
     where: { tripId: busId },
     include: { agent: true, passengers: true, trip: true },
     orderBy: { createdAt: "asc" },
   });
-  return Response.json({ bookings });
+
+  return NextResponse.json({ bookings });
 }

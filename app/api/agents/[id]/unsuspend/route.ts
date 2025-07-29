@@ -1,4 +1,3 @@
-// app/api/agents/[id]/suspend/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -11,15 +10,15 @@ export async function POST(
     await prisma.agent.update({
       where: { id: params.id },
       data: {
-        suspended: true,
-        suspensionDate: new Date(),
+        suspended: false,
+        suspensionDate: null,
       },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to suspend agent" },
+      { error: "Failed to unsuspend agent" },
       { status: 500 }
     );
   }

@@ -55,33 +55,34 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md mx-4">
-        <div className="bg-gradient-to-r from-teal-600 to-blue-600 p-6 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#009393] via-[#febf00]/10 to-[#007a7a]/10">
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden w-full max-w-md mx-4 border border-[#009393]/20">
+        <div className="bg-gradient-to-r from-[#009393] to-[#febf00] p-6 text-white relative">
           <div className="flex justify-center mb-4">
             <img 
               src="/images/reeca-travel-logo.png"
               alt="Reeca Travel" 
-              className="h-10 filter brightness-0 invert"
+              className="h-12 w-auto drop-shadow-lg"
+              style={{ background: "transparent" }}
             />
           </div>
-          <h1 className="text-2xl font-bold text-center">Admin Portal</h1>
+          <h1 className="text-2xl font-bold text-center tracking-wide drop-shadow">Admin Portal</h1>
         </div>
         
         <div className="p-8">
-          <div className="flex mb-6 rounded-lg bg-gray-100 p-1">
+          <div className="flex mb-6 rounded-lg bg-[#f3f4f6] p-1">
             <button
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${tab === "login" 
-                ? "bg-white shadow-sm text-teal-600" 
-                : "text-gray-500 hover:text-gray-700"}`}
+                ? "bg-white shadow-sm text-[#009393]" 
+                : "text-gray-500 hover:text-[#009393]"}`}
               onClick={() => setTab("login")}
             >
               Sign In
             </button>
             <button
               className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${tab === "register" 
-                ? "bg-white shadow-sm text-teal-600" 
-                : "text-gray-500 hover:text-gray-700"}`}
+                ? "bg-white shadow-sm text-[#009393]" 
+                : "text-gray-500 hover:text-[#009393]"}`}
               onClick={() => setTab("register")}
             >
               Register
@@ -110,7 +111,7 @@ export default function AdminLogin() {
                   </div>
                   <input
                     type="email"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#009393]/30 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#febf00] focus:border-[#febf00]"
                     placeholder="admin@reeca.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -129,7 +130,7 @@ export default function AdminLogin() {
                   </div>
                   <input
                     type="password"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#009393]/30 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#febf00] focus:border-[#febf00]"
                     placeholder="Your password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -144,14 +145,14 @@ export default function AdminLogin() {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-[#009393] focus:ring-[#febf00] border-gray-300 rounded"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                     Remember me
                   </label>
                 </div>
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-teal-600 hover:text-teal-500">
+                  <a href="#" className="font-medium text-[#009393] hover:text-[#febf00]">
                     Forgot password?
                   </a>
                 </div>
@@ -159,7 +160,7 @@ export default function AdminLogin() {
               
               <Button 
                 type="submit" 
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#009393] hover:bg-[#007a7a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#febf00]"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -185,7 +186,7 @@ export default function AdminLogin() {
                   </div>
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#009393]/30 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#febf00] focus:border-[#febf00]"
                     placeholder="Your name"
                     value={regName}
                     onChange={e => setRegName(e.target.value)}
@@ -205,7 +206,7 @@ export default function AdminLogin() {
                   </div>
                   <input
                     type="email"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#009393]/30 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#febf00] focus:border-[#febf00]"
                     placeholder="you@reeca.com"
                     value={regEmail}
                     onChange={e => setRegEmail(e.target.value)}
@@ -224,7 +225,7 @@ export default function AdminLogin() {
                   </div>
                   <input
                     type="password"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="block w-full pl-10 pr-3 py-2 border border-[#009393]/30 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#febf00] focus:border-[#febf00]"
                     placeholder="Create a password"
                     value={regPassword}
                     onChange={e => setRegPassword(e.target.value)}
@@ -242,14 +243,14 @@ export default function AdminLogin() {
                     id="terms"
                     name="terms"
                     type="checkbox"
-                    className="focus:ring-teal-500 h-4 w-4 text-teal-600 border-gray-300 rounded"
+                    className="focus:ring-[#febf00] h-4 w-4 text-[#009393] border-gray-300 rounded"
                     required
                   />
                 </div>
                 <div className="ml-3 text-sm">
                   <label htmlFor="terms" className="font-medium text-gray-700">
                     I agree to the{' '}
-                    <a href="#" className="text-teal-600 hover:text-teal-500">
+                    <a href="#" className="text-[#009393] hover:text-[#febf00]">
                       Terms and Conditions
                     </a>
                   </label>
@@ -258,7 +259,7 @@ export default function AdminLogin() {
               
               <Button 
                 type="submit" 
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#009393] hover:bg-[#007a7a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#febf00]"
                 disabled={isLoading}
               >
                 {isLoading ? (

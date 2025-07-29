@@ -3,33 +3,42 @@ import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
-function toISODateString(date: Date | string) {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toISOString().split('T')[0];
-}
-
 export async function GET() {
   try {
     const trips = await prisma.trip.findMany({
       include: {
-        bookings: true,
+        bookings: {
+          include: { passengers: true }
+        },
         returnBookings: true,
       },
     });
 
-    // Calculate available seats for each trip
     const tripsWithAvailability = trips.map(trip => {
-      // Combine bookings and returnBookings
-      const allBookings = [...trip.bookings, ...trip.returnBookings];
-      
-      // Calculate total occupied seats
-      const occupiedSeats = allBookings.reduce((total, booking) => {
-        return total + (booking.seats ? booking.seats.split(',').length : 0);
-      }, 0);
-      
+      // Only count confirmed, paid, non-return passengers for this trip
+      const bookedSeats = trip.bookings
+        .filter(b => b.bookingStatus === 'confirmed' && b.paymentStatus === 'paid')
+        .reduce(
+          (total, b) =>
+            total +
+            (b.passengers?.filter(p => !p.isReturn).length || 0), // Only non-return
+          0
+        );
+
+      // Calculate hasDeparted
+      let hasDeparted = false;
+      if (trip.departureDate && trip.departureTime) {
+        const depDate = new Date(trip.departureDate);
+        const [hours, minutes] = trip.departureTime.split(":").map(Number);
+        depDate.setHours(hours, minutes, 0, 0);
+        hasDeparted = depDate < new Date();
+      }
+
       return {
         ...trip,
-        availableSeats: trip.totalSeats - occupiedSeats,
+        bookedSeats,
+        availableSeats: Math.max(0, trip.totalSeats - bookedSeats),
+        hasDeparted,
         departureDate: trip.departureDate.toISOString(),
       };
     });

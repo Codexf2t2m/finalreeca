@@ -97,7 +97,11 @@ export async function GET(request: Request) {
     const trips = await prisma.trip.findMany({
       where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
       include: {
-        bookings: true,
+        bookings: {
+          include: {
+            passengers: true, // <-- Add this
+          },
+        },
         returnBookings: true,
       },
       orderBy: [
@@ -114,10 +118,31 @@ export async function GET(request: Request) {
     })));
 
     const tripsWithAvailability = trips.map(trip => {
-      const allBookings = [...trip.bookings, ...trip.returnBookings];
-      const occupiedSeats = allBookings.reduce((total, booking) => {
-        return total + (booking.seats ? booking.seats.split(',').length : 0);
-      }, 0);
+      // Parse occupiedSeats from trip
+      let occupiedSeats: string[] = [];
+      if (trip.occupiedSeats) {
+        try {
+          occupiedSeats = JSON.parse(trip.occupiedSeats);
+        } catch {
+          occupiedSeats = [];
+        }
+      }
+
+      // Collect all booked seats from bookings
+      const bookedSeats: string[] = [];
+      for (const booking of trip.bookings) {
+        if (booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'paid') {
+          for (const passenger of booking.passengers) {
+            if (!passenger.isReturn) { // Only count for departure trip
+              bookedSeats.push(passenger.seatNumber);
+            }
+          }
+        }
+      }
+
+      // Combine and deduplicate
+      const unavailableSeats = Array.from(new Set([...occupiedSeats, ...bookedSeats]));
+      const availableSeats = Math.max(0, trip.totalSeats - unavailableSeats.length);
 
       // Calculate hasDeparted
       let hasDeparted = false;
@@ -137,7 +162,7 @@ export async function GET(request: Request) {
 
       return {
         ...trip,
-        availableSeats: Math.max(0, trip.totalSeats - occupiedSeats),
+        availableSeats,
         departureDate: departureDateISO,
         hasDeparted, // <-- Add this
       };

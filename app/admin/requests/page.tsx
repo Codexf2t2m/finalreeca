@@ -36,6 +36,7 @@ export default function InquiriesManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [modalClosing, setModalClosing] = useState(false);
 
   useEffect(() => {
     async function fetchInquiries() {
@@ -72,6 +73,7 @@ export default function InquiriesManagement() {
     setShowInquiryDetails(true);
   };
 
+  // Update status handler to auto-close modal after action
   const handleUpdateInquiryStatus = async (inquiryId: string, newStatus: string) => {
     await fetch(`/api/inquiries/${inquiryId}/status`, {
       method: "PATCH",
@@ -83,6 +85,11 @@ export default function InquiriesManagement() {
         inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry
       )
     );
+    setModalClosing(true);
+    setTimeout(() => {
+      setShowInquiryDetails(false);
+      setModalClosing(false);
+    }, 300); // 0.3s delay for fade-out
   };
 
   const handleDeleteInquiry = async (inquiryId: string) => {
@@ -353,95 +360,104 @@ export default function InquiriesManagement() {
         </CardContent>
       </Card>
 
-      <Dialog open={showInquiryDetails} onOpenChange={setShowInquiryDetails}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-teal-900">Inquiry Details</DialogTitle>
-            <DialogDescription>Complete information for inquiry from {selectedInquiry?.companyName}</DialogDescription>
-          </DialogHeader>
-          {selectedInquiry && (
-            <div className="space-y-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-gray-800">Contact Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Company:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.companyName}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Contact Person:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.contactPerson}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.email}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Phone:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.phone}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-teal-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-teal-600">Origin:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.origin}</span>
-                  </div>
-                  <div>
-                    <span className="text-teal-600">Destination:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.destination}</span>
-                  </div>
-                  <div>
-                    <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.date}</span>
-                  </div>
-                  <div>
-                    <span className="text-teal-600">Time:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.time}</span>
-                  </div>
-                  <div>
-                    <span className="text-teal-600">Passengers:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.passengers}</span>
-                  </div>
-                  <div>
-                    <span className="text-teal-600">Requested At:</span>
-                    <span className="font-semibold ml-2">{selectedInquiry.requestedAt}</span>
+      {showInquiryDetails && (
+        <Dialog
+          open={showInquiryDetails}
+          onOpenChange={setShowInquiryDetails}
+        >
+          <DialogContent
+            className={`max-w-2xl max-h-[90vh] overflow-y-auto transition-opacity duration-300 ${modalClosing ? "opacity-0" : "opacity-100"}`}
+          >
+            <DialogHeader>
+              <DialogTitle className="text-teal-900">Inquiry Details</DialogTitle>
+              <DialogDescription>
+                Complete information for inquiry from {selectedInquiry?.companyName}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedInquiry && (
+              <div className="space-y-6">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-gray-800">Contact Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Company:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.companyName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Contact Person:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.contactPerson}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Email:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.email}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Phone:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.phone}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {selectedInquiry.specialRequests && (
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold mb-2 text-blue-800">Special Requests</h4>
-                  <p className="text-sm text-blue-700">{selectedInquiry.specialRequests}</p>
+                <div className="p-4 bg-teal-50 rounded-lg">
+                  <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-teal-600">Origin:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.origin}</span>
+                    </div>
+                    <div>
+                      <span className="text-teal-600">Destination:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.destination}</span>
+                    </div>
+                    <div>
+                      <span className="text-teal-600">Date:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.date}</span>
+                    </div>
+                    <div>
+                      <span className="text-teal-600">Time:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.time}</span>
+                    </div>
+                    <div>
+                      <span className="text-teal-600">Passengers:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.passengers}</span>
+                    </div>
+                    <div>
+                      <span className="text-teal-600">Requested At:</span>
+                      <span className="font-semibold ml-2">{selectedInquiry.requestedAt}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Approved")}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={selectedInquiry.status === "Approved"}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Approve Inquiry
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Cancelled")}
-                  disabled={selectedInquiry.status === "Cancelled"}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancel Inquiry
-                </Button>
+                {selectedInquiry.specialRequests && (
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h4 className="font-semibold mb-2 text-blue-800">Special Requests</h4>
+                    <p className="text-sm text-blue-700">{selectedInquiry.specialRequests}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Approved")}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={selectedInquiry.status === "Approved"}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve Inquiry
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleUpdateInquiryStatus(selectedInquiry.id, "Declined")}
+                    disabled={selectedInquiry.status === "Declined"}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Decline Inquiry
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

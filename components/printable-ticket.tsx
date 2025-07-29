@@ -5,6 +5,8 @@ interface Passenger {
   seat: string;
   title?: string;
   isReturn?: boolean;
+  hasInfant?: boolean; // NEW
+  infantBirthdate?: string; // NEW
 }
 
 interface TripData {
@@ -113,6 +115,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Name</th>
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Seat</th>
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Title</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Infant</th> {/* NEW */}
               </tr>
             </thead>
             <tbody>
@@ -123,11 +126,23 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                     <td className="px-2 md:px-3 py-1 md:py-2">{passenger.name}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2 font-bold">{passenger.seat}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2">{passenger.title || 'Mr'}</td>
+                    <td className="px-2 md:px-3 py-1 md:py-2">
+                      {passenger.hasInfant ? (
+                        <span>
+                          Yes
+                          {passenger.infantBirthdate
+                            ? ` (${new Date(passenger.infantBirthdate).toLocaleDateString()})`
+                            : ""}
+                        </span>
+                      ) : (
+                        "No"
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
+                  <td colSpan={5} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
                     No passenger data available
                   </td>
                 </tr>

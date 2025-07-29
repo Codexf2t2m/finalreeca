@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Download, Eye, ChevronRight, Clock, MapPin, Users, TrendingUp, Bus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface ScheduleBus {
   id: string;
@@ -16,11 +17,13 @@ interface ScheduleBus {
   availableSeats: number;
   revenue: number;
   status: string;
+  hasDeparted: boolean;
 }
 
 export default function BusScheduleTab() {
   const [buses, setBuses] = useState<ScheduleBus[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch today's bus schedules from your API
@@ -35,6 +38,16 @@ export default function BusScheduleTab() {
         setLoading(false);
       });
   }, []);
+
+  // View manifest handler
+  const viewManifest = (busId: string) => {
+    router.push(`/admin/manifest/${busId}`);
+  };
+
+  // Download manifest handler (optional: just route to manifest page)
+  const downloadManifest = (busId: string) => {
+    router.push(`/admin/manifest/${busId}`); // or trigger download logic if you want
+  };
 
   if (loading) {
     return (
@@ -102,7 +115,9 @@ export default function BusScheduleTab() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full"
+                    className={`h-2 rounded-full ${
+                      bus.hasDeparted ? "bg-gray-400" : "bg-gradient-to-r from-teal-500 to-teal-600"
+                    }`}
                     style={{
                       width: `${bus.totalSeats && bus.bookedSeats
                         ? Math.round((bus.bookedSeats / bus.totalSeats) * 100)
@@ -110,6 +125,11 @@ export default function BusScheduleTab() {
                     }}
                   ></div>
                 </div>
+                {bus.hasDeparted && (
+                  <div className="mt-1 text-xs text-rose-600 font-semibold">
+                    Bus has departed
+                  </div>
+                )}
               </div>
 
               {/* Revenue & Status */}
@@ -160,10 +180,3 @@ export default function BusScheduleTab() {
   );
 }
 
-// Dummy handlers for manifest actions
-function viewManifest(busId: string) {
-  window.open(`/admin/manifest/${busId}`, "_blank");
-}
-function downloadManifest(busId: string) {
-  window.open(`/admin/manifest/${busId}?download=true`, "_blank");
-}
