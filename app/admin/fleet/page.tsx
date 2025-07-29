@@ -809,10 +809,23 @@ const FleetManagementPage = () => {
 
     const interval = setInterval(() => {
       const now = new Date();
+      // Only check trips for today and tomorrow
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
       trips.forEach(trip => {
-        if (!trip.hasDeparted && trip.id && trip.departureDate && trip.departureTime) {
+        const tripDate = new Date(trip.departureDate);
+        if (
+          !trip.hasDeparted &&
+          trip.id &&
+          trip.departureDate &&
+          trip.departureTime &&
+          tripDate >= today &&
+          tripDate <= tomorrow
+        ) {
           try {
-            const tripDate = new Date(trip.departureDate);
             const [hours, minutes] = trip.departureTime.split(":").map(Number);
             tripDate.setHours(hours, minutes, 0, 0);
 
@@ -824,7 +837,7 @@ const FleetManagementPage = () => {
           }
         }
       });
-    }, 60000);
+    }, 15000); // Check every 15 seconds
 
     return () => clearInterval(interval);
   }, [autoDepart, trips]);
