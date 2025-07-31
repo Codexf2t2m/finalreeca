@@ -12,15 +12,21 @@ import { format } from "date-fns";
 import PaymentGateway from "../paymentgateway";
 import { PolicyModal } from "@/components/PolicyModal";
 
+type PassengerType = "adult" | "child";
 interface Passenger {
+  type: PassengerType;
   id: string;
   title: string;
   firstName: string;
   lastName: string;
   seatNumber: string;
   isReturn: boolean;
-  hasInfant?: boolean;         // <-- NEW
-  infantBirthdate?: string;    // <-- NEW
+  hasInfant?: boolean;
+  infantName?: string;
+  infantPassportNumber?: string;
+  infantBirthdate?: string;
+  birthdate: string;
+  passportNumber: string;
 }
 
 interface ContactDetails {
@@ -90,25 +96,39 @@ export default function PassengerDetailsForm({
   };
 
   if (!boardingPoints || !departureBus || !searchData) {
-    return <div className="text-center py-8">Loading form data...</div>;
+    return <div className="text-center py-8 text-gray-600">Loading form data...</div>;
   }
 
   const [passengers, setPassengers] = useState<Passenger[]>(() => {
     const departurePassengers = (departureSeats || []).map(seat => ({
       id: `departure-${seat}`,
+      type: "adult" as PassengerType,
       title: 'Mr',
       firstName: '',
       lastName: '',
       seatNumber: seat,
-      isReturn: false
+      isReturn: false,
+      birthdate: '',
+      passportNumber: '',
+      hasInfant: false,
+      infantBirthdate: '',
+      infantName: '',
+      infantPassportNumber: ''
     }));
     const returnPassengers = (returnSeats || []).map(seat => ({
       id: `return-${seat}`,
+      type: "adult" as PassengerType,
       title: 'Mr',
       firstName: '',
       lastName: '',
       seatNumber: seat,
-      isReturn: true
+      isReturn: true,
+      birthdate: '',
+      passportNumber: '',
+      hasInfant: false,
+      infantBirthdate: '',
+      infantName: '',
+      infantPassportNumber: ''
     }));
     return [...departurePassengers, ...returnPassengers];
   });
@@ -118,22 +138,36 @@ export default function PassengerDetailsForm({
       const existing = passengers.find(p => p.seatNumber === seat && !p.isReturn);
       return {
         id: `departure-${seat}`,
+        type: existing?.type || "adult",
         firstName: existing?.firstName || "",
         lastName: existing?.lastName || "",
         seatNumber: seat,
         title: existing?.title || "Mr",
         isReturn: false,
+        birthdate: existing?.birthdate || "",
+        passportNumber: existing?.passportNumber || "",
+        hasInfant: existing?.hasInfant || false,
+        infantBirthdate: existing?.infantBirthdate || "",
+        infantName: existing?.infantName || "",
+        infantPassportNumber: existing?.infantPassportNumber || ""
       };
     });
     const returnPassengers = (returnSeats || []).map(seat => {
       const existing = passengers.find(p => p.seatNumber === seat && p.isReturn);
       return {
         id: `return-${seat}`,
+        type: existing?.type || "adult",
         firstName: existing?.firstName || "",
         lastName: existing?.lastName || "",
         seatNumber: seat,
         title: existing?.title || "Mr",
         isReturn: true,
+        birthdate: existing?.birthdate || "",
+        passportNumber: existing?.passportNumber || "",
+        hasInfant: existing?.hasInfant || false,
+        infantBirthdate: existing?.infantBirthdate || "",
+        infantName: existing?.infantName || "",
+        infantPassportNumber: existing?.infantPassportNumber || ""
       };
     });
     setPassengers([...departurePassengers, ...returnPassengers]);
@@ -197,13 +231,28 @@ export default function PassengerDetailsForm({
     setPassengers(updatedPassengers);
   };
 
-  const departurePricePerSeat: number = departureBus?.fare || 0;
-  const returnPricePerSeat: number = returnBus?.fare || 0;
-  const departureTotal: number = departurePricePerSeat * (departureSeats?.length || 0);
-  const returnTotal: number = returnPricePerSeat * (returnSeats?.length || 0);
-  const infantCount: number = passengers.filter(p => p.hasInfant).length;
-  const infantTotal: number = infantCount * 100;
-  const baseTotal: number = departureTotal + returnTotal + infantTotal;
+  const departurePricePerSeat = departureBus?.fare || 0;
+
+  const getPassengerFare = (p: Passenger) => {
+    if (!p.birthdate) return departurePricePerSeat;
+    const age = Math.floor((new Date().getTime() - new Date(p.birthdate).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    if (age < 2) return 250;
+    if (age < 5) return 400;
+    return departurePricePerSeat;
+  };
+
+  const infantCount = passengers.filter(p => p.hasInfant).length;
+  const infantTotal = infantCount * 100;
+
+  const departureTotal = passengers
+    .filter(p => !p.isReturn)
+    .reduce((sum, p) => sum + getPassengerFare(p), 0);
+
+  const returnTotal = passengers
+    .filter(p => p.isReturn)
+    .reduce((sum, p) => sum + getPassengerFare(p), 0);
+
+  const baseTotal = departureTotal + returnTotal + infantTotal;
   const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
 
   useEffect(() => {
@@ -211,7 +260,7 @@ export default function PassengerDetailsForm({
       .then(async res => {
         if (res.ok) {
           const agentData = await res.json();
-          setAgent(agentData); // agentData should include id, name, email
+          setAgent(agentData);
         } else {
           setAgent(null);
         }
@@ -305,7 +354,6 @@ export default function PassengerDetailsForm({
     const months =
       (now.getFullYear() - birth.getFullYear()) * 12 +
       (now.getMonth() - birth.getMonth());
-    // If the day of the month hasn't occurred yet, subtract one month
     if (now.getDate() < birth.getDate()) {
       return months - 1 < 18;
     }
@@ -313,66 +361,75 @@ export default function PassengerDetailsForm({
   }
 
   return (
-    <div className="max-w-6xl mx-auto my-8 px-4">
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        <div className="p-6 border-b bg-gradient-to-r from-gray-50 to-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">
+    <div className="max-w-6xl mx-auto my-8 px-4 font-sans">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+        {/* Header with gradient */}
+        <div className="p-6 border-b bg-gradient-to-r from-[#009393] to-[#0a6e6e]">
+          <h2 className="text-2xl font-bold text-white tracking-wide">
             Passenger Details & Contact Information
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-white/90 mt-1">
             Please provide details for all passengers and your contact information
           </p>
         </div>
+
         <div className="p-6 space-y-6">
-          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-            <h3 className="font-bold text-lg text-amber-800 mb-4">Fare Summary</h3>
+          {/* Fare Summary Card */}
+          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 shadow-sm">
+            <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
+              <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">1</span>
+              Fare Summary
+            </h3>
             <div className="space-y-3">
               {departureBus && (
                 <div className="flex justify-between border-b pb-2">
                   <div>
-                    <p className="font-medium">Departure: {departureBus.routeOrigin} → {departureBus.routeDestination}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-gray-700">Departure: {departureBus.routeOrigin} → {departureBus.routeDestination}</p>
+                    <p className="text-sm text-gray-500">
                       {departureBus.departureDate ? format(new Date(departureBus.departureDate), "dd MMM yyyy") : 'N/A'} • {departureSeats?.length || 0} seat(s)
                     </p>
                   </div>
-                  <p className="font-semibold">P {departureTotal.toFixed(2)}</p>
+                  <p className="font-semibold text-[#009393]">P {departureTotal.toFixed(2)}</p>
                 </div>
               )}
               {returnBus && (
                 <div className="flex justify-between border-b pb-2">
                   <div>
-                    <p className="font-medium">Return: {returnBus.routeOrigin} → {returnBus.routeDestination}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-gray-700">Return: {returnBus.routeOrigin} → {returnBus.routeDestination}</p>
+                    <p className="text-sm text-gray-500">
                       {returnBus.departureDate ? format(new Date(returnBus.departureDate), "dd MMM yyyy") : 'N/A'} • {returnSeats?.length || 0} seat(s)
                     </p>
                   </div>
-                  <p className="font-semibold">P {returnTotal.toFixed(2)}</p>
+                  <p className="font-semibold text-[#009393]">P {returnTotal.toFixed(2)}</p>
                 </div>
               )}
               {agent && (
                 <div className="flex justify-between pt-2">
-                  <p className="font-bold text-lg text-amber-700">Agent Discount (10%):</p>
-                  <p className="font-bold text-amber-700">-P {agentDiscount.toFixed(2)}</p>
+                  <p className="font-medium text-gray-700">Agent Discount (10%):</p>
+                  <p className="font-medium text-[#009393]">-P {agentDiscount.toFixed(2)}</p>
                 </div>
               )}
               {infantCount > 0 && (
                 <div className="flex justify-between pt-2">
-                  <p className="font-bold text-lg text-blue-700">Infant Fare (P 100 x {infantCount}):</p>
-                  <p className="font-bold text-blue-700">P {infantTotal.toFixed(2)}</p>
+                  <p className="font-medium text-gray-700">Infant Fare (P 100 x {infantCount}):</p>
+                  <p className="font-medium text-[#009393]">P {infantTotal.toFixed(2)}</p>
                 </div>
               )}
-              <div className="flex justify-between pt-2">
-                <p className="font-bold text-lg">Grand Total:</p>
-                <p className="font-bold text-teal-600 text-xl">P {finalTotal.toFixed(2)}</p>
+              <div className="flex justify-between pt-3 border-t border-gray-200 mt-2">
+                <p className="font-bold text-lg text-gray-800">Grand Total:</p>
+                <p className="font-bold text-[#009393] text-xl">P {finalTotal.toFixed(2)}</p>
               </div>
             </div>
           </div>
-          <div className="border rounded-lg overflow-hidden">
+
+          {/* Passenger Details Section */}
+          <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
               onClick={() => toggleSection('passengers')}
-              className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
+              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
                 <h3 className="font-bold text-lg text-gray-800">
                   Passenger Details ({passengers.length})
                 </h3>
@@ -382,96 +439,140 @@ export default function PassengerDetailsForm({
                       e.stopPropagation();
                       copyDepartureToReturn();
                     }}
-                    className="ml-2 bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 h-auto text-sm"
+                    className="ml-2 bg-[#009393]/10 hover:bg-[#009393]/20 text-[#009393] px-3 py-1 h-auto text-sm border border-[#009393]/30"
                     tabIndex={-1}
                   >
                     <Copy className="mr-2 h-4 w-4" /> Copy Departure Details to Return
                   </Button>
                 )}
               </div>
-              {openSections.passengers ? <ChevronUp /> : <ChevronDown />}
+              {openSections.passengers ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.passengers && (
-              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+              <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
                 {passengers.length > 0 ? (
-                  passengers.map((passenger) => (
-                    <div key={passenger.id} className="border rounded-lg p-4 bg-white">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="font-medium text-gray-700">Seat: {passenger.seatNumber}</span>
-                        <span className={`text-sm px-2 py-1 rounded ${
-                          passenger.isReturn
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}>
-                          {passenger.isReturn ? 'Return' : 'Departure'}
-                        </span>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                  passengers.map((passenger, idx) => {
+                    const isChild = passenger.type === "child";
+                    return (
+                      <div key={passenger.id} className="border rounded-lg p-4 bg-white shadow-sm">
+                        <div className="flex items-center gap-4 mb-3">
+                          <span className="font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                            Seat: {passenger.seatNumber}
+                          </span>
                           <Select
-                            value={passenger.title}
-                            onValueChange={(value) => updatePassenger(passenger.id, 'title', value)}
+                            value={passenger.type || "adult"}
+                            onValueChange={value => updatePassenger(passenger.id, "type", value)}
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Title" />
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Passenger Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Mr">Mr</SelectItem>
-                              <SelectItem value="Mrs">Mrs</SelectItem>
-                              <SelectItem value="Miss">Miss</SelectItem>
-                              <SelectItem value="Ms">Ms</SelectItem>
-                              <SelectItem value="Dr">Dr</SelectItem>
+                              <SelectItem value="adult">Adult (above 5 yrs)</SelectItem>
+                              <SelectItem value="child">Child (2-5 yrs)</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Input
-                            value={passenger.firstName}
-                            onChange={(e) => updatePassenger(passenger.id, 'firstName', e.target.value)}
-                            placeholder="First name"
-                            required
-                          />
-                          <Input
-                            value={passenger.lastName}
-                            onChange={(e) => updatePassenger(passenger.id, 'lastName', e.target.value)}
-                            placeholder="Last name"
-                            required
-                          />
                         </div>
-                        <div className="grid grid-cols-1 gap-3">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Infant Details (if any)
-                          </label>
-                          <div className="flex gap-3">
-                            <Checkbox
-                              checked={!!passenger.hasInfant}
-                              onCheckedChange={(checked) => updatePassenger(passenger.id, 'hasInfant', checked)}
-                              className="h-6 w-6"
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                            <Input
+                              value={passenger.firstName}
+                              onChange={e => updatePassenger(passenger.id, "firstName", e.target.value)}
+                              placeholder="First name"
+                              required
+                              className="focus:ring-[#009393] focus:border-[#009393]"
                             />
-                            <span className="text-sm text-gray-600">
-                              Check this box if you are bringing an infant
-                            </span>
                           </div>
-                          {passenger.hasInfant && (
-                            <div className="grid grid-cols-1 gap-3">
-                              <Input
-                                type="date"
-                                value={passenger.infantBirthdate}
-                                onChange={(e) => updatePassenger(passenger.id, 'infantBirthdate', e.target.value)}
-                                placeholder="Infant's Birthdate"
-                                className="w-full"
-                                required
-                                max={new Date().toISOString().split("T")[0]}
-                              />
-                              {passenger.infantBirthdate && !isValidInfant(passenger.infantBirthdate) && (
-                                <span className="text-xs text-red-600">
-                                  Infant must be less than 18 months old.
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                            <Input
+                              value={passenger.lastName}
+                              onChange={e => updatePassenger(passenger.id, "lastName", e.target.value)}
+                              placeholder="Last name"
+                              required
+                              className="focus:ring-[#009393] focus:border-[#009393]"
+                            />
+                          </div>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
+                            <Input
+                              type="date"
+                              value={passenger.birthdate || ""}
+                              onChange={e => updatePassenger(passenger.id, "birthdate", e.target.value)}
+                              placeholder="Birthdate"
+                              required
+                              className="focus:ring-[#009393] focus:border-[#009393]"
+                              max={new Date().toISOString().split("T")[0]}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              {isChild ? "Birth Certificate Number" : "Passport Number"}
+                            </label>
+                            <Input
+                              value={passenger.passportNumber || ""}
+                              onChange={e => updatePassenger(passenger.id, "passportNumber", e.target.value)}
+                              placeholder={isChild ? "Birth Certificate Number" : "Passport Number"}
+                              required
+                              className="focus:ring-[#009393] focus:border-[#009393]"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-4">
+                          <Checkbox
+                            id={`infant-${passenger.id}`}
+                            checked={!!passenger.hasInfant}
+                            onCheckedChange={checked => updatePassenger(passenger.id, "hasInfant", checked)}
+                            className="border-gray-300 data-[state=checked]:bg-[#009393] data-[state=checked]:border-[#009393]"
+                          />
+                          <label htmlFor={`infant-${passenger.id}`} className="text-sm text-gray-600">
+                            Bringing an infant (0-2 yrs, sits on lap)
+                          </label>
+                        </div>
+                        {passenger.hasInfant && (
+                          <div className="mt-4 p-4 rounded bg-[#009393]/5 border border-[#009393]/20">
+                            <h4 className="font-medium text-[#009393] mb-3">Infant Details</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Infant's Name</label>
+                                <Input
+                                  value={passenger.infantName || ""}
+                                  onChange={e => updatePassenger(passenger.id, "infantName", e.target.value)}
+                                  placeholder="Infant's Name"
+                                  required
+                                  className="focus:ring-[#009393] focus:border-[#009393]"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Infant's Birthdate</label>
+                                <Input
+                                  type="date"
+                                  value={passenger.infantBirthdate || ""}
+                                  onChange={e => updatePassenger(passenger.id, "infantBirthdate", e.target.value)}
+                                  placeholder="Infant's Birthdate"
+                                  required
+                                  className="focus:ring-[#009393] focus:border-[#009393]"
+                                  max={new Date().toISOString().split("T")[0]}
+                                />
+                              </div>
+                            </div>
+                            <div className="mt-4">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Birth Certificate Number</label>
+                              <Input
+                                value={passenger.infantPassportNumber || ""}
+                                onChange={e => updatePassenger(passenger.id, "infantPassportNumber", e.target.value)}
+                                placeholder="Birth Certificate Number"
+                                required
+                                className="focus:ring-[#009393] focus:border-[#009393]"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     No passengers to display
@@ -480,100 +581,142 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-          <div className="border rounded-lg overflow-hidden">
+
+          {/* Contact Details Section */}
+          <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
               onClick={() => toggleSection('contact')}
-              className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
+              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
-              <h3 className="font-bold text-lg text-gray-800">CardHolder Details</h3>
-              {openSections.contact ? <ChevronUp /> : <ChevronDown />}
+              <div className="flex items-center gap-3">
+                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
+                <h3 className="font-bold text-lg text-gray-800">CardHolder Details</h3>
+              </div>
+              {openSections.contact ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.contact && (
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    value={contactDetails.name}
-                    onChange={(e) => handleContactChange('name', e.target.value)}
-                    placeholder="Your Name"
-                    className="w-full"
-                  />
-                  <Input
-                    type="email"
-                    value={contactDetails.email}
-                    onChange={(e) => handleContactChange('email', e.target.value)}
-                    placeholder="Email"
-                    className="w-full"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                    <Input
+                      value={contactDetails.name}
+                      onChange={(e) => handleContactChange('name', e.target.value)}
+                      placeholder="Your Name"
+                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <Input
+                      type="email"
+                      value={contactDetails.email}
+                      onChange={(e) => handleContactChange('email', e.target.value)}
+                      placeholder="Email"
+                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    type="tel"
-                    value={contactDetails.mobile}
-                    onChange={(e) => handleContactChange('mobile', e.target.value)}
-                    placeholder="Mobile"
-                    className="w-full"
-                  />
-                  <Input
-                    type="tel"
-                    value={contactDetails.alternateMobile}
-                    onChange={(e) => handleContactChange('alternateMobile', e.target.value)}
-                    placeholder="Alternate Mobile"
-                    className="w-full"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                    <Input
+                      type="tel"
+                      value={contactDetails.mobile}
+                      onChange={(e) => handleContactChange('mobile', e.target.value)}
+                      placeholder="Mobile"
+                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Mobile</label>
+                    <Input
+                      type="tel"
+                      value={contactDetails.alternateMobile}
+                      onChange={(e) => handleContactChange('alternateMobile', e.target.value)}
+                      placeholder="Alternate Mobile"
+                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select
-                    value={contactDetails.idType}
-                    onValueChange={(value) => handleContactChange('idType', value)}
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="ID Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Passport">Passport</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    value={contactDetails.idNumber}
-                    onChange={(e) => handleContactChange('idNumber', e.target.value)}
-                    placeholder="Passport Number"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ID Type</label>
+                    <Select
+                      value={contactDetails.idType}
+                      onValueChange={(value) => handleContactChange('idType', value)}
+                      required
+                    >
+                      <SelectTrigger className="focus:ring-[#009393] focus:border-[#009393]">
+                        <SelectValue placeholder="ID Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Passport">Passport</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
+                    <Input
+                      value={contactDetails.idNumber}
+                      onChange={(e) => handleContactChange('idNumber', e.target.value)}
+                      placeholder="Passport Number"
+                      className="focus:ring-[#009393] focus:border-[#009393]"
+                    />
+                  </div>
                 </div>
               </div>
             )}
           </div>
-          <div className="border rounded-lg overflow-hidden">
+
+          {/* Emergency Contact Section */}
+          <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
               onClick={() => toggleSection('emergency')}
-              className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
+              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
-              <h3 className="font-bold text-lg text-gray-800">Emergency Contact</h3>
-              {openSections.emergency ? <ChevronUp /> : <ChevronDown />}
+              <div className="flex items-center gap-3">
+                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">4</span>
+                <h3 className="font-bold text-lg text-gray-800">Emergency Contact</h3>
+              </div>
+              {openSections.emergency ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.emergency && (
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  value={emergencyContact.name}
-                  onChange={(e) => handleEmergencyChange('name', e.target.value)}
-                  placeholder="Name"
-                />
-                <Input
-                  type="tel"
-                  value={emergencyContact.phone}
-                  onChange={(e) => handleEmergencyChange('phone', e.target.value)}
-                  placeholder="Phone Number"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <Input
+                    value={emergencyContact.name}
+                    onChange={(e) => handleEmergencyChange('name', e.target.value)}
+                    placeholder="Name"
+                    className="focus:ring-[#009393] focus:border-[#009393]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <Input
+                    type="tel"
+                    value={emergencyContact.phone}
+                    onChange={(e) => handleEmergencyChange('phone', e.target.value)}
+                    placeholder="Phone Number"
+                    className="focus:ring-[#009393] focus:border-[#009393]"
+                  />
+                </div>
               </div>
             )}
           </div>
-          <div className="border rounded-lg overflow-hidden">
+
+          {/* Trip Points Section */}
+          <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
               onClick={() => toggleSection('points')}
-              className="w-full p-4 bg-gray-50 text-left flex justify-between items-center"
+              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
-              <h3 className="font-bold text-lg text-gray-800">Trip Points</h3>
-              {openSections.points ? <ChevronUp /> : <ChevronDown />}
+              <div className="flex items-center gap-3">
+                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">5</span>
+                <h3 className="font-bold text-lg text-gray-800">Trip Points</h3>
+              </div>
+              {openSections.points ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.points && (
               <div className="p-4 space-y-6">
@@ -587,7 +730,7 @@ export default function PassengerDetailsForm({
                       <select
                         value={departureBoardingPoint}
                         onChange={(e) => setDepartureBoardingPoint(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
                       >
                         <option value="">Select boarding point</option>
                         {departureOriginPoints.map((point) => (
@@ -604,12 +747,12 @@ export default function PassengerDetailsForm({
                       <select
                         value={departureDroppingPoint}
                         onChange={(e) => setDepartureDroppingPoint(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
                       >
                         <option value="">Select dropping point</option>
                         {departureDestinationPoints.map((point) => (
                           <option key={point.id} value={point.name}>
-                          {formatPoint(point.name)}
+                            {formatPoint(point.name)}
                           </option>
                         ))}
                       </select>
@@ -627,12 +770,12 @@ export default function PassengerDetailsForm({
                         <select
                           value={returnBoardingPoint}
                           onChange={(e) => setReturnBoardingPoint(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
                         >
                           <option value="">Select boarding point</option>
                           {returnOriginPoints.map((point) => (
                             <option key={point.id} value={point.name}>
-                            {formatPoint(point.name)}
+                              {formatPoint(point.name)}
                             </option>
                           ))}
                         </select>
@@ -644,12 +787,12 @@ export default function PassengerDetailsForm({
                         <select
                           value={returnDroppingPoint}
                           onChange={(e) => setReturnDroppingPoint(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500"
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
                         >
                           <option value="">Select dropping point</option>
                           {returnDestinationPoints.map((point) => (
                             <option key={point.id} value={point.name}>
-                            {formatPoint(point.name)}
+                              {formatPoint(point.name)}
                             </option>
                           ))}
                         </select>
@@ -660,24 +803,31 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-          <div className="border rounded-lg p-4 bg-white">
-            <h3 className="font-bold text-gray-800 mb-3">Payment Mode</h3>
+
+          {/* Payment Mode Section */}
+          <div className="border rounded-lg p-5 bg-gray-50 border-gray-200">
+            <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+              <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">6</span>
+              Payment Mode
+            </h3>
             <div>
               <Select
                 value={paymentMode}
                 onValueChange={setPaymentMode}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className="focus:ring-[#009393] focus:border-[#009393]">
                   <SelectValue placeholder="Select payment mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Credit Card">Credit Card</SelectItem>
+                  <SelectItem value="Credit Card">Credit Card | Debit Card | Net Banking | Visa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div className="flex items-start space-x-2 pt-2 bg-gray-50 p-4 rounded-lg">
+
+          {/* Terms and Conditions */}
+          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <Checkbox
               id="terms"
               checked={agreedToTerms}
@@ -685,9 +835,10 @@ export default function PassengerDetailsForm({
                 setAgreedToTerms(!!checked);
                 if (checked) setShowPolicyModal(true);
               }}
+              className="border-gray-300 data-[state=checked]:bg-[#009393] data-[state=checked]:border-[#009393] mt-1"
             />
-            <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              By continuing you agree to our <span className="underline text-teal-700 cursor-pointer" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
+            <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700">
+              By continuing you agree to our <span className="underline text-[#009393] cursor-pointer hover:text-[#007575]" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
             </label>
           </div>
           <Button
@@ -699,7 +850,7 @@ export default function PassengerDetailsForm({
               handleSubmit();
             }}
             disabled={!agreedToTerms}
-            className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg text-lg"
+            className="w-full h-14 bg-[#009393] hover:bg-[#958c55] text-white font-semibold rounded-xl text-lg transition-colors"
           >
             Pay (P {finalTotal.toFixed(2)})
           </Button>

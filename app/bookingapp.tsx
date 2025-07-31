@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Booking, SearchData } from "@/lib/types";
@@ -9,19 +8,17 @@ import { boardingPoints } from "@/lib/data";
 import SeatSelection from "./booking/seatselection";
 import ThemeToggle from "@/components/theme-toggle";
 import RequestForm from "./booking/requestform";
-import BookingForm from "@/components/bookingform";
-import TripManagement from "./management/tripmanagement";
 import BusSchedules from "./booking/busschedule";
 import PassengerDetailsForm from "./booking/passengerdetails/page";
 import HireBusModal from "./booking/hirebusmodal";
-import { Bus } from "lucide-react"; 
+import { Bus } from "lucide-react";
+import BookingForm from "@/components/bookingform";
 
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
     "search" | "schedules" | "departure-seats" | "return-schedules" | "return-seats" | "passenger-details"
   >("search");
   
-  const [activeTab, setActiveTab] = useState<"book" | "manage">("book");
   const [searchData, setSearchData] = useState<SearchData | null>(null);
   const [selectedDepartureBus, setSelectedDepartureBus] = useState<any>(null);
   const [selectedReturnBus, setSelectedReturnBus] = useState<any>(null);
@@ -30,30 +27,23 @@ export default function BookingApp() {
   const [showPayment, setShowPayment] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isReturnTripSelection, setIsReturnTripSelection] = useState(false);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [bookingOpen, setBookingOpen] = useState(true); // Set true when booking is open
   const [showHireModal, setShowHireModal] = useState(false);
   const [agent, setAgent] = useState<{ name: string; email: string } | null>(null);
+  const [isReturnTripSelection, setIsReturnTripSelection] = useState(false);
 
-  // Robust date handling for DD/MM/YYYY format
   const parseDate = (dateStr: string): Date => {
     if (!dateStr) return new Date();
     
-    // Handle DD/MM/YYYY format
     if (dateStr.includes('/')) {
       const [day, month, year] = dateStr.split('/').map(Number);
       return new Date(year, month - 1, day);
     }
     
-    // Handle other formats
     return new Date(dateStr);
   };
 
   const isValidDate = (date: any): boolean => {
     if (!date) return false;
-    
     const d = date instanceof Date ? date : parseDate(date);
     return !isNaN(d.getTime());
   };
@@ -64,7 +54,6 @@ export default function BookingApp() {
   };
 
   const handleSearch = (data: { from: string; to: string; date: any; returnDate?: any; seats: number }) => {
-    // Convert and validate dates
     const departureDate = toDateObj(data.date);
     const returnDate = data.returnDate ? toDateObj(data.returnDate) : null;
 
@@ -153,28 +142,13 @@ export default function BookingApp() {
   };
 
   useEffect(() => {
-    if (activeTab !== "manage" || !bookingOpen) return;
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      setShowLeaveModal(true);
-      e.returnValue = ""; // Show browser dialog
-      return "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [activeTab, bookingOpen]);
-
-  useEffect(() => {
-    // Try to fetch agent info on mount
     fetch("/api/agent/me")
       .then(async res => {
         if (res.ok) {
           const agentData = await res.json();
           setAgent(agentData);
-          console.log("BookingApp: Agent detected", agentData);
         } else {
           setAgent(null);
-          console.log("BookingApp: No agent detected");
         }
       })
       .catch(() => setAgent(null));
@@ -213,17 +187,6 @@ export default function BookingApp() {
               className="w-full h-12 bg-teal-600 hover:bg-teal-700 text-white"
             >
               Book Another Trip
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setBookingComplete(false);
-                setActiveTab("manage");
-                setCurrentStep("search");
-              }}
-              className="w-full h-12 border-teal-600 text-teal-600 hover:bg-teal-50"
-            >
-              Manage Bookings
             </Button>
           </div>
         </div>
@@ -272,6 +235,158 @@ export default function BookingApp() {
     );
   }
 
+  if (currentStep === "search") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
+        {agent && (
+          <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-between">
+            <span className="text-amber-800 font-semibold text-lg">
+              Booking as Agent: {agent.name}
+            </span>
+            <Button
+              size="sm"
+              className="bg-teal-600 text-white ml-auto"
+              onClick={() => window.location.href = "/agent/dashboard"}
+            >
+              Go to Dashboard
+            </Button>
+          </div>
+        )}
+        
+        <header className="bg-white border-b shadow-sm">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
+                  <Image
+                    src="/images/reeca-travel-logo.png"
+                    alt="Reeca Travel"
+                    width={100}
+                    height={80}
+                    className="object-contain"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-teal-900">REECA TRAVEL</h1>
+                  <p className="text-xs text-amber-600">Premium Intercity Bus Services</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <nav className="hidden md:flex gap-6">
+                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Plan Journey</a>
+                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Our Fleet</a>
+                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
+                </nav>
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="relative h-[500px] w-full bg-gray-900 overflow-hidden">
+          <Image
+            src="/images/reecabus.png"
+            alt="REECA Travel Premium Bus"
+            fill
+            className="object-cover object-[center_60%] opacity-90"
+            priority
+            quality={100}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">
+            <div className="container mx-auto px-4 pb-12 text-white">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Travel in Comfort & Style</h1>
+              <p className="text-xl md:text-2xl max-w-2xl">Premium bus services between Gaborone and Johannesburg</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8 -mt-16 relative z-10">
+          <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-12 border border-gray-200">
+            <div className="p-6 bg-gradient-to-r from-teal-600 to-teal-800 text-white">
+              <h2 className="text-2xl font-bold">Book Your Journey</h2>
+              <p className="opacity-90">Find and book your perfect trip</p>
+            </div>
+            
+            <div className="p-6">
+              <BookingForm 
+                onSearch={handleSearch} 
+                agentInfo={agent}
+                onHireBus={() => setShowHireModal(true)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <footer className="bg-gray-900 text-white py-12">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div>
+                <h3 className="text-lg font-bold mb-4">REECA TRAVEL</h3>
+                <p className="text-gray-400">Premium bus services between Botswana and South Africa.</p>
+              </div>
+              <div>
+                <h4 className="font-bold mb-4">Quick Links</h4>
+                <ul className="space-y-2">
+                  <li><a href="#" className="text-gray-400 hover:text-white">Home</a></li>
+                  <li><a href="#" className="text-gray-400 hover:text-white">Book a Trip</a></li>
+                  <li><a href="#" className="text-gray-400 hover:text-white">Our Fleet</a></li>
+                  <li><a href="#" className="text-gray-400 hover:text-white">Contact Us</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold mb-4">Information</h4>
+                <ul className="space-y-2">
+                  <li><a href="#" className="text-gray-400 hover:text-white">Terms & Conditions</a></li>
+                  <li><a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a></li>
+                  <li><a href="#" className="text-gray-400 hover:text-white">FAQ</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold mb-4">Contact</h4>
+                <address className="not-italic text-gray-400">
+                  <p>Gaborone, Botswana</p>
+                  <p>Phone: +267 123 4567</p>
+                  <p>Email: info@reecatravel.com</p>
+                </address>
+              </div>
+            </div>
+            
+            <div className="mt-8 text-center">
+              <a 
+                href="https://toporapuladev.vercel.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-block px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
+              >
+                Contact Developer
+              </a>
+            </div>
+            
+            <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
+              <p>© {new Date().getFullYear()} REECA Travel. All rights reserved.</p>
+            </div>
+          </div>
+        </footer>
+
+        {showHireModal && (
+          <HireBusModal
+            onClose={() => setShowHireModal(false)}
+            onSubmit={async (formData) => {
+              await fetch("/api/inquiries", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+              });
+              setShowHireModal(false);
+              alert("Your hire inquiry has been submitted. We'll contact you soon!");
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Booking flow pages (after search)
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       {agent && (
@@ -288,6 +403,7 @@ export default function BookingApp() {
           </Button>
         </div>
       )}
+      
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -296,14 +412,14 @@ export default function BookingApp() {
                 <Image
                   src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
-                  width={96}
-                  height={56}
+                  width={100}
+                  height={58}
                   className="object-contain"
                 />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
-                <p className="text-xs text-amber-600">Premium Bus Services</p>
+                <p className="text-xs text-amber-600">Booking Portal</p>
               </div>
             </div>
             <ThemeToggle />
@@ -311,235 +427,141 @@ export default function BookingApp() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "book" | "manage")} className="max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-[#febf00]">
-            <TabsTrigger
-              value="book"
-              className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
+      <main className="container mx-auto px-4 py-8">
+        {currentStep === "schedules" && searchData && (
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentStep("search")}
+              className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
-              Book Trip
-            </TabsTrigger>
-            <TabsTrigger
-              value="manage"
-              className="flex items-center gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Manage Trips
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="book">
-            {currentStep === "search" && (
-              <div>
-                {/* Bus Hire Button - only visible on landing/search page */}
-                <div className="text-center mb-8">
-                  <h1 className="text-4xl font-bold mb-4 text-teal-900">Book Your Journey with Reeca Travel</h1>
-                  <p className="text-xl text-amber-700">
-                    Premium comfort and reliable service between Gaborone and Johannesburg
-                  </p>
-                </div>
-                <BookingForm onSearch={handleSearch} />
-              </div>
-            )}
-
-            {currentStep === "schedules" && searchData && (
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => setCurrentStep("search")}
-                  className="mb-4 text-teal-600 hover:bg-teal-50"
-                >
-                  ← Back to Search
-                </Button>
-                <BusSchedules
-                  searchData={searchData}
-                  onSelectBus={(bus) => handleSelectBus(bus)}
-                  boardingPoints={boardingPoints}
-                />
-              </div>
-            )}
-
-            {currentStep === "departure-seats" && selectedDepartureBus && searchData && (
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => setCurrentStep("schedules")}
-                  className="mb-4 text-teal-600 hover:bg-teal-50"
-                >
-                  ← Back to Schedule
-                </Button>
-                <SeatSelection
-                  selectedBus={selectedDepartureBus}
-                  onSeatSelect={(seatId) => handleSeatSelect(seatId)}
-                  selectedSeats={selectedDepartureSeats}
-                  onProceed={handleProceedToPassengerDetails}
-                  searchData={searchData}
-                  isReturnTrip={false}
-                />
-              </div>
-            )}
-
-            {currentStep === "return-schedules" && searchData && (
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => setCurrentStep("departure-seats")}
-                  className="mb-4 text-teal-600 hover:bg-teal-50"
-                >
-                  ← Back to Departure Seats
-                </Button>
-                <BusSchedules
-                  searchData={{
-                    ...searchData,
-                    from: searchData.to,
-                    to: searchData.from,
-                    departureDate: searchData.returnDate || new Date(),
-                    returnDate: null
-                  }}
-                  onSelectBus={(bus) => handleSelectBus(bus, true)}
-                  boardingPoints={boardingPoints}
-                  isReturnTrip={true}
-                />
-              </div>
-            )}
-
-            {currentStep === "return-seats" && selectedReturnBus && searchData && (
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => setCurrentStep("return-schedules")}
-                  className="mb-4 text-teal-600 hover:bg-teal-50"
-                >
-                  ← Back to Return Schedules
-                </Button>
-                <SeatSelection
-                  selectedBus={selectedReturnBus}
-                  onSeatSelect={(seatId) => handleSeatSelect(seatId, true)}
-                  selectedSeats={selectedReturnSeats}
-                  onProceed={handleProceedToPassengerDetails}
-                  searchData={{
-                    ...searchData,
-                    from: searchData.to,
-                    to: searchData.from,
-                    departureDate: searchData.returnDate || new Date(),
-                  }}
-                  isReturnTrip={true}
-                  maxSelectableSeats={selectedDepartureSeats.length}
-                />
-              </div>
-            )}
-
-            {currentStep === "passenger-details" && searchData && (
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    if (selectedReturnBus) {
-                      setCurrentStep("return-seats");
-                    } else if (searchData.isReturn && !selectedReturnBus) {
-                      setCurrentStep("return-schedules");
-                    } else {
-                      setCurrentStep("departure-seats");
-                    }
-                  }}
-                  className="mb-4 text-teal-600 hover:bg-teal-50"
-                >
-                  ← Back to Seat Selection
-                </Button>
-                <PassengerDetailsForm
-                  departureBus={selectedDepartureBus}
-                  returnBus={selectedReturnBus}
-                  departureSeats={selectedDepartureSeats}
-                  returnSeats={selectedReturnSeats}
-                  searchData={searchData}
-                  boardingPoints={boardingPoints}
-                  onProceedToPayment={handleProceedToPayment}
-                  showPayment={showPayment}
-                  setShowPayment={setShowPayment}
-                  onPaymentComplete={handlePaymentComplete}
-                />
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="manage">
-            <div className="max-w-xl mx-auto bg-white p-6 rounded-lg shadow mb-8">
-              <h2 className="text-2xl font-bold text-teal-900 mb-4">Manage Your Trip</h2>
-              <form
-                className="space-y-4"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  const bookingRef = (formData.get("bookingRef") as string).trim();
-                  const idNumber = (formData.get("idNumber") as string).trim();
-                  const email = (formData.get("email") as string)?.trim() || "";
-                  // Fetch booking data from backend
-                  const res = await fetch(`/api/booking/lookup`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ bookingRef, contactIdNumber: idNumber, email }), // <-- FIXED
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setBookings([data]); // Show only the found booking
-                  } else {
-                    alert("Booking not found. Please check your details.");
-                  }
-                }}
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Booking Reference</label>
-                  <input name="bookingRef" required className="mt-1 block w-full border rounded px-3 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">ID Number</label>
-                  <input name="idNumber" required className="mt-1 block w-full border rounded px-3 py-2" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email (optional)</label>
-                  <input name="email" type="email" className="mt-1 block w-full border rounded px-3 py-2" />
-                </div>
-                <button type="submit" className="w-full bg-teal-600 text-white py-2 rounded font-semibold mt-2">Find My Booking</button>
-              </form>
-            </div>
-            {/* Show booking details and actions if a booking is found */}
-            {bookings.length > 0 && (
-              <TripManagement bookings={bookings} setBookings={setBookings} />
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-      {activeTab === "manage" && showLeaveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow">
-            <h2 className="text-lg font-bold mb-2">Leave Booking?</h2>
-            <p>Do you want to discard your booking or continue?</p>
-            <div className="mt-4 flex gap-2">
-              <button
-                className="bg-red-500 text-white px-4 py-2 rounded"
-                onClick={() => {
-                  setBookingOpen(false);
-                  setShowLeaveModal(false);
-                  // Optionally clear sensitive data here
-                }}
-              >
-                Discard
-              </button>
-              <button
-                className="bg-teal-600 text-white px-4 py-2 rounded"
-                onClick={() => setShowLeaveModal(false)}
-              >
-                Continue
-              </button>
-            </div>
+              Back to Search
+            </Button>
+            <BusSchedules
+              searchData={searchData}
+              onSelectBus={(bus) => handleSelectBus(bus)}
+              boardingPoints={boardingPoints}
+            />
           </div>
-        </div>
-      )}
+        )}
+
+        {currentStep === "departure-seats" && selectedDepartureBus && searchData && (
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentStep("schedules")}
+              className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Schedule
+            </Button>
+            <SeatSelection
+              selectedBus={selectedDepartureBus}
+              onSeatSelect={(seatId) => handleSeatSelect(seatId)}
+              selectedSeats={selectedDepartureSeats}
+              onProceed={handleProceedToPassengerDetails}
+              searchData={searchData}
+              isReturnTrip={false}
+            />
+          </div>
+        )}
+
+        {currentStep === "return-schedules" && searchData && (
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentStep("departure-seats")}
+              className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Departure Seats
+            </Button>
+            <BusSchedules
+              searchData={{
+                ...searchData,
+                from: searchData.to,
+                to: searchData.from,
+                departureDate: searchData.returnDate || new Date(),
+                returnDate: null
+              }}
+              onSelectBus={(bus) => handleSelectBus(bus, true)}
+              boardingPoints={boardingPoints}
+              isReturnTrip={true}
+            />
+          </div>
+        )}
+
+        {currentStep === "return-seats" && selectedReturnBus && searchData && (
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => setCurrentStep("return-schedules")}
+              className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Return Schedules
+            </Button>
+            <SeatSelection
+              selectedBus={selectedReturnBus}
+              onSeatSelect={(seatId) => handleSeatSelect(seatId, true)}
+              selectedSeats={selectedReturnSeats}
+              onProceed={handleProceedToPassengerDetails}
+              searchData={{
+                ...searchData,
+                from: searchData.to,
+                to: searchData.from,
+                departureDate: searchData.returnDate || new Date(),
+              }}
+              isReturnTrip={true}
+              maxSelectableSeats={selectedDepartureSeats.length}
+            />
+          </div>
+        )}
+
+        {currentStep === "passenger-details" && searchData && (
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (selectedReturnBus) {
+                  setCurrentStep("return-seats");
+                } else if (searchData.isReturn && !selectedReturnBus) {
+                  setCurrentStep("return-schedules");
+                } else {
+                  setCurrentStep("departure-seats");
+                }
+              }}
+              className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to Seat Selection
+            </Button>
+            <PassengerDetailsForm
+              departureBus={selectedDepartureBus}
+              returnBus={selectedReturnBus}
+              departureSeats={selectedDepartureSeats}
+              returnSeats={selectedReturnSeats}
+              searchData={searchData}
+              boardingPoints={boardingPoints}
+              onProceedToPayment={handleProceedToPayment}
+              showPayment={showPayment}
+              setShowPayment={setShowPayment}
+              onPaymentComplete={handlePaymentComplete}
+            />
+          </div>
+        )}
+      </main>
     </div>
   );
 }

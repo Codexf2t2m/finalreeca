@@ -375,7 +375,7 @@ export default function SeatSelection({
             </div>
 
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="bg-blue-50 p-4 rounded-lg border border-amber-200">
                 <h4 className="font-bold text-blue-700 mb-2">Important Notice</h4>
                 <p className="text-sm text-blue-600">
                   Boarding and dropping points will be selected in the next step.

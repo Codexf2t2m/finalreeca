@@ -1,10 +1,20 @@
-// BusSchedules.tsx
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
 import { Wifi, Luggage, Snowflake, Coffee, BatteryCharging } from "lucide-react";
+
+// Define color variables based on company colors
+const colors = {
+  primary: '#009393',       // Teal
+  secondary: '#febf00',     // Gold
+  accent: '#958c55',        // Olive
+  muted: '#f5f5f5',         // Light gray
+  dark: '#1a1a1a',          // Dark gray
+  light: '#ffffff',         // White
+  destructive: '#ef4444'    // Red (kept for errors)
+};
 
 interface Trip {
   id: string;
@@ -105,7 +115,6 @@ export default function BusSchedules({
       departureDate: departureDateStr
     });
     const url = `/api/trips?${params.toString()}`;
-
     console.log('Fetching trips with URL:', url);
     console.log('Search params:', {
       from: searchData.from,
@@ -136,7 +145,7 @@ export default function BusSchedules({
         throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
       }
       const data: Trip[] = await res.json();
-      
+
       console.log('Received trips from API:', {
         count: data.length,
         trips: data.map(t => ({
@@ -148,7 +157,7 @@ export default function BusSchedules({
           hasDeparted: t.hasDeparted
         }))
       });
-      
+
       tripsCache.set(url, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
@@ -170,14 +179,13 @@ export default function BusSchedules({
       console.log('No selected date available');
       return [];
     }
-    
-    // Create date range for the entire selected day
+
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     console.log('Filtering trips for date range:', {
       selectedDate: selectedDate.toISOString(),
       startOfDay: startOfDay.toISOString(),
@@ -185,20 +193,14 @@ export default function BusSchedules({
       totalTrips: trips.length,
       searchData: `${searchData.from} → ${searchData.to}`
     });
-    
+
     const filtered = trips.filter((trip) => {
-      // Parse trip departure date
       const tripDate = new Date(trip.departureDate);
-      
-      // Check if trip date falls within the selected day
       const matchesDate = tripDate >= startOfDay && tripDate <= endOfDay;
-      
-      // Check route match (case insensitive)
       const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
                           trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
-      
       const result = matchesRoute && matchesDate;
-      
+
       if (result) {
         console.log('Trip matches:', {
           tripId: trip.id,
@@ -209,7 +211,7 @@ export default function BusSchedules({
           availableSeats: trip.availableSeats
         });
       }
-      
+
       return result;
     });
 
@@ -269,11 +271,11 @@ export default function BusSchedules({
     };
 
     const features = [
-      { icon: <Wifi className="w-5 h-5 text-teal-600" />, label: "WiFi" },
-      { icon: <Luggage className="w-5 h-5 text-teal-600" />, label: "Baggage" },
-      { icon: <Snowflake className="w-5 h-5 text-teal-600" />, label: "AC" },
-      { icon: <Coffee className="w-5 h-5 text-teal-600" />, label: "Snack" },
-      { icon: <BatteryCharging className="w-5 h-5 text-teal-600" />, label: "Charging" },
+      { icon: <Wifi className="w-5 h-5" style={{ color: colors.accent }} />, label: "WiFi" },
+      { icon: <Luggage className="w-5 h-5" style={{ color: colors.accent }} />, label: "Baggage" },
+      { icon: <Snowflake className="w-5 h-5" style={{ color: colors.accent }} />, label: "AC" },
+      { icon: <Coffee className="w-5 h-5" style={{ color: colors.accent }} />, label: "Snack" },
+      { icon: <BatteryCharging className="w-5 h-5" style={{ color: colors.accent }} />, label: "Charging" },
     ];
 
     return (
@@ -338,7 +340,7 @@ export default function BusSchedules({
           </div>
         </div>
         <div className="text-right">
-          <div className="font-bold text-xl text-teal-600 mb-2">P {trip.fare}/-</div>
+          <div className="font-bold text-xl" style={{ color: colors.primary }}>P {trip.fare}/-</div>
           <div className={`text-xs mb-2 font-medium ${
             isDeparted ? "text-red-600" :
             isFull ? "text-red-600" : "text-green-600"
@@ -371,20 +373,19 @@ export default function BusSchedules({
   return (
     <div className="max-w-5xl mx-auto mt-8">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        <div className="p-6 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="p-6 border-b" style={{ backgroundColor: colors.muted }}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <h2 className="text-xl font-bold text-gray-800 capitalize">
+              <h2 className="text-xl font-bold" style={{ color: colors.dark }}>
                 {isReturnTrip ? 'RETURN TRIP: ' : ''}
                 {searchData.from} → {searchData.to}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm" style={{ color: colors.accent }}>
                 {dateUtils.safeFormat(searchData.departureDate, "EEEE, MMMM do, yyyy")}
               </p>
             </div>
           </div>
         </div>
-
         <div className="flex overflow-x-auto border-b bg-gray-50">
           {days.map((day, index) => (
             <button
@@ -400,9 +401,8 @@ export default function BusSchedules({
             </button>
           ))}
         </div>
-
         <div className="divide-y">
-          <div className="grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold text-gray-700">
+          <div className="grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold" style={{ color: colors.dark }}>
             <div className="col-span-2">Bus Details</div>
             <div>Departure</div>
             <div>Duration</div>
@@ -424,14 +424,14 @@ export default function BusSchedules({
                 <p>Route: {searchData.from} → {searchData.to}</p>
                 <p>Selected day index: {selectedDay}</p>
                 <p>Days array length: {days.length}</p>
-                
+
                 {trips.length > 0 && (
                   <div className="mt-2">
                     <p><strong>Available trips:</strong></p>
                     {trips.slice(0, 3).map(trip => (
                       <p key={trip.id} className="text-xs">
-                        {new Date(trip.departureDate).toLocaleDateString()} {trip.departureTime} - 
-                        {trip.routeOrigin} → {trip.routeDestination} 
+                        {new Date(trip.departureDate).toLocaleDateString()} {trip.departureTime} -
+                        {trip.routeOrigin} → {trip.routeDestination}
                         {trip.hasDeparted ? ' (Departed)' : ` (${trip.availableSeats} seats)`}
                       </p>
                     ))}
