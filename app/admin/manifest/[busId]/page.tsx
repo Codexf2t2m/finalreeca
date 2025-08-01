@@ -3,6 +3,8 @@ import { Download, ArrowLeft } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from "docx";
+import { saveAs } from "file-saver";
 import { useEffect, useState } from "react";
 import { PassengerManifest } from "@/components/passengermanifest";
 import { useRouter } from "next/navigation";
@@ -51,7 +53,12 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
         route,
         date,
         time,
-        hasInfant: p.hasInfant, // NEW
+        hasInfant: p.hasInfant,
+        passportNumber: p.passportNumber, // <-- add this
+        type: p.type, // <-- add this
+        infantName: p.infantName, // <-- add this
+        infantBirthdate: p.infantBirthdate, // <-- add this
+        infantPassportNumber: p.infantPassportNumber, // <-- add this
       }))
   );
 
@@ -191,6 +198,136 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
     XLSX.writeFile(workbook, `manifest-${route}-${date.replace(/\s+/g, '-')}.xlsx`);
   };
 
+  const handlePassengerListDownload = () => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Add watermark background
+    doc.setFillColor(240, 240, 240);
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), 'F');
+
+    // Add logo
+    const logoUrl = "/images/sticker.png";
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = logoUrl;
+
+    const generatePdf = () => {
+      // Place logo at top left, not overlapping text
+      doc.addImage(img, "PNG", 15, 10, 30, 30);
+
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(15, 23, 42); // slate-900
+      doc.text("Passenger List", 105, 20, { align: 'center' });
+
+      // Trip info (move down to avoid logo)
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.setTextColor(71, 85, 105); // slate-600
+      doc.text(`Route: ${route}`, 15, 45);
+      doc.text(`Date: ${date}`, 15, 53);
+      doc.text(`Time: ${time}`, 15, 61);
+
+      // Table (move down to avoid logo/trip info)
+      autoTable(doc, {
+        head: [["#", "Full Name", "Passport Number", "Seat", "Type", "Infant"]],
+        body: currentTripPassengers.map((p, idx) => [
+          idx + 1,
+          p.name,
+          p.passportNumber || "-",
+          p.seat,
+          p.type === "child" ? "Child" : p.type === "adult" ? "Adult" : "Adult",
+          p.hasInfant
+            ? `Yes${p.infantName ? `, Name: ${p.infantName}` : ""}${p.infantBirthdate ? `, DOB: ${p.infantBirthdate}` : ""}${p.infantPassportNumber ? `, Passport: ${p.infantPassportNumber}` : ""}`
+            : "No"
+        ]),
+        startY: 70, // Start table below logo and trip info
+        theme: 'grid',
+        headStyles: {
+          fillColor: [15, 118, 110],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 10
+        },
+        bodyStyles: {
+          textColor: [15, 23, 42],
+          fontSize: 9,
+          cellPadding: 3
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        styles: {
+          lineColor: [226, 232, 240],
+          lineWidth: 0.2
+        }
+      });
+
+      doc.save(`passenger-list-${route}-${date.replace(/\s+/g, '-')}.pdf`);
+    };
+
+    if (img.complete) {
+      generatePdf();
+    } else {
+      img.onload = generatePdf;
+    }
+  };
+
+  const handlePassengerListDocx = async () => {
+    const rows = [
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("#")] }),
+          new TableCell({ children: [new Paragraph("Full Name")] }),
+          new TableCell({ children: [new Paragraph("Passport Number")] }),
+          new TableCell({ children: [new Paragraph("Seat")] }),
+          new TableCell({ children: [new Paragraph("Type")] }),
+          new TableCell({ children: [new Paragraph("Infant")] }),
+        ]
+      }),
+      ...currentTripPassengers.map((p, idx) =>
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph(String(idx + 1))] }),
+            new TableCell({ children: [new Paragraph(p.name)] }),
+            new TableCell({ children: [new Paragraph(p.passportNumber || "-")] }),
+            new TableCell({ children: [new Paragraph(p.seat)] }),
+            new TableCell({ children: [new Paragraph(p.type === "child" ? "Child" : p.type === "adult" ? "Adult" : "Adult")] }),
+            new TableCell({
+              children: [
+                new Paragraph(
+                  p.hasInfant
+                    ? `Yes${p.infantName ? `, Name: ${p.infantName}` : ""}${p.infantBirthdate ? `, DOB: ${p.infantBirthdate}` : ""}${p.infantPassportNumber ? `, Passport: ${p.infantPassportNumber}` : ""}`
+                    : "No"
+                )
+              ]
+            }),
+          ]
+        })
+      )
+    ];
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          new Paragraph({ text: "Passenger List", heading: "Heading1" }),
+          new Paragraph({ text: `Route: ${route}` }),
+          new Paragraph({ text: `Date: ${date}` }),
+          new Paragraph({ text: `Time: ${time}` }),
+          new Table({ rows }),
+        ]
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `passenger-list-${route}-${date.replace(/\s+/g, '-')}.docx`);
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto my-8 px-4 space-y-6">
@@ -246,6 +383,7 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
             </div>
             
             <div className="flex gap-3">
+              
               <button
                 onClick={handlePdfDownload}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg shadow-sm hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
@@ -259,6 +397,20 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
               >
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Excel</span>
+              </button>
+              <button
+                onClick={handlePassengerListDownload}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#009393] text-white rounded-lg shadow-sm hover:bg-[#007575] transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-sm font-medium">PL PDF</span>
+              </button>
+              <button
+                onClick={handlePassengerListDocx}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#958c55] text-white rounded-lg shadow-sm hover:bg-[#bfae7c] transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-sm font-medium">PL DOCX</span>
               </button>
             </div>
           </div>
@@ -308,7 +460,24 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {passenger.hasInfant ? (
-                        <span className="text-green-700 font-semibold">Yes</span>
+                        <span className="text-green-700 font-semibold">
+                          Yes
+                          {passenger.infantName && (
+                            <span className="block text-xs text-slate-700">
+                              Name: {passenger.infantName}
+                            </span>
+                          )}
+                          {passenger.infantBirthdate && (
+                            <span className="block text-xs text-slate-700">
+                              DOB: {passenger.infantBirthdate}
+                            </span>
+                          )}
+                          {passenger.infantPassportNumber && (
+                            <span className="block text-xs text-slate-700">
+                              Passport: {passenger.infantPassportNumber}
+                            </span>
+                          )}
+                        </span>
                       ) : (
                         <span className="text-gray-400">No</span>
                       )}

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Coffee, Sandwich, Cookie } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
 import PaymentGateway from "../paymentgateway";
@@ -48,6 +48,7 @@ interface SectionState {
   contact: boolean;
   emergency: boolean;
   points: boolean;
+  addons: boolean;
 }
 
 interface PassengerDetailsFormProps {
@@ -67,6 +68,30 @@ function generateOrderId() {
   return `RT${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
+const ADDONS = [
+  {
+    key: "snackPack",
+    label: "Snack Pack",
+    description: "Enjoy a delicious snack pack during your trip.",
+    price: 40,
+    icon: <span role="img" aria-label="snack">🍪</span>,
+  },
+  {
+    key: "breakfast",
+    label: "Breakfast",
+    description: "Start your journey with a fresh breakfast.",
+    price: 60,
+    icon: <span role="img" aria-label="breakfast">🥐</span>,
+  },
+  {
+    key: "drink",
+    label: "Beverage",
+    description: "Choose a cold drink for your ride.",
+    price: 25,
+    icon: <span role="img" aria-label="drink">🥤</span>,
+  },
+];
+
 export default function PassengerDetailsForm({
   departureBus,
   returnBus,
@@ -79,26 +104,11 @@ export default function PassengerDetailsForm({
   setShowPayment,
   onPaymentComplete
 }: PassengerDetailsFormProps) {
-  const getBoardingPoints = (key: string): BoardingPoint[] => {
-    if (!boardingPoints || typeof boardingPoints !== 'object') {
-      return [{ id: 'default', name: 'Default', times: [] }];
-    }
-    const normalizedKey = key.trim().toLowerCase() || 'default';
-    const points = boardingPoints[normalizedKey];
-    if (!points || !Array.isArray(points)) {
-      return [{
-        id: 'default',
-        name: key.trim(),
-        times: []
-      }];
-    }
-    return points;
-  };
+  // Helper for roundtrip - moved to top
+  const isRoundTrip = !!returnBus;
 
-  if (!boardingPoints || !departureBus || !searchData) {
-    return <div className="text-center py-8 text-gray-600">Loading form data...</div>;
-  }
-
+  // 1. All useState hooks at the top
+  const [selectedAddons, setSelectedAddons] = useState<{ [key: string]: { departure: boolean; return: boolean } }>({});
   const [passengers, setPassengers] = useState<Passenger[]>(() => {
     const departurePassengers = (departureSeats || []).map(seat => ({
       id: `departure-${seat}`,
@@ -132,6 +142,239 @@ export default function PassengerDetailsForm({
     }));
     return [...departurePassengers, ...returnPassengers];
   });
+  const [contactDetails, setContactDetails] = useState<ContactDetails>({
+    name: '',
+    email: '',
+    mobile: '',
+    alternateMobile: '',
+    idType: 'Passport',
+    idNumber: ''
+  });
+  const [emergencyContact, setEmergencyContact] = useState<EmergencyContact>({
+    name: '',
+    phone: ''
+  });
+  const [paymentMode, setPaymentMode] = useState('Credit Card');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
+  const [departureBoardingPoint, setDepartureBoardingPoint] = useState('');
+  const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
+  const [returnBoardingPoint, setReturnBoardingPoint] = useState('');
+  const [returnDroppingPoint, setReturnDroppingPoint] = useState('');
+  const [openSections, setOpenSections] = useState<SectionState>({
+    passengers: true,
+    contact: true,
+    emergency: true,
+    points: true,
+    addons: true
+  });
+  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
+
+  const getAddonsTotal = () => {
+    let total = 0;
+    const paxCount = passengers.length;
+    ADDONS.forEach(addon => {
+      if (selectedAddons[addon.key]?.departure) total += addon.price * paxCount;
+      if (isRoundTrip && selectedAddons[addon.key]?.return) total += addon.price * paxCount;
+    });
+    return total;
+  };
+
+  // Helper to open only one section at a time
+  const openOnlySection = (section: keyof SectionState) => {
+    setOpenSections(prev => {
+      const newState: SectionState = { ...prev };
+      Object.keys(newState).forEach(key => {
+        // @ts-ignore
+        newState[key] = key === section;
+      });
+      return newState;
+    });
+  };
+
+  const copyDepartureToReturn = () => {
+    const departurePassengers = passengers.filter(p => !p.isReturn);
+    const returnPassengers = passengers.filter(p => p.isReturn);
+
+    const updatedPassengers = passengers.map(passenger => {
+      if (passenger.isReturn) {
+        const index = returnPassengers.findIndex(rp => rp.id === passenger.id);
+        if (index !== -1 && departurePassengers[index]) {
+          return {
+            ...passenger,
+            title: departurePassengers[index].title,
+            firstName: departurePassengers[index].firstName,
+            lastName: departurePassengers[index].lastName,
+            passportNumber: departurePassengers[index].passportNumber, // <-- include passport number
+            birthdate: departurePassengers[index].birthdate,
+            type: departurePassengers[index].type,
+            hasInfant: departurePassengers[index].hasInfant,
+            infantName: departurePassengers[index].infantName,
+            infantBirthdate: departurePassengers[index].infantBirthdate,
+            infantPassportNumber: departurePassengers[index].infantPassportNumber,
+          };
+        }
+      }
+      return passenger;
+    });
+
+    setPassengers(updatedPassengers);
+  };
+
+  const departurePricePerSeat = departureBus?.fare || 0;
+
+  const getPassengerFare = (p: Passenger) => {
+    if (p.type === "child") return 400;
+    return departurePricePerSeat;
+  };
+
+  const infantCount = passengers.filter(p => p.hasInfant).length;
+  const infantTotal = infantCount * 250;
+
+  const departureTotal = passengers
+    .filter(p => !p.isReturn)
+    .reduce((sum, p) => sum + getPassengerFare(p), 0);
+
+  const returnTotal = passengers
+    .filter(p => p.isReturn)
+    .reduce((sum, p) => sum + getPassengerFare(p), 0);
+
+  const baseTotal = departureTotal + returnTotal + infantTotal + getAddonsTotal();
+
+  useEffect(() => {
+    fetch("/api/agent/me")
+      .then(async res => {
+        if (res.ok) {
+          const agentData = await res.json();
+          setAgent(agentData);
+        } else {
+          setAgent(null);
+        }
+      })
+      .catch(() => setAgent(null));
+  }, []);
+
+  const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
+  const finalTotal: number = baseTotal - agentDiscount;
+
+  const getBoardingPoints = (key: string): BoardingPoint[] => {
+    if (!boardingPoints || typeof boardingPoints !== 'object') {
+      return [{ id: 'default', name: 'Default', times: [] }];
+    }
+    const normalizedKey = key.trim().toLowerCase() || 'default';
+    const points = boardingPoints[normalizedKey];
+    if (!points || !Array.isArray(points)) {
+      return [{
+        id: 'default',
+        name: key.trim(),
+        times: []
+      }];
+    }
+    return points;
+  };
+
+  const departureOriginKey = ((departureBus?.routeOrigin || searchData.from || '') as string).toLowerCase().trim() || 'default';
+  const departureDestinationKey = ((departureBus?.routeDestination || searchData.to || '') as string).toLowerCase().trim() || 'default';
+  const departureOriginPoints = getBoardingPoints(departureOriginKey);
+  const departureDestinationPoints = getBoardingPoints(departureDestinationKey);
+
+  let returnOriginPoints: BoardingPoint[] = [];
+  let returnDestinationPoints: BoardingPoint[] = [];
+
+  if (isRoundTrip) {
+    const returnOriginKey = ((returnBus?.routeOrigin || searchData.to || '') as string).toLowerCase().trim() || 'default';
+    const returnDestinationKey = ((returnBus?.routeDestination || searchData.from || '') as string).toLowerCase().trim() || 'default';
+    returnOriginPoints = getBoardingPoints(returnOriginKey);
+    returnDestinationPoints = getBoardingPoints(returnDestinationKey);
+  }
+
+  const updatePassenger = (id: string, field: string, value: string | boolean) => {
+    setPassengers(prev =>
+      prev.map(passenger =>
+        passenger.id === id ? { ...passenger, [field]: value } : passenger
+      )
+    );
+  };
+
+  const handleContactChange = (field: keyof ContactDetails, value: string) => {
+    setContactDetails(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEmergencyChange = (field: keyof EmergencyContact, value: string) => {
+    setEmergencyContact(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddonChange = (addonKey: string, tripType: "departure" | "return", checked: boolean) => {
+    setSelectedAddons(prev => ({
+      ...prev,
+      [addonKey]: {
+        ...prev[addonKey],
+        [tripType]: checked,
+      }
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (passengers.some(p => !p.firstName.trim() || !p.lastName.trim())) {
+      alert('Please provide first and last names for all passengers');
+      return;
+    }
+    if (!contactDetails.name || !contactDetails.email || !contactDetails.mobile) {
+      alert('Please provide your name, email and mobile number');
+      return;
+    }
+    if (!emergencyContact.name || !emergencyContact.phone) {
+      alert('Please provide emergency contact details');
+      return;
+    }
+    if (!departureBoardingPoint || !departureDroppingPoint) {
+      alert('Please select departure boarding and dropping points');
+      return;
+    }
+    if (isRoundTrip && (!returnBoardingPoint || !returnDroppingPoint)) {
+      alert('Please select return boarding and dropping points');
+      return;
+    }
+    if (!agreedToTerms) {
+      alert('Please agree to the terms and conditions');
+      return;
+    }
+    if (
+      passengers.some(
+        (p) =>
+          (p.type === "child" && !isValidChild(p.birthdate)) ||
+          (p.hasInfant && !isValidInfant(p.infantBirthdate || ""))
+      )
+    ) {
+      alert("Children must be 2-5 years old. Infants must be under 2 years old.");
+      return;
+    }
+    onProceedToPayment();
+  };
+
+  const formatPoint = (point: string) => {
+    if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
+      return "OR Tambo Airport";
+    }
+    return point;
+  };
+
+  function isValidChild(birthdate: string): boolean {
+    if (!birthdate) return false;
+    const birth = new Date(birthdate);
+    const now = new Date();
+    const age = (now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    return age >= 2 && age < 5;
+  }
+
+  function isValidInfant(birthdate: string): boolean {
+    if (!birthdate) return false;
+    const birth = new Date(birthdate);
+    const now = new Date();
+    const age = (now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    return age >= 0 && age < 2;
+  }
 
   useEffect(() => {
     const departurePassengers = (departureSeats || []).map(seat => {
@@ -173,191 +416,8 @@ export default function PassengerDetailsForm({
     setPassengers([...departurePassengers, ...returnPassengers]);
   }, [departureSeats.join(','), returnSeats.join(',')]);
 
-  const [contactDetails, setContactDetails] = useState<ContactDetails>({
-    name: '',
-    email: '',
-    mobile: '',
-    alternateMobile: '',
-    idType: 'Passport',
-    idNumber: ''
-  });
-
-  const [emergencyContact, setEmergencyContact] = useState<EmergencyContact>({
-    name: '',
-    phone: ''
-  });
-
-  const [paymentMode, setPaymentMode] = useState('Credit Card');
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [policyAccepted, setPolicyAccepted] = useState(false);
-  const [departureBoardingPoint, setDepartureBoardingPoint] = useState('');
-  const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
-  const [returnBoardingPoint, setReturnBoardingPoint] = useState('');
-  const [returnDroppingPoint, setReturnDroppingPoint] = useState('');
-  const [openSections, setOpenSections] = useState<SectionState>({
-    passengers: true,
-    contact: true,
-    emergency: true,
-    points: true
-  });
-
-  const toggleSection = (section: keyof SectionState) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const copyDepartureToReturn = () => {
-    const departurePassengers = passengers.filter(p => !p.isReturn);
-    const returnPassengers = passengers.filter(p => p.isReturn);
-
-    const updatedPassengers = passengers.map(passenger => {
-      if (passenger.isReturn) {
-        const index = returnPassengers.findIndex(rp => rp.id === passenger.id);
-        if (index !== -1 && departurePassengers[index]) {
-          return {
-            ...passenger,
-            title: departurePassengers[index].title,
-            firstName: departurePassengers[index].firstName,
-            lastName: departurePassengers[index].lastName
-          };
-        }
-      }
-      return passenger;
-    });
-
-    setPassengers(updatedPassengers);
-  };
-
-  const departurePricePerSeat = departureBus?.fare || 0;
-
-  const getPassengerFare = (p: Passenger) => {
-    if (!p.birthdate) return departurePricePerSeat;
-    const age = Math.floor((new Date().getTime() - new Date(p.birthdate).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    if (age < 2) return 250;
-    if (age < 5) return 400;
-    return departurePricePerSeat;
-  };
-
-  const infantCount = passengers.filter(p => p.hasInfant).length;
-  const infantTotal = infantCount * 100;
-
-  const departureTotal = passengers
-    .filter(p => !p.isReturn)
-    .reduce((sum, p) => sum + getPassengerFare(p), 0);
-
-  const returnTotal = passengers
-    .filter(p => p.isReturn)
-    .reduce((sum, p) => sum + getPassengerFare(p), 0);
-
-  const baseTotal = departureTotal + returnTotal + infantTotal;
-  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/agent/me")
-      .then(async res => {
-        if (res.ok) {
-          const agentData = await res.json();
-          setAgent(agentData);
-        } else {
-          setAgent(null);
-        }
-      })
-      .catch(() => setAgent(null));
-  }, []);
-
-  const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
-  const finalTotal: number = baseTotal - agentDiscount;
-
-  const departureOriginKey = ((departureBus?.routeOrigin || searchData.from || '') as string).toLowerCase().trim() || 'default';
-  const departureDestinationKey = ((departureBus?.routeDestination || searchData.to || '') as string).toLowerCase().trim() || 'default';
-  const departureOriginPoints = getBoardingPoints(departureOriginKey);
-  const departureDestinationPoints = getBoardingPoints(departureDestinationKey);
-
-  let returnOriginPoints: BoardingPoint[] = [];
-  let returnDestinationPoints: BoardingPoint[] = [];
-
-  if (returnBus || (returnSeats && returnSeats.length > 0)) {
-    const returnOriginKey = ((returnBus?.routeOrigin || searchData.to || '') as string).toLowerCase().trim() || 'default';
-    const returnDestinationKey = ((returnBus?.routeDestination || searchData.from || '') as string).toLowerCase().trim() || 'default';
-    returnOriginPoints = getBoardingPoints(returnOriginKey);
-    returnDestinationPoints = getBoardingPoints(returnDestinationKey);
-  }
-
-  const updatePassenger = (id: string, field: string, value: string | boolean) => {
-    setPassengers(prev =>
-      prev.map(passenger =>
-        passenger.id === id ? { ...passenger, [field]: value } : passenger
-      )
-    );
-  };
-
-  const handleContactChange = (field: keyof ContactDetails, value: string) => {
-    setContactDetails(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleEmergencyChange = (field: keyof EmergencyContact, value: string) => {
-    setEmergencyContact(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = () => {
-    if (passengers.some(p => !p.firstName.trim() || !p.lastName.trim())) {
-      alert('Please provide first and last names for all passengers');
-      return;
-    }
-    if (!contactDetails.name || !contactDetails.email || !contactDetails.mobile) {
-      alert('Please provide your name, email and mobile number');
-      return;
-    }
-    if (!emergencyContact.name || !emergencyContact.phone) {
-      alert('Please provide emergency contact details');
-      return;
-    }
-    if (!departureBoardingPoint || !departureDroppingPoint) {
-      alert('Please select departure boarding and dropping points');
-      return;
-    }
-    if (returnBus && (!returnBoardingPoint || !returnDroppingPoint)) {
-      alert('Please select return boarding and dropping points');
-      return;
-    }
-    if (!agreedToTerms) {
-      alert('Please agree to the terms and conditions');
-      return;
-    }
-    if (
-      passengers.some(
-        (p) =>
-          p.hasInfant &&
-          (!p.infantBirthdate || !isValidInfant(p.infantBirthdate))
-      )
-    ) {
-      alert("Each infant must have a valid birthdate and be less than 18 months old.");
-      return;
-    }
-    onProceedToPayment();
-  };
-
-  const formatPoint = (point: string) => {
-    if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
-      return "OR Tambo Airport";
-    }
-    return point;
-  };
-
-  function isValidInfant(birthdate: string): boolean {
-    if (!birthdate) return false;
-    const birth = new Date(birthdate);
-    const now = new Date();
-    const months =
-      (now.getFullYear() - birth.getFullYear()) * 12 +
-      (now.getMonth() - birth.getMonth());
-    if (now.getDate() < birth.getDate()) {
-      return months - 1 < 18;
-    }
-    return months < 18;
+  if (!boardingPoints || !departureBus || !searchData) {
+    return <div className="text-center py-8 text-gray-600">Loading form data...</div>;
   }
 
   return (
@@ -411,7 +471,7 @@ export default function PassengerDetailsForm({
               )}
               {infantCount > 0 && (
                 <div className="flex justify-between pt-2">
-                  <p className="font-medium text-gray-700">Infant Fare (P 100 x {infantCount}):</p>
+                  <p className="font-medium text-gray-700">Infant Fare ({infantCount}):</p>
                   <p className="font-medium text-[#009393]">P {infantTotal.toFixed(2)}</p>
                 </div>
               )}
@@ -425,7 +485,7 @@ export default function PassengerDetailsForm({
           {/* Passenger Details Section */}
           <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
-              onClick={() => toggleSection('passengers')}
+              onClick={() => openOnlySection('passengers')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -467,7 +527,7 @@ export default function PassengerDetailsForm({
                               <SelectValue placeholder="Passenger Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="adult">Adult (above 5 yrs)</SelectItem>
+                              <SelectItem value="adult">Adult</SelectItem>
                               <SelectItem value="child">Child (2-5 yrs)</SelectItem>
                             </SelectContent>
                           </Select>
@@ -495,18 +555,21 @@ export default function PassengerDetailsForm({
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
-                            <Input
-                              type="date"
-                              value={passenger.birthdate || ""}
-                              onChange={e => updatePassenger(passenger.id, "birthdate", e.target.value)}
-                              placeholder="Birthdate"
-                              required
-                              className="focus:ring-[#009393] focus:border-[#009393]"
-                              max={new Date().toISOString().split("T")[0]}
-                            />
-                          </div>
+                          {isChild && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
+                              <Input
+                                type="date"
+                                value={passenger.birthdate || ""}
+                                onChange={e => updatePassenger(passenger.id, "birthdate", e.target.value)}
+                                placeholder="Birthdate"
+                                required={isChild}
+                                className="focus:ring-[#009393] focus:border-[#009393]"
+                                min={getDateYearsAgo(5)}
+                                max={getDateYearsAgo(2)}
+                              />
+                            </div>
+                          )}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               {isChild ? "Birth Certificate Number" : "Passport Number"}
@@ -585,7 +648,7 @@ export default function PassengerDetailsForm({
           {/* Contact Details Section */}
           <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
-              onClick={() => toggleSection('contact')}
+              onClick={() => openOnlySection('contact')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -672,7 +735,7 @@ export default function PassengerDetailsForm({
           {/* Emergency Contact Section */}
           <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
-              onClick={() => toggleSection('emergency')}
+              onClick={() => openOnlySection('emergency')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -709,7 +772,7 @@ export default function PassengerDetailsForm({
           {/* Trip Points Section */}
           <div className="border rounded-lg overflow-hidden border-gray-200">
             <button
-              onClick={() => toggleSection('points')}
+              onClick={() => openOnlySection('points')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -759,7 +822,7 @@ export default function PassengerDetailsForm({
                     </div>
                   </div>
                 </div>
-                {returnBus && (
+                {isRoundTrip && (
                   <div>
                     <h4 className="font-bold text-gray-700 mb-3">Return Trip Points</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -800,6 +863,53 @@ export default function PassengerDetailsForm({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Add-ons Section */}
+          <div className="border rounded-xl overflow-hidden border-[#958c55]/30 mt-6">
+            <button
+              onClick={() => openOnlySection('addons')}
+              className="w-full p-4 bg-[#fece3c]/10 text-left flex justify-between items-center"
+            >
+              <h3 className="font-bold text-lg text-[#958c55] flex items-center gap-2">
+                <span role="img" aria-label="personalize">✨</span>
+                Personalise Your Trip (Add-ons)
+              </h3>
+              {openSections.addons ? <ChevronUp /> : <ChevronDown />}
+            </button>
+            {openSections.addons && (
+              <div className="p-4 space-y-4">
+                <div className="text-sm text-[#009393] mb-2">Select extras for each passenger. Prices are per passenger, per trip.</div>
+                {ADDONS.map(addon => (
+                  <div key={addon.key} className="flex items-center gap-4 border-b py-3">
+                    <div className="text-2xl">{addon.icon}</div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-[#009393]">{addon.label}</div>
+                      <div className="text-xs text-[#958c55]">{addon.description}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1 text-sm">
+                        <Checkbox
+                          checked={!!selectedAddons[addon.key]?.departure}
+                          onCheckedChange={checked => handleAddonChange(addon.key, "departure", !!checked)}
+                        />
+                        Departure
+                      </label>
+                      {isRoundTrip && (
+                        <label className="flex items-center gap-1 text-sm">
+                          <Checkbox
+                            checked={!!selectedAddons[addon.key]?.return}
+                            onCheckedChange={checked => handleAddonChange(addon.key, "return", !!checked)}
+                          />
+                          Return
+                        </label>
+                      )}
+                      <span className="font-bold text-[#fece3c] ml-2">P {addon.price}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -879,6 +989,11 @@ export default function PassengerDetailsForm({
                   isReturn: p.isReturn,
                   hasInfant: !!p.hasInfant,
                   infantBirthdate: p.infantBirthdate || null,
+                  type: p.type,
+                  birthdate: p.birthdate || null,
+                  passportNumber: p.passportNumber || null,
+                  infantName: p.infantName || null,
+                  infantPassportNumber: p.infantPassportNumber || null,
                 })),
                 userName: contactDetails.name,
                 userEmail: contactDetails.email,
@@ -886,7 +1001,10 @@ export default function PassengerDetailsForm({
                 boardingPoint: departureBoardingPoint,
                 droppingPoint: departureDroppingPoint,
                 contactDetails,
-                emergencyContact,
+                emergencyContact: {
+                name: emergencyContact.name,
+                phone: emergencyContact.phone,
+                },
                 paymentMode,
                 returnTripId: returnBus?.id,
                 returnBoardingPoint,
@@ -911,4 +1029,10 @@ export default function PassengerDetailsForm({
       />
     </div>
   );
+}
+
+function getDateYearsAgo(years: number) {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - years);
+  return d.toISOString().split("T")[0];
 }

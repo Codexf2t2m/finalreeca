@@ -1,11 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AgentManagementPage() {
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [agentBookings, setAgentBookings] = useState<any[]>([]);
+  const [agentSales, setAgentSales] = useState<any>({
+    bookings: 0,
+    revenue: 0,
+    commission: 0,
+  });
 
   useEffect(() => {
     fetch("/api/agents")
@@ -94,6 +109,22 @@ export default function AgentManagementPage() {
       );
     } catch (error) {
       console.error("Error unsuspending agent:", error);
+    }
+  };
+
+  const handleViewActivity = async (id: string) => {
+    setActivityModalOpen(true);
+    // Fetch agent bookings and sales data
+    try {
+      const bookingsResponse = await fetch(`/api/agents/${id}/bookings`);
+      const salesResponse = await fetch(`/api/agents/${id}/sales`);
+      if (!bookingsResponse.ok || !salesResponse.ok) throw new Error("Failed to fetch activity data");
+      const bookingsData = await bookingsResponse.json();
+      const salesData = await salesResponse.json();
+      setAgentBookings(bookingsData.bookings || []);
+      setAgentSales(salesData);
+    } catch (error) {
+      console.error("Error fetching activity data:", error);
     }
   };
 
@@ -254,12 +285,78 @@ export default function AgentManagementPage() {
                   >
                     Remove
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-300 hover:bg-blue-50 text-blue-700"
+                    onClick={() => setSelectedAgent(agent)}
+                  >
+                    View Details
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-purple-300 hover:bg-purple-50 text-purple-700"
+                    onClick={() => handleViewActivity(agent.id)}
+                  >
+                    View Activity
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {selectedAgent && (
+        <Dialog open={!!selectedAgent} onOpenChange={() => setSelectedAgent(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Agent Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <div><strong>Name:</strong> {selectedAgent.name}</div>
+              <div><strong>Email:</strong> {selectedAgent.email}</div>
+              <div><strong>Organization:</strong> {selectedAgent.organization}</div>
+              <div><strong>Mobile:</strong> {selectedAgent.mobile}</div>
+              <div><strong>ID Number:</strong> {selectedAgent.idNumber}</div>
+              <div><strong>Status:</strong> {selectedAgent.approved ? "Approved" : "Pending"}</div>
+            </div>
+            <DialogFooter>
+              {!selectedAgent.approved && (
+                <Button onClick={() => handleApprove(selectedAgent.id)}>Approve</Button>
+              )}
+              <Button variant="destructive" onClick={() => handleDecline(selectedAgent.id)}>Decline</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {activityModalOpen && (
+        <Dialog open={activityModalOpen} onOpenChange={() => setActivityModalOpen(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Agent Activity</DialogTitle>
+            </DialogHeader>
+            <div>
+              <h4 className="font-semibold mb-2">Bookings</h4>
+              <ul>
+                {agentBookings.map(b => (
+                  <li key={b.id}>
+                    {b.orderId} - {b.userName} - {b.seatCount} seats - {b.totalPrice} - {b.trip.routeName} ({b.trip.departureDate})
+                  </li>
+                ))}
+              </ul>
+              <h4 className="font-semibold mt-4 mb-2">Sales</h4>
+              <div>
+                Bookings: {agentSales.bookings}<br />
+                Revenue: {agentSales.revenue}<br />
+                Commission: {agentSales.commission}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

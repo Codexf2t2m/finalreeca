@@ -5,8 +5,12 @@ interface Passenger {
   seat: string;
   title?: string;
   isReturn?: boolean;
-  hasInfant?: boolean; // NEW
-  infantBirthdate?: string; // NEW
+  hasInfant?: boolean;
+  infantBirthdate?: string;
+  type?: "adult" | "child"; // Added type
+  passportNumber?: string;
+  infantName?: string;
+  infantPassportNumber?: string;
 }
 
 interface TripData {
@@ -31,7 +35,19 @@ interface BookingData {
   bookingStatus: string;
   departureTrip: TripData;
   returnTrip?: TripData;
-  addons?: { name: string; details?: string; price?: string }[]; // Added addons field
+  addons?: { name: string; details?: string; price?: string }[];
+  contactDetails?: {
+    name: string;
+    email: string;
+    mobile: string;
+    alternateMobile?: string;
+    idType?: string;
+    idNumber?: string;
+  };
+  emergencyContact?: {
+    name: string;
+    phone: string;
+  };
 }
 
 interface PrintableTicketProps {
@@ -115,7 +131,9 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Name</th>
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Seat</th>
                 <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Title</th>
-                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Infant</th> {/* NEW */}
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Type</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Infant</th>
+                <th className="px-2 md:px-3 py-1 md:py-2 text-left font-semibold text-gray-700">Passport</th>
               </tr>
             </thead>
             <tbody>
@@ -126,23 +144,31 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                     <td className="px-2 md:px-3 py-1 md:py-2">{passenger.name}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2 font-bold">{passenger.seat}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2">{passenger.title || 'Mr'}</td>
+                    <td className="px-2 md:px-3 py-1 md:py-2">{passenger.type === "child" ? "Child" : "Adult"}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2">
                       {passenger.hasInfant ? (
                         <span>
                           Yes
+                          {passenger.infantName ? ` (${passenger.infantName})` : ""}
                           {passenger.infantBirthdate
-                            ? ` (${new Date(passenger.infantBirthdate).toLocaleDateString()})`
+                            ? `, DOB: ${new Date(passenger.infantBirthdate).toLocaleDateString()}`
+                            : ""}
+                          {passenger.infantPassportNumber
+                            ? `, Cert: ${passenger.infantPassportNumber}`
                             : ""}
                         </span>
                       ) : (
                         "No"
                       )}
                     </td>
+                    <td className="px-2 md:px-3 py-1 md:py-2">
+                      {passenger.passportNumber || "-"}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
+                  <td colSpan={7} className="px-2 md:px-3 py-1 md:py-2 text-gray-500 text-center">
                     No passenger data available
                   </td>
                 </tr>
@@ -173,16 +199,22 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
     ref: bookingData.bookingRef,
     name: bookingData.userName,
     trips: [bookingData.departureTrip, bookingData.returnTrip]
-      .filter((trip): trip is TripData => !!trip) // TypeScript guard for linting
+      .filter((trip): trip is TripData => !!trip)
       .map(trip => ({
         route: trip.route,
         date: trip.date instanceof Date ? trip.date.toISOString() : trip.date,
         time: trip.time,
         seats: trip.seats,
-        passengers: trip.passengers.map(p => ({ name: p.name, seat: p.seat })),
+        passengers: trip.passengers.map(p => ({
+          name: p.name,
+          seat: p.seat,
+          type: p.type,
+          hasInfant: p.hasInfant,
+        })),
       })),
     amount: bookingData.totalAmount,
     type: bookingData.returnTrip ? "Roundtrip" : "Departure",
+    addons: bookingData.addons || [],
   };
 
   const qrString = JSON.stringify(qrData);
@@ -260,6 +292,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
         </div>
       </div>
+      {/* Payment Information */}
       <div className="mb-6 md:mb-8">
         <div className="bg-gray-100 p-2 mb-2 md:mb-4">
           <h3 className="font-bold text-gray-800">Payment Information</h3>
@@ -292,26 +325,55 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
         </div>
       </div>
+      {/* Cardholder & Emergency Contact */}
       <div className="mb-6 md:mb-8">
         <div className="bg-gray-100 p-2 mb-2">
-          <h3 className="font-bold text-gray-800">Payer Information</h3>
+          <h3 className="font-bold text-gray-800">Cardholder & Emergency Contact</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
           <div>
             <p>
-              <strong>Name:</strong> {bookingData.userName}
+              <strong>Name:</strong> {bookingData.contactDetails?.name || bookingData.userName}
             </p>
             <p>
-              <strong>Email:</strong> {bookingData.userEmail}
+              <strong>Email:</strong> {bookingData.contactDetails?.email || bookingData.userEmail}
+            </p>
+            <p>
+              <strong>Mobile:</strong> {bookingData.contactDetails?.mobile || bookingData.userPhone || "N/A"}
+            </p>
+            <p>
+              <strong>ID Type:</strong> {bookingData.contactDetails?.idType || "Passport"}
+            </p>
+            <p>
+              <strong>ID Number:</strong> {bookingData.contactDetails?.idNumber || "-"}
             </p>
           </div>
           <div>
             <p>
-              <strong>Phone:</strong> {bookingData.userPhone || "N/A"}
+              <strong>Emergency Name:</strong> {bookingData.emergencyContact?.name || "-"}
+            </p>
+            <p>
+              <strong>Emergency Phone:</strong> {bookingData.emergencyContact?.phone || "-"}
             </p>
           </div>
         </div>
       </div>
+      {/* Addons */}
+      {bookingData.addons && bookingData.addons.length > 0 && (
+        <div className="mb-6 md:mb-8">
+          <div className="bg-gray-100 p-2 mb-2">
+            <h3 className="font-bold text-gray-800">Add-ons</h3>
+          </div>
+          <ul className="list-disc pl-5 text-xs md:text-sm text-gray-700">
+            {bookingData.addons.map((addon, idx) => (
+              <li key={idx}>
+                {addon.name} {addon.details ? `- ${addon.details}` : ""} {addon.price ? `(${addon.price})` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {/* QR Code and Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
         <div>
           <div className="bg-gray-100 p-2 mb-2">
@@ -346,18 +408,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           <p className="text-xs text-gray-600">Scan this QR code for quick verification</p>
         </div>
       </div>
-      {bookingData.addons && bookingData.addons.length > 0 && (
-        <div className="mb-6 md:mb-8">
-          <div className="bg-gray-100 p-2 mb-2">
-            <h3 className="font-bold text-gray-800">Addons</h3>
-          </div>
-          <ul className="list-disc pl-5 text-xs md:text-sm text-gray-700">
-            {bookingData.addons.map((addon, idx) => (
-              <li key={idx}>{addon.name} - {addon.details} {addon.price ? `(${addon.price})` : ""}</li>
-            ))}
-          </ul>
-        </div>
-      )}
       <div className="mt-6 md:mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-600">
         <p>Thank you for choosing REECA TRAVEL for your journey!</p>
         <p>For support, contact us at +26773061124 or admin@reecatravel.co.bw</p>

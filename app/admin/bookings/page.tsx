@@ -5,18 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Search, CheckCircle, XCircle, QrCode, Download, Users, ChevronLeft, ChevronRight, Mail, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PrintableTicket } from "@/components/printable-ticket";
 import * as XLSX from "xlsx";
+
+// Define color scheme
+const colors = {
+  primary: '#009393',       // Teal
+  secondary: '#febf00',     // Gold
+  accent: '#958c55',        // Olive
+  muted: '#f5f5f5',         // Light gray
+  dark: '#1a1a1a',          // Dark gray
+  light: '#ffffff',         // White
+  destructive: '#ef4444'    // Red
+};
 
 interface Passenger {
   name: string;
   seat: string;
   title?: string;
   isReturn?: boolean;
+  type?: string;
+  passportNumber?: string;
+  hasInfant?: boolean;
+  infantName?: string;
+  infantBirthdate?: string;
+  infantPassportNumber?: string;
 }
 
 interface TripData {
@@ -64,6 +81,13 @@ export default function BookingsManagement() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [showSendTicketModal, setShowSendTicketModal] = useState(false);
+  const [newDepartureDate, setNewDepartureDate] = useState("");
+  const [newDepartureTime, setNewDepartureTime] = useState("");
+  const [newReturnDate, setNewReturnDate] = useState("");
+  const [newReturnTime, setNewReturnTime] = useState("");
+  const [email, setEmail] = useState("");
 
   const formatDate = (date: Date | string | undefined, formatStr: string) => {
     if (!date) return "N/A";
@@ -116,6 +140,7 @@ export default function BookingsManagement() {
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowBookingDetails(true);
+    setEmail(booking.email);
   };
 
   const handlePrintTicket = async (booking: Booking) => {
@@ -205,10 +230,62 @@ export default function BookingsManagement() {
     XLSX.writeFile(workbook, "bookings_export.xlsx");
   };
 
+  const handleRescheduleBooking = async () => {
+    if (!selectedBooking) return;
+    
+    try {
+      const response = await fetch("/api/booking/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: selectedBooking.bookingRef,
+          newDepartureDate,
+          newDepartureTime,
+          newReturnDate: selectedBooking.returnTrip ? newReturnDate : undefined,
+          newReturnTime: selectedBooking.returnTrip ? newReturnTime : undefined,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to reschedule booking");
+      
+      const data = await response.json();
+      setBookings(prev => prev.map(b => b.id === selectedBooking.id ? data : b));
+      setShowRescheduleModal(false);
+      setShowSendTicketModal(true);
+    } catch (error) {
+      console.error("Reschedule failed:", error);
+      alert("Reschedule failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
+  const handleSendTicket = async () => {
+    if (!selectedBooking) return;
+    
+    try {
+      const response = await fetch("/api/send-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: selectedBooking.bookingRef,
+          email: email || selectedBooking.email,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to send ticket");
+      
+      alert("Ticket sent successfully!");
+      setShowSendTicketModal(false);
+    } catch (error) {
+      console.error("Send ticket failed:", error);
+      alert("Send ticket failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <Card className="border border-gray-200 shadow-sm">
-        <CardContent className="p-6">
+    <div className="space-y-6 p-4 md:p-6" style={{ backgroundColor: colors.muted }}>
+      {/* Search and Filter Card */}
+      <Card className="border border-gray-200 shadow-sm" style={{ backgroundColor: colors.light }}>
+        <CardContent className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 w-full">
               <div className="relative">
@@ -218,15 +295,16 @@ export default function BookingsManagement() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
+                  style={{ borderColor: colors.accent }}
                 />
               </div>
             </div>
             <div className="w-full md:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48">
+                <SelectTrigger className="w-full md:w-48" style={{ borderColor: colors.accent }}>
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ backgroundColor: colors.light }}>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -242,10 +320,10 @@ export default function BookingsManagement() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="w-full md:w-32">
+                <SelectTrigger className="w-full md:w-32" style={{ borderColor: colors.accent }}>
                   <SelectValue placeholder="Items per page" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent style={{ backgroundColor: colors.light }}>
                   <SelectItem value="10">10 per page</SelectItem>
                   <SelectItem value="25">25 per page</SelectItem>
                   <SelectItem value="50">50 per page</SelectItem>
@@ -257,6 +335,7 @@ export default function BookingsManagement() {
               variant="outline"
               className="border-teal-600 text-teal-600 hover:bg-teal-50"
               onClick={handleExportExcel}
+              style={{ borderColor: colors.primary, color: colors.primary }}
             >
               <Download className="h-4 w-4 mr-2" />
               Export Excel
@@ -265,19 +344,20 @@ export default function BookingsManagement() {
         </CardContent>
       </Card>
 
-      <Card className="border border-gray-200 shadow-sm">
+      {/* Bookings Table Card */}
+      <Card className="border border-gray-200 shadow-sm" style={{ backgroundColor: colors.light }}>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-semibold text-gray-900">
+              <CardTitle className="text-lg font-semibold" style={{ color: colors.dark }}>
                 Bookings Management
               </CardTitle>
-              <CardDescription className="text-sm text-gray-600">
+              <CardDescription className="text-sm" style={{ color: colors.accent }}>
                 {filteredBookings.length} bookings found
               </CardDescription>
             </div>
             {filteredBookings.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm" style={{ color: colors.accent }}>
                 <span>Page {currentPage} of {totalPages}</span>
               </div>
             )}
@@ -286,9 +366,9 @@ export default function BookingsManagement() {
         <CardContent>
           {filteredBookings.length === 0 ? (
             <div className="py-12 text-center">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No bookings found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <Users className="mx-auto h-12 w-12" style={{ color: colors.accent }} />
+              <h3 className="mt-2 text-sm font-medium" style={{ color: colors.dark }}>No bookings found</h3>
+              <p className="mt-1 text-sm" style={{ color: colors.accent }}>
                 Try adjusting your search or filter criteria
               </p>
             </div>
@@ -298,22 +378,22 @@ export default function BookingsManagement() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Booking Ref
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Passenger
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Route
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Date & Time
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Status
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Actions
                       </th>
                     </tr>
@@ -322,21 +402,21 @@ export default function BookingsManagement() {
                     {currentItems.map((booking) => (
                       <tr key={booking.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-teal-600">{booking.bookingRef}</div>
+                          <div className="text-sm font-medium" style={{ color: colors.primary }}>{booking.bookingRef}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{booking.passengerName}</div>
-                          <div className="text-sm text-gray-500">{booking.email}</div>
+                          <div className="text-sm font-medium" style={{ color: colors.dark }}>{booking.passengerName}</div>
+                          <div className="text-sm" style={{ color: colors.accent }}>{booking.email}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{booking.route}</div>
-                          <div className="text-xs text-gray-500">{booking.bus}</div>
+                          <div className="text-sm" style={{ color: colors.dark }}>{booking.route}</div>
+                          <div className="text-xs" style={{ color: colors.accent }}>{booking.bus}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm" style={{ color: colors.dark }}>
                             {formatDate(booking.date, "MMM dd, yyyy")}
                           </div>
-                          <div className="text-xs text-gray-500">{booking.time}</div>
+                          <div className="text-xs" style={{ color: colors.accent }}>{booking.time}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge
@@ -359,6 +439,7 @@ export default function BookingsManagement() {
                               size="sm"
                               onClick={() => handleViewBooking(booking)}
                               className="text-gray-600 hover:text-teal-600"
+                              style={{ color: colors.primary }}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -368,6 +449,7 @@ export default function BookingsManagement() {
                               onClick={() => handlePrintTicket(booking)}
                               className="text-gray-600 hover:text-amber-600"
                               disabled={loading}
+                              style={{ color: colors.secondary }}
                             >
                               {loading ? (
                                 <span className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
@@ -385,7 +467,7 @@ export default function BookingsManagement() {
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6">
-                  <div className="text-sm text-gray-700">
+                  <div className="text-sm" style={{ color: colors.dark }}>
                     Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
                     <span className="font-medium">
                       {Math.min(indexOfLastItem, filteredBookings.length)}
@@ -398,6 +480,7 @@ export default function BookingsManagement() {
                       size="sm"
                       onClick={prevPage}
                       disabled={currentPage === 1}
+                      style={{ borderColor: colors.primary, color: colors.primary }}
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
@@ -420,19 +503,25 @@ export default function BookingsManagement() {
                           variant={currentPage === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => paginate(pageNum)}
+                          style={{
+                            backgroundColor: currentPage === pageNum ? colors.primary : colors.light,
+                            borderColor: currentPage === pageNum ? colors.primary : colors.accent,
+                            color: currentPage === pageNum ? colors.light : colors.dark
+                          }}
                         >
                           {pageNum}
                         </Button>
                       );
                     })}
                     {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <span className="flex items-center px-3 text-sm text-gray-700">...</span>
+                      <span className="flex items-center px-3 text-sm" style={{ color: colors.accent }}>...</span>
                     )}
                     {totalPages > 5 && currentPage < totalPages - 2 && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => paginate(totalPages)}
+                        style={{ borderColor: colors.primary, color: colors.primary }}
                       >
                         {totalPages}
                       </Button>
@@ -442,6 +531,7 @@ export default function BookingsManagement() {
                       size="sm"
                       onClick={nextPage}
                       disabled={currentPage === totalPages}
+                      style={{ borderColor: colors.primary, color: colors.primary }}
                     >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -454,195 +544,315 @@ export default function BookingsManagement() {
         </CardContent>
       </Card>
 
+      {/* Booking Details Modal */}
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
           <DialogHeader>
-            <DialogTitle className="text-teal-900">Booking Details</DialogTitle>
-            <DialogDescription>Complete information for booking {selectedBooking?.bookingRef}</DialogDescription>
+            <DialogTitle style={{ color: colors.primary }}>Booking Details</DialogTitle>
+            <DialogDescription style={{ color: colors.accent }}>
+              Manage booking <span className="font-bold">{selectedBooking?.bookingRef}</span>
+            </DialogDescription>
           </DialogHeader>
           {selectedBooking && (
             <div className="space-y-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-gray-800">Passenger Information</h4>
+              {/* Booking Info */}
+              <section>
+                <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Booking Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.passengerName}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.email}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Phone:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Passengers:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.passengers}</span>
-                  </div>
+                  <div><span style={{ color: colors.accent }}>Passenger:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.passengerName}</span></div>
+                  <div><span style={{ color: colors.accent }}>Email:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.email}</span></div>
+                  <div><span style={{ color: colors.accent }}>Phone:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.phone}</span></div>
+                  <div><span style={{ color: colors.accent }}>Status:</span> <Badge>{selectedBooking.bookingStatus}</Badge></div>
                 </div>
-              </div>
-
-              {selectedBooking.passengerList && selectedBooking.passengerList.length > 0 && (
-                <div className="p-4 bg-gray-100 rounded-lg">
-                  <h4 className="font-semibold mb-3 text-gray-800">Passenger List</h4>
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Name</th>
-                        <th className="text-left p-2">Seat</th>
-                        <th className="text-left p-2">Title</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedBooking.passengerList.map((passenger, index) => (
-                        <tr key={index} className="border-b last:border-0">
-                          <td className="p-2">{passenger.name}</td>
-                          <td className="p-2">{passenger.seat}</td>
-                          <td className="p-2">{passenger.title || "-"}</td>
+              </section>
+              
+              {/* Passenger List */}
+              {selectedBooking.passengerList && (
+                <section>
+                  <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Passenger List</h4>
+                  <div className="border rounded-lg overflow-hidden" style={{ borderColor: colors.accent }}>
+                    <table className="w-full text-sm">
+                      <thead style={{ backgroundColor: colors.muted }}>
+                        <tr>
+                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Name</th>
+                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Seat</th>
+                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Type</th>
+                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Passport</th>
+                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Infant</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {selectedBooking.passengerList.map((p, idx) => (
+                          <tr key={idx} className={idx % 2 === 0 ? "" : "bg-gray-50"}>
+                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.name}</td>
+                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.seat}</td>
+                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.type || "Adult"}</td>
+                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.passportNumber || "-"}</td>
+                            <td className="px-4 py-2" style={{ color: colors.dark }}>
+                              {p.hasInfant ? (
+                                <>
+                                  Yes
+                                  {p.infantName && ` (${p.infantName})`}
+                                  {p.infantBirthdate && `, DOB: ${p.infantBirthdate}`}
+                                  {p.infantPassportNumber && `, Cert: ${p.infantPassportNumber}`}
+                                </>
+                              ) : "No"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               )}
-
-              <div className="p-4 bg-teal-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-teal-800">Journey Information</h4>
+              
+              {/* Journey Info */}
+              <section>
+                <h4 className="font-semibold mb-2" style={{ color: colors.primary }}>Journey Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-teal-600">Route:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.route}</span>
+                    <span style={{ color: colors.primary }}>Route:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.route}</span>
                   </div>
                   <div>
-                    <span className="text-teal-600">Date:</span>
-                    <span className="font-semibold ml-2">{formatDate(selectedBooking.date, "EEEE, MMMM dd, yyyy")}</span>
+                    <span style={{ color: colors.primary }}>Date:</span> <span className="font-semibold" style={{ color: colors.dark }}>{formatDate(selectedBooking.date, "EEEE, MMMM dd, yyyy")}</span>
                   </div>
                   <div>
-                    <span className="text-teal-600">Time:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.time}</span>
+                    <span style={{ color: colors.primary }}>Time:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.time}</span>
                   </div>
                   <div>
-                    <span className="text-teal-600">Bus:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.bus}</span>
+                    <span style={{ color: colors.primary }}>Bus:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.bus}</span>
                   </div>
                   <div>
-                    <span className="text-teal-600">Boarding:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.boardingPoint}</span>
+                    <span style={{ color: colors.primary }}>Boarding:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.boardingPoint}</span>
                   </div>
                   <div>
-                    <span className="text-teal-600">Dropping:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.droppingPoint}</span>
+                    <span style={{ color: colors.primary }}>Dropping:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.droppingPoint}</span>
                   </div>
                 </div>
-              </div>
-
-              <div className="p-4 bg-amber-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-amber-800">Seat Information</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedBooking.seats.map((seat) => (
-                    <Badge key={seat} className="bg-amber-600 text-white">
-                      {seat}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold mb-3 text-green-800">Payment Information</h4>
+              </section>
+              
+              {/* Payment Info */}
+              <section>
+                <h4 className="font-semibold mb-2" style={{ color: colors.secondary }}>Payment Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-green-600">Total Amount:</span>
-                    <span className="font-bold ml-2 text-lg">P {selectedBooking.totalAmount}</span>
-                  </div>
-                  <div>
-                    <span className="text-green-600">Payment Method:</span>
-                    <span className="font-semibold ml-2">{selectedBooking.paymentMethod}</span>
-                  </div>
-                  <div>
-                    <span className="text-green-600">Payment Status:</span>
-                    <Badge
-                      className={cn(
-                        "ml-2",
-                        selectedBooking.paymentStatus === "Paid"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      )}
-                    >
-                      {selectedBooking.paymentStatus}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="text-green-600">Booking Status:</span>
-                    <Badge
-                      className={cn(
-                        "ml-2",
-                        selectedBooking.bookingStatus === "Confirmed"
-                          ? "bg-green-100 text-green-800"
-                          : selectedBooking.bookingStatus === "Pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                      )}
-                    >
-                      {selectedBooking.bookingStatus}
-                    </Badge>
-                  </div>
+                  <div><span style={{ color: colors.accent }}>Method:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentMethod}</span></div>
+                  <div><span style={{ color: colors.accent }}>Status:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentStatus}</span></div>
+                  <div><span style={{ color: colors.accent }}>Amount:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.totalAmount.toFixed(2)} USD</span></div>
                 </div>
-              </div>
-
-              {selectedBooking.specialRequests && (
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold mb-2 text-blue-800">Special Requests</h4>
-                  <p className="text-sm text-blue-700">{selectedBooking.specialRequests}</p>
+              </section>
+              
+              {/* Actions */}
+              <section>
+                <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Actions</h4>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowRescheduleModal(true);
+                      setShowBookingDetails(false);
+                    }}
+                    style={{ borderColor: colors.primary, color: colors.primary }}
+                  >
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    Reschedule Booking
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowSendTicketModal(true);
+                      setShowBookingDetails(false);
+                    }}
+                    style={{ borderColor: colors.primary, color: colors.primary }}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Ticket
+                  </Button>
                 </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  onClick={() => handleUpdateBookingStatus(selectedBooking.id, "Confirmed")}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  disabled={selectedBooking.bookingStatus === "Confirmed"}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirm Booking
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleUpdateBookingStatus(selectedBooking.id, "Cancelled")}
-                  disabled={selectedBooking.bookingStatus === "Cancelled"}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancel Booking
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-teal-600 border-teal-600"
-                  onClick={() => {
-                    setShowBookingDetails(false);
-                    handlePrintTicket(selectedBooking);
-                  }}
-                >
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Print Ticket
-                </Button>
-              </div>
+              </section>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showPrintTicket} onOpenChange={setShowPrintTicket}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+{/* Reschedule Modal */}
+<Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
+  <DialogContent className="max-w-md" style={{ backgroundColor: colors.light }}>
+    <DialogHeader>
+      <DialogTitle style={{ color: colors.primary }}>Reschedule Booking</DialogTitle>
+      <DialogDescription style={{ color: colors.accent }}>
+        Update the travel dates for booking {selectedBooking?.bookingRef}
+        {selectedBooking?.returnTrip && (
+          <span className="block mt-1 text-sm font-medium" style={{ color: colors.secondary }}>
+            (Round Trip Booking)
+          </span>
+        )}
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
+          New Departure Date
+        </label>
+        <Input 
+          type="date" 
+          value={newDepartureDate} 
+          onChange={(e) => setNewDepartureDate(e.target.value)} 
+          style={{ borderColor: colors.accent }}
+          min={formatDate(new Date(), 'yyyy-MM-dd')} // Can't reschedule to past dates
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
+          New Departure Time
+        </label>
+        <Input 
+          type="time" 
+          value={newDepartureTime} 
+          onChange={(e) => setNewDepartureTime(e.target.value)} 
+          style={{ borderColor: colors.accent }}
+        />
+      </div>
+
+      {/* Conditional Return Trip Fields */}
+      {selectedBooking?.returnTrip && (
+        <>
+          <div className="pt-4 border-t border-gray-200">
+            <h4 className="text-sm font-medium mb-3" style={{ color: colors.secondary }}>
+              Return Trip Details
+            </h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                  New Return Date
+                </label>
+                <Input 
+                  type="date" 
+                  value={newReturnDate} 
+                  onChange={(e) => setNewReturnDate(e.target.value)} 
+                  style={{ borderColor: colors.accent }}
+                  min={newDepartureDate || formatDate(new Date(), 'yyyy-MM-dd')} // Return can't be before departure
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                  New Return Time
+                </label>
+                <Input 
+                  type="time" 
+                  value={newReturnTime} 
+                  onChange={(e) => setNewReturnTime(e.target.value)} 
+                  style={{ borderColor: colors.accent }}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Validation message if dates are invalid */}
+          {newDepartureDate && newReturnDate && newDepartureDate > newReturnDate && (
+            <div className="text-sm p-2 rounded-md" style={{ backgroundColor: colors.destructive + '10', color: colors.destructive }}>
+              Return date cannot be before departure date
+            </div>
+          )}
+        </>
+      )}
+    </div>
+    <DialogFooter>
+      <Button 
+        variant="outline" 
+        onClick={() => setShowRescheduleModal(false)}
+        style={{ borderColor: colors.primary, color: colors.primary }}
+      >
+        Cancel
+      </Button>
+      <Button 
+        onClick={handleRescheduleBooking}
+        style={{ backgroundColor: colors.primary }}
+        disabled={
+          !!(
+            selectedBooking?.returnTrip &&
+            newDepartureDate &&
+            newReturnDate &&
+            newDepartureDate > newReturnDate
+          )
+        }
+      >
+        Reschedule & Send Ticket
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+      {/* Send Ticket Modal */}
+      <Dialog open={showSendTicketModal} onOpenChange={setShowSendTicketModal}>
+        <DialogContent className="max-w-md" style={{ backgroundColor: colors.light }}>
           <DialogHeader>
-            <DialogTitle className="text-teal-900">Print Ticket</DialogTitle>
-            <DialogDescription>
+            <DialogTitle style={{ color: colors.primary }}>Send Ticket</DialogTitle>
+            <DialogDescription style={{ color: colors.accent }}>
+              Send booking confirmation to the passenger
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>Recipient Email</label>
+              <Input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                style={{ borderColor: colors.accent }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSendTicketModal(false)}
+              style={{ borderColor: colors.primary, color: colors.primary }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendTicket}
+              style={{ backgroundColor: colors.primary }}
+            >
+              Send Ticket
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Ticket Modal */}
+      <Dialog open={showPrintTicket} onOpenChange={setShowPrintTicket}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
+          <DialogHeader>
+            <DialogTitle style={{ color: colors.primary }}>Printable Ticket</DialogTitle>
+            <DialogDescription style={{ color: colors.accent }}>
               Print or download ticket for {selectedBookingData?.bookingRef}
             </DialogDescription>
           </DialogHeader>
           {selectedBookingData && (
             <div className="space-y-4">
               <PrintableTicket bookingData={selectedBookingData} />
+              <div className="flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.print()}
+                  style={{ borderColor: colors.primary, color: colors.primary }}
+                >
+                  Print Ticket
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setShowSendTicketModal(true);
+                    setShowPrintTicket(false);
+                  }}
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send to Passenger
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

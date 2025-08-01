@@ -32,8 +32,8 @@ interface Trip {
   hasDeparted?: boolean;
 }
 
-const morningBusImg = "/images/scania-irizar-vip.png";
-const afternoonBusImg = "/images/scania-irizar-vip.png";
+const morningBusImg = "/images/bus2.png";
+const afternoonBusImg = "/images/bus2.png";
 
 interface BusSchedulesProps {
   searchData: SearchData;

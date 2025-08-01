@@ -9,6 +9,9 @@ export default function AgentAuth() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [idNumber, setIdNumber] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +23,9 @@ export default function AgentAuth() {
     setSuccess(false);
 
     try {
-      const payload = mode === "login" ? { email, password } : { name, email, password };
+      const payload = mode === "login"
+        ? { email, password }
+        : { name, email, password, organization, mobile, idNumber };
       const endpoint = mode === "login" ? "/api/agent/login" : "/api/agent/register";
 
       const res = await fetch(endpoint, {
@@ -39,6 +44,9 @@ export default function AgentAuth() {
           setName("");
           setEmail("");
           setPassword("");
+          setOrganization("");
+          setMobile("");
+          setIdNumber("");
           setMode("login");
         }
       } else {
@@ -52,10 +60,10 @@ export default function AgentAuth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-2 bg-white rounded-xl shadow-xl overflow-hidden border border-gray-200">
         {/* Left: Image */}
-        <div className="hidden lg:block relative h-[600px]">
+        <div className="hidden lg:block relative h-[700px]">
           <Image
             src="/images/agentlog.jpg"
             alt="Bus travel image"
@@ -64,92 +72,152 @@ export default function AgentAuth() {
             priority
             quality={100}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/30 flex items-end p-8">
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-2">Bus Booking System</h2>
-              <p className="text-teal-200">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20 flex items-end p-8">
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-white">Reeca Travel Agents</h2>
+              <p className="text-teal-200/90 font-medium">
                 {mode === "login" 
-                  ? "Manage bookings and serve your clients efficiently"
-                  : "Join our network of professional booking agents"}
+                  ? "Professional booking management platform"
+                  : "Join our network of trusted travel partners"}
               </p>
+              <div className="flex items-center space-x-2 pt-2">
+                <div className="w-8 h-px bg-teal-300/70"></div>
+                <span className="text-xs text-teal-200/70 tracking-wider">REECA TRAVEL</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right: Form */}
-        <div className="flex flex-col justify-center p-8 sm:p-12">
+        <div className="flex flex-col justify-center p-6 sm:p-10 md:p-12">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
-              <Image
-                src="/images/reeca-travel-logo.png"
-                alt="Company Logo"
-                width={60}
-                height={60}
-                className="rounded-lg"
-              />
+              <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                <Image
+                  src="/images/reeca-travel-logo.png"
+                  alt="Company Logo"
+                  width={60}
+                  height={60}
+                  className="rounded-md"
+                />
+              </div>
             </div>
             <h2 className="text-2xl font-bold text-gray-800">
-              {mode === "login" ? "Agent Sign In" : "Create Agent Account"}
+              {mode === "login" ? "Agent Portal" : "Agent Registration"}
             </h2>
-            <p className="text-gray-500 mt-2">
+            <p className="text-gray-500 mt-2 text-sm">
               {mode === "login"
-                ? "Access your booking dashboard"
-                : "Register to start managing bookings"}
+                ? "Sign in to access your dashboard"
+                : "Create your professional account"}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="py-3 px-4"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                    Full Name
+                  </label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="organization" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                    Organization
+                  </label>
+                  <Input
+                    id="organization"
+                    placeholder="Travel Agency Ltd"
+                    value={organization}
+                    onChange={(e) => setOrganization(e.target.value)}
+                    required
+                    className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="mobile" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                    Mobile Number
+                  </label>
+                  <Input
+                    id="mobile"
+                    placeholder="+267 123 4567"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    required
+                    className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="idNumber" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                    ID Number
+                  </label>
+                  <Input
+                    id="idNumber"
+                    placeholder="ID/Passport Number"
+                    value={idNumber}
+                    onChange={(e) => setIdNumber(e.target.value)}
+                    required
+                    className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                  />
+                </div>
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="agent@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="py-3 px-4"
-              />
-            </div>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="agent@yourcompany.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                />
+              </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="py-3 px-4"
-              />
+              <div>
+                <label htmlFor="password" className="block text-xs font-medium text-gray-600 mb-1 uppercase tracking-wider">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="py-3 px-4 text-sm border-gray-300 focus:border-teal-500 focus:ring-teal-500"
+                />
+              </div>
             </div>
 
             {mode === "login" && (
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-xs text-gray-600">
+                    Remember me
+                  </label>
+                </div>
                 <button
                   type="button"
-                  className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                 >
                   Forgot password?
                 </button>
@@ -157,10 +225,10 @@ export default function AgentAuth() {
             )}
 
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-center">
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-start">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-2"
+                  className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -170,15 +238,15 @@ export default function AgentAuth() {
                     clipRule="evenodd"
                   />
                 </svg>
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="p-3 bg-green-50 text-green-600 text-sm rounded-md flex items-center">
+              <div className="p-3 bg-green-50 text-green-600 text-sm rounded-md flex items-start">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-2"
+                  className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -188,13 +256,16 @@ export default function AgentAuth() {
                     clipRule="evenodd"
                   />
                 </svg>
-                Registration successful! Your account will be reviewed by Reeca management. You will be able to log in once your agent account is approved.
+                <span>
+                  Registration successful! Your account will be reviewed by Reeca management. 
+                  You'll receive an email once your agent account is approved.
+                </span>
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-4 rounded-lg shadow-sm transition-colors"
+              className="w-full bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white font-medium py-3 px-4 rounded-lg shadow-sm transition-all duration-200 ease-in-out transform hover:shadow-md"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -224,46 +295,48 @@ export default function AgentAuth() {
               ) : mode === "login" ? (
                 "Sign In"
               ) : (
-                "Register"
+                "Register Account"
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-6 text-center text-sm text-gray-500">
             {mode === "login" ? (
               <>
-                Don't have an account?{" "}
+                New to Reeca Travel?{" "}
                 <button
                   onClick={() => {
                     setMode("register");
                     setError("");
                     setSuccess(false);
                   }}
-                  className="text-teal-600 font-semibold hover:text-teal-700 hover:underline"
+                  className="text-teal-600 font-medium hover:text-teal-700 hover:underline"
                 >
-                  Register here
+                  Create agent account
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{" "}
+                Already registered?{" "}
                 <button
                   onClick={() => {
                     setMode("login");
                     setError("");
                     setSuccess(false);
                   }}
-                  className="text-teal-600 font-semibold hover:text-teal-700 hover:underline"
+                  className="text-teal-600 font-medium hover:text-teal-700 hover:underline"
                 >
-                  Sign in here
+                  Sign in to your account
                 </button>
               </>
             )}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
-              By continuing, you agree to our Terms of Service and Privacy Policy
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              By continuing, you agree to our{" "}
+              <a href="#" className="text-teal-600 hover:underline">Terms of Service</a> and{" "}
+              <a href="#" className="text-teal-600 hover:underline">Privacy Policy</a>
             </p>
           </div>
         </div>

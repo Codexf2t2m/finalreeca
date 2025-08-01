@@ -84,8 +84,13 @@ model Passenger {
   title      String
   isReturn   Boolean  @default(false)
   boarded    Boolean  @default(false)
-  hasInfant  Boolean  @default(false) // <-- NEW
-  infantBirthdate String?             // <-- NEW
+  hasInfant  Boolean  @default(false)
+  infantBirthdate String?
+  infantName String?                // <-- Add this
+  infantPassportNumber String?      // <-- Add this
+  birthdate String?                 // <-- Add this for child
+  passportNumber String?            // <-- Add this for adult/child
+  type String?                      // <-- Add this for adult/child
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -111,10 +116,13 @@ model Agent {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String
+  organization String
+  mobile    String
+  idNumber  String
   password  String   // hashed
   createdAt DateTime @default(now())
   bookings  Booking[]
-  approved  Boolean  @default(false) // <-- Add this line
-  suspended        Boolean @default(false)
+  approved  Boolean  @default(false)
+  suspended Boolean  @default(false)
   suspensionDate   DateTime?
 }
