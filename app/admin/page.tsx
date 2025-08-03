@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { Users, DollarSign, AlertTriangle, Bus, TrendingUp, BarChart3, QrCode, FileText, Clock, ArrowUpRight } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { PolicyModal } from "@/components/PolicyModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Trip {
   id: string;
@@ -52,6 +54,10 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inquiryCount, setInquiryCount] = useState(0);
+  const [showPolicyEditor, setShowPolicyEditor] = useState(false);
+  const [showFareEditor, setShowFareEditor] = useState(false);
+  const [infantFare, setInfantFare] = useState<number>(250);
+  const [childFare, setChildFare] = useState<number>(400);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -84,9 +90,42 @@ export default function DashboardOverview() {
       }
     };
 
+    const fetchFareSettings = async () => {
+      try {
+        const response = await fetch('/api/faresettings');
+        if (!response.ok) {
+          throw new Error('Failed to fetch fare settings');
+        }
+        const data = await response.json();
+        setInfantFare(data.infant ?? 250);
+        setChildFare(data.child ?? 400);
+      } catch (err) {
+        console.error("Error fetching fare settings:", err);
+      }
+    };
+
     fetchDashboardData();
     fetchInquiryCount();
+    fetchFareSettings();
   }, []);
+
+  useEffect(() => {
+    fetch('/api/getfareprices')
+      .then(res => res.json())
+      .then(data => {
+        setInfantFare(data.infant ?? 250);
+        setChildFare(data.child ?? 400);
+      });
+  }, []);
+
+  const handleSaveFares = async () => {
+    await fetch("/api/setfareprices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ infant: infantFare, child: childFare }),
+    });
+    setShowFareEditor(false);
+  };
 
   if (loading) {
     return (
@@ -271,6 +310,15 @@ export default function DashboardOverview() {
                   </button>
                 </Link>
                 
+                <Link href="/admin/consultants">
+                  <button className="w-full h-24 flex flex-col items-center justify-center gap-3 border border-[#e5e7eb] rounded-lg hover:border-[#fcd34d] hover:bg-[#fef9c3] transition-colors">
+                    <div className="rounded-full bg-[#fcd34d]/30 p-3">
+                      <Users className="h-5 w-5 text-[#b45309]" />
+                    </div>
+                    <span className="text-sm font-medium">Consultants</span>
+                  </button>
+                </Link>
+                
                 <Link href="/admin/fleet">
                   <button className="w-full h-24 flex flex-col items-center justify-center gap-3 border border-[#e5e7eb] rounded-lg hover:border-[#c7d2fe] hover:bg-[#eef2ff] transition-colors">
                     <div className="rounded-full bg-[#c7d2fe] p-3">
@@ -288,6 +336,27 @@ export default function DashboardOverview() {
                     <span className="text-sm font-medium">Schedule</span>
                   </button>
                 </Link>
+                
+                {/* --- NEW: Edit Policy Button --- */}
+                <button
+                  className="w-full h-24 flex flex-col items-center justify-center gap-3 border border-[#e5e7eb] rounded-lg hover:border-[#fbbf24] hover:bg-[#fef3c7] transition-colors"
+                  onClick={() => setShowPolicyEditor(true)}
+                >
+                  <div className="rounded-full bg-[#fbbf24]/30 p-3">
+                    <FileText className="h-5 w-5 text-[#f59e42]" />
+                  </div>
+                  <span className="text-sm font-medium">Edit Policy</span>
+                </button>
+                {/* --- NEW: Set Fare Prices Button --- */}
+                <button
+                  className="w-full h-24 flex flex-col items-center justify-center gap-3 border border-[#e5e7eb] rounded-lg hover:border-[#a7f3d0] hover:bg-[#f0fdfa] transition-colors"
+                  onClick={() => setShowFareEditor(true)}
+                >
+                  <div className="rounded-full bg-[#a7f3d0]/30 p-3">
+                    <DollarSign className="h-5 w-5 text-[#059669]" />
+                  </div>
+                  <span className="text-sm font-medium">Set Fare Prices</span>
+                </button>
               </div>
             </div>
           </div>
@@ -437,6 +506,50 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+
+      {/* --- Policy Editor Modal --- */}
+      <PolicyModal
+          isOpen={showPolicyEditor}
+          onClose={() => setShowPolicyEditor(false)}
+          mode="admin"
+        />
+
+      {/* --- Fare Editor Modal --- */}
+      <Dialog open={showFareEditor} onOpenChange={setShowFareEditor}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Fare Prices</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Infant Fare</label>
+              <input
+                type="number"
+                className="w-full border rounded px-3 py-2"
+                placeholder="Enter infant fare (e.g. 250)"
+                value={infantFare}
+                onChange={e => setInfantFare(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Child Fare</label>
+              <input
+                type="number"
+                className="w-full border rounded px-3 py-2"
+                placeholder="Enter child fare (e.g. 400)"
+                value={childFare}
+                onChange={e => setChildFare(Number(e.target.value))}
+              />
+            </div>
+            <button
+              className="w-full mt-4 bg-[#009393] hover:bg-[#007575] text-white font-semibold py-2 px-4 rounded"
+              onClick={handleSaveFares}
+            >
+              Save Fare Prices
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

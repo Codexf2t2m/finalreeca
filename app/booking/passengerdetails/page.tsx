@@ -170,6 +170,8 @@ export default function PassengerDetailsForm({
     addons: true
   });
   const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [infantFare, setInfantFare] = useState(250);
+  const [childFare, setChildFare] = useState(400);
 
   const getAddonsTotal = () => {
     let total = 0;
@@ -225,12 +227,12 @@ export default function PassengerDetailsForm({
   const departurePricePerSeat = departureBus?.fare || 0;
 
   const getPassengerFare = (p: Passenger) => {
-    if (p.type === "child") return 400;
+    if (p.type === "child") return childFare;
     return departurePricePerSeat;
   };
 
   const infantCount = passengers.filter(p => p.hasInfant).length;
-  const infantTotal = infantCount * 250;
+  const infantTotal = infantCount * infantFare;
 
   const departureTotal = passengers
     .filter(p => !p.isReturn)
@@ -253,6 +255,15 @@ export default function PassengerDetailsForm({
         }
       })
       .catch(() => setAgent(null));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/getfareprices")
+      .then(res => res.json())
+      .then(data => {
+        setInfantFare(data.infant ?? 250);
+        setChildFare(data.child ?? 400);
+      });
   }, []);
 
   const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
@@ -937,11 +948,11 @@ export default function PassengerDetailsForm({
           </div>
 
           {/* Terms and Conditions */}
-          <div className="flex items-start space-x-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="flex items-start space-x-2 mt-4">
             <Checkbox
               id="terms"
               checked={agreedToTerms}
-              onCheckedChange={(checked) => {
+              onCheckedChange={(checked: boolean | string) => {
                 setAgreedToTerms(!!checked);
                 if (checked) setShowPolicyModal(true);
               }}
@@ -1002,8 +1013,8 @@ export default function PassengerDetailsForm({
                 droppingPoint: departureDroppingPoint,
                 contactDetails,
                 emergencyContact: {
-                name: emergencyContact.name,
-                phone: emergencyContact.phone,
+                  name: emergencyContact.name,
+                  phone: emergencyContact.phone,
                 },
                 paymentMode,
                 returnTripId: returnBus?.id,
@@ -1020,12 +1031,11 @@ export default function PassengerDetailsForm({
       <PolicyModal
         isOpen={showPolicyModal}
         onClose={() => setShowPolicyModal(false)}
+        mode="user"
         onAgree={() => {
           setPolicyAccepted(true);
           setShowPolicyModal(false);
         }}
-        agreed={policyAccepted}
-        setAgreed={setPolicyAccepted}
       />
     </div>
   );

@@ -72,6 +72,9 @@ model Booking {
 
   agentId    String?  // nullable for normal bookings
   agent      Agent?   @relation(fields: [agentId], references: [id])
+
+  consultantId String?
+  consultant   Consultant? @relation(fields: [consultantId], references: [id])
 }
 
 model Passenger {
@@ -125,4 +128,32 @@ model Agent {
   approved  Boolean  @default(false)
   suspended Boolean  @default(false)
   suspensionDate   DateTime?
+}
+
+model Consultant {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  organization String
+  mobile    String
+  idNumber  String
+  password  String   // hashed
+  createdAt DateTime @default(now())
+  bookings  Booking[]
+  approved  Boolean  @default(false)
+  suspended Boolean  @default(false)
+  suspensionDate   DateTime?
+}
+
+model FareSetting {
+  id        String   @id @default(uuid())
+  type      String   @unique // "infant" or "child"
+  price     Int
+  updatedAt DateTime @updatedAt
+}
+
+model Policy {
+  id        String   @id @default(uuid())
+  content   String
+  updatedAt DateTime @updatedAt
 }

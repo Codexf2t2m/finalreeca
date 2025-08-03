@@ -7,24 +7,22 @@ const JWT_SECRET = process.env.JWT_SECRET || "topo123";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
-  const agent = await prisma.agent.findUnique({ where: { email } });
-  if (!agent || !agent.approved) {
-    return NextResponse.json({ error: "Agent not approved" }, { status: 403 });
-  }
-  if (!bcrypt.compareSync(password, agent.password)) {
+  const consultant = await prisma.consultant.findUnique({ where: { email } });
+  if (!consultant || !bcrypt.compareSync(password, consultant.password)) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
+
   // Create JWT token
-  const token = jwt.sign({ id: agent.id }, JWT_SECRET, { expiresIn: "7d" });
+  const token = jwt.sign({ id: consultant.id }, JWT_SECRET, { expiresIn: "7d" });
 
   // Set JWT as httpOnly cookie
   const response = NextResponse.json({
     success: true,
-    id: agent.id,
-    name: agent.name,
-    email: agent.email,
+    id: consultant.id,
+    name: consultant.name,
+    email: consultant.email,
   });
-  response.cookies.set("agent_token", token, {
+  response.cookies.set("consultant_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -28,7 +28,8 @@ export default function BookingApp() {
   const [bookingComplete, setBookingComplete] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [showHireModal, setShowHireModal] = useState(false);
-  const [agent, setAgent] = useState<{ name: string; email: string } | null>(null);
+  const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [consultant, setConsultant] = useState<{ id: string; name: string; email: string } | null>(null);
   const [isReturnTripSelection, setIsReturnTripSelection] = useState(false);
 
   const parseDate = (dateStr: string): Date => {
@@ -152,6 +153,17 @@ export default function BookingApp() {
         }
       })
       .catch(() => setAgent(null));
+
+    fetch("/api/consultant/me")
+      .then(async res => {
+        if (res.ok) {
+          const consultantData = await res.json();
+          setConsultant(consultantData);
+        } else {
+          setConsultant(null);
+        }
+      })
+      .catch(() => setConsultant(null));
   }, []);
 
   if (bookingComplete) {
