@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
-interface BookingData {
+export interface BookingData {
   tripId: string;
   totalPrice: number;
   selectedSeats: string[];
@@ -28,7 +28,9 @@ interface BookingData {
   returnBoardingPoint?: string;
   returnDroppingPoint?: string;
   discountAmount?: number;
-  agentId?: string; // <-- Add this line
+  agentId?: string;
+  consultantId?: string; // <-- Add this line
+  addons?: any;
 }
 
 interface PaymentGatewayProps {
@@ -50,6 +52,23 @@ export default function PaymentGateway({
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
     try {
+      // If consultant chose cash, skip Stripe and mark as paid
+      if (paymentData.paymentMode === "Cash") {
+        const response = await fetch('/api/create-stripe-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...paymentData, skipStripe: true }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          onPaymentComplete();
+        } else {
+          setError(data.error || 'Failed to create booking. Please try again.');
+          setIsProcessing(false);
+        }
+        return;
+      }
+
       // Prepare Stripe request with all booking data, including both seat arrays
       const requestData = {
         ...paymentData,

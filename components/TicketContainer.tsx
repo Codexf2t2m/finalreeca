@@ -1,55 +1,39 @@
-import React from 'react';
-import { PrintableTicket } from './printable-ticket';
-
-// Use the same BookingData interface from printable-ticket
-interface BookingData {
-  bookingRef: string;
-  userName: string;
-  userEmail: string;
-  userPhone: string | null;
-  totalAmount: number;
-  paymentMethod: string;
-  paymentStatus: string;
-  bookingStatus: string;
-  departureTrip: {
-    route: string;
-    date: string | Date;
-    time: string;
-    bus: string;
-    boardingPoint: string;
-    droppingPoint: string;
-    seats: string[];
-    passengers: {
-      name: string;
-      seat: string;
-      title?: string;
-    }[];
-  };
-  returnTrip?: {
-    route: string;
-    date: string | Date;
-    time: string;
-    bus: string;
-    boardingPoint: string;
-    droppingPoint: string;
-    seats: string[];
-    passengers: {
-      name: string;
-      seat: string;
-      title?: string;
-    }[];
-  };
-}
+import React, { useEffect } from 'react';
+import { PrintableTicket, BookingData } from './printable-ticket';
 
 interface TicketContainerProps {
   bookingData: BookingData;
 }
 
 export const TicketContainer: React.FC<TicketContainerProps> = ({ bookingData }) => {
+  useEffect(() => {
+    console.log("\n===== [TICKET CONTAINER] RECEIVED DATA =====");
+    console.log("Booking Reference:", bookingData.bookingRef);
+    console.log("Passenger Count:", bookingData.passengers?.length || 0);
+    console.log("Departure Trip:", bookingData.departureTrip.route);
+    console.log("Return Trip:", bookingData.returnTrip?.route || "N/A");
+    console.log("Emergency Contact:", bookingData.emergencyContact);
+    console.log("Contact Details:", bookingData.contactDetails);
+    console.log("==========================================\n");
+  }, [bookingData]);
+
+  const departurePassengers = bookingData.passengers?.filter(p => !p.isReturn) || [];
+  const returnPassengers = bookingData.passengers?.filter(p => p.isReturn) || [];
+  
   return (
     <div className="print-container">
       <PrintableTicket 
-        bookingData={bookingData} // Remove tripType
+        bookingData={{
+          ...bookingData,
+          departureTrip: {
+            ...bookingData.departureTrip,
+            passengers: departurePassengers
+          },
+          returnTrip: bookingData.returnTrip ? {
+            ...bookingData.returnTrip,
+            passengers: returnPassengers
+          } : undefined
+        }}
       />
       
       {bookingData.returnTrip && (
@@ -58,8 +42,9 @@ export const TicketContainer: React.FC<TicketContainerProps> = ({ bookingData })
             bookingData={{
               ...bookingData,
               departureTrip: bookingData.returnTrip,
-              returnTrip: undefined
-            }} // Show only return trip if needed
+              returnTrip: undefined,
+              passengers: returnPassengers
+            }}
           />
         </div>
       )}

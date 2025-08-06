@@ -5,10 +5,14 @@ import { prisma } from '@/lib/prisma';
 import { deduplicateRequest } from '@/utils/requestDeduplication';
 import { createBookingWithRetry } from '@/lib/retrybookingservice';
 import { cookies } from 'next/headers';
+import jwt from "jsonwebtoken";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
+
+const AGENT_JWT_SECRET = process.env.JWT_SECRET || "topo123";
+const CONSULTANT_JWT_SECRET = process.env.JWT_SECRET || "changeme-in-production";
 
 interface BookingRequest {
   tripId: string;
@@ -40,7 +44,7 @@ interface BookingRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: BookingRequest = await request.json();
+    const body: any = await request.json();
     const { totalPrice, userName, userEmail, selectedSeats, tripId } = body;
 
     if (!tripId || !totalPrice || !userName || !userEmail || !selectedSeats?.length) {
@@ -51,14 +55,53 @@ export async function POST(request: NextRequest) {
     const idempotencyKey = `booking-${orderId}`;
 
     const cookieStore = await cookies();
-    const agentIdFromCookie = cookieStore.get('agent_token')?.value;
+    const agentToken = cookieStore.get('agent_token')?.value;
+    const consultantToken = cookieStore.get('consultant_token')?.value;
+
+    let agentId: string | null = null;
+    let consultantId: string | null = null;
+
+    if (agentToken) {
+      try {
+        const payload: any = jwt.verify(agentToken, AGENT_JWT_SECRET);
+        agentId = payload?.id || null;
+      } catch {
+        agentId = null;
+      }
+    }
+    if (consultantToken) {
+      try {
+        const payload: any = jwt.verify(consultantToken, CONSULTANT_JWT_SECRET);
+        consultantId = payload?.id || null;
+      } catch {
+        consultantId = null;
+      }
+    }
 
     const bookingData = {
       ...body,
-      agentId: agentIdFromCookie || body.agentId || null, // Always prefer cookie
+      agentId: agentId || null,
+      consultantId: consultantId || null,
       totalPrice,
       orderId,
     };
+
+    // If skipStripe is true (consultant paid in cash), just mark as paid and return success
+    if (body.skipStripe && body.paymentMode === "Cash") {
+      const booking = await deduplicateRequest(orderId, () => createBookingWithRetry(bookingData));
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking creation failed. Please try again.' }, { status: 500 });
+      }
+      // Mark as paid in DB
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          paymentStatus: "paid",
+          paymentMode: "Cash",
+        },
+      });
+      return NextResponse.json({ success: true, orderId });
+    }
 
     const booking = await deduplicateRequest(orderId, () => createBookingWithRetry(bookingData));
 

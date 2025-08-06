@@ -10,7 +10,7 @@ const colors = {
   primary: '#009393',       // Teal
   secondary: '#febf00',     // Gold
   accent: '#958c55',        // Olive
-  muted: '#f5f5f5',         // Light gray
+  muted: '#fdbe00a4',         // Light gray
   dark: '#1a1a1a',          // Dark gray
   light: '#ffffff',         // White
   destructive: '#ef4444'    // Red (kept for errors)

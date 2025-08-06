@@ -142,28 +142,42 @@ export default function BookingApp() {
     setBookingComplete(true);
   };
 
-  useEffect(() => {
-    fetch("/api/agent/me")
-      .then(async res => {
-        if (res.ok) {
-          const agentData = await res.json();
-          setAgent(agentData);
-        } else {
-          setAgent(null);
-        }
-      })
-      .catch(() => setAgent(null));
+  const handleLogout = async () => {
+    await fetch("/api/agent/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/consultant/logout", { method: "POST", credentials: "include" });
+    setAgent(null);
+    setConsultant(null);
+    window.location.href = "/";
+  };
 
-    fetch("/api/consultant/me")
-      .then(async res => {
-        if (res.ok) {
-          const consultantData = await res.json();
-          setConsultant(consultantData);
-        } else {
-          setConsultant(null);
-        }
-      })
-      .catch(() => setConsultant(null));
+  useEffect(() => {
+    const fetchAuthStatus = () => {
+      fetch("/api/agent/me")
+        .then(async res => {
+          if (res.ok) {
+            const agentData = await res.json();
+            setAgent(agentData);
+          } else {
+            setAgent(null);
+          }
+        })
+        .catch(() => setAgent(null));
+
+      fetch("/api/consultant/me")
+        .then(async res => {
+          if (res.ok) {
+            const consultantData = await res.json();
+            setConsultant(consultantData);
+          } else {
+            setConsultant(null);
+          }
+        })
+        .catch(() => setConsultant(null));
+    };
+
+    fetchAuthStatus(); // initial check
+    window.addEventListener("focus", fetchAuthStatus);
+    return () => window.removeEventListener("focus", fetchAuthStatus);
   }, []);
 
   if (bookingComplete) {
@@ -255,13 +269,37 @@ export default function BookingApp() {
             <span className="text-amber-800 font-semibold text-lg">
               Booking as Agent: {agent.name}
             </span>
-            <Button
+            <div className="flex gap-2">
+              <Button
               size="sm"
-              className="bg-teal-600 text-white ml-auto"
-              onClick={() => window.location.href = "/agent/dashboard"}
+              className="bg-teal-600 text-white"
+              onClick={async () => {
+                await handleLogout();
+                window.location.href = "/agent/dashboard";
+              }}
             >
-              Go to Dashboard
+              Leave Booking
             </Button>
+            </div>
+          </div>
+        )}
+        {!agent && consultant && (
+          <div className="w-full bg-blue-100 border-b border-blue-300 py-2 px-4 flex items-center justify-between">
+            <span className="text-blue-800 font-semibold text-lg">
+              Booking as Consultant: {consultant.name}
+            </span>
+            <div className="flex gap-2">
+             <Button
+                size="sm"
+                className="bg-blue-600 text-white"
+                onClick={async () => {
+                  await handleLogout();
+                  window.location.href = "/consultant/dashboard";
+                }}
+              >
+                Leave Booking
+              </Button> 
+            </div>
           </div>
         )}
         
@@ -406,13 +444,47 @@ export default function BookingApp() {
           <span className="text-amber-800 font-semibold text-lg">
             Booking as Agent: {agent.name}
           </span>
-          <Button
-            size="sm"
-            className="bg-teal-600 text-white ml-auto"
-            onClick={() => window.location.href = "/agent/dashboard"}
-          >
-            Go to Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="bg-teal-600 text-white"
+              onClick={() => window.location.href = "/agent/dashboard"}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-2"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
+        </div>
+      )}
+      {!agent && consultant && (
+        <div className="w-full bg-blue-100 border-b border-blue-300 py-2 px-4 flex items-center justify-between">
+          <span className="text-blue-800 font-semibold text-lg">
+            Booking as Consultant: {consultant.name}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="bg-blue-600 text-white"
+              onClick={() => window.location.href = "/consultant/dashboard"}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-2"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
         </div>
       )}
       
@@ -456,6 +528,7 @@ export default function BookingApp() {
               searchData={searchData}
               onSelectBus={(bus) => handleSelectBus(bus)}
               boardingPoints={boardingPoints}
+              isReturnTrip={false}
             />
           </div>
         )}

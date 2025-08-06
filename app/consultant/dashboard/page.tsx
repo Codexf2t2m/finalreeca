@@ -19,14 +19,12 @@ export default function ConsultantDashboard() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setLocked(true);
-      // Save current path for redirect after login
       sessionStorage.setItem("consultant_last_path", window.location.pathname);
       router.push("/consultant/auth?locked=1");
-    }, 60000); // 60 seconds
+    }, 60000);
   }
 
   useEffect(() => {
-    // Reset timer on any activity
     const events = ["mousemove", "keydown", "mousedown", "touchstart"];
     events.forEach(event => window.addEventListener(event, resetTimeout));
     resetTimeout();
@@ -34,7 +32,6 @@ export default function ConsultantDashboard() {
       events.forEach(event => window.removeEventListener(event, resetTimeout));
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-    // eslint-disable-next-line
   }, []);
 
   // --- Restore session after login ---
@@ -97,9 +94,7 @@ export default function ConsultantDashboard() {
   };
 
   const handleLogout = async () => {
-    // Call API to clear cookie server-side
     await fetch("/api/consultant/logout", { method: "POST" });
-    // Also clear on client for safety
     document.cookie = "consultant_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     router.push("/consultant/auth");
   };
@@ -116,133 +111,219 @@ export default function ConsultantDashboard() {
   }
 
   if (isLoading || !consultant) return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center space-y-4">
         <div className="w-16 h-16 border-4 border-[#009393] border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="text-gray-600 font-medium">Loading consultant dashboard...</p>
-        <p className="text-sm text-gray-500">Please wait while we fetch your data</p>
+        <p className="text-gray-600 font-medium">Loading dashboard...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#009393]/5 to-[#febf00]/5">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Sidebar */}
+      <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-sm z-20 hidden md:block">
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-100">
+            <div className="flex items-center space-x-2">
               <Image 
                 src="/images/reeca-travel-logo.png"
-                alt="Bus Company Logo"
-                width={48}
-                height={48}
-                className="rounded-md object-cover border-2 border-[#958c55]/30"
+                alt="Reeca Travel Logo"
+                width={36}
+                height={36}
+                className="rounded-md"
               />
+              <span className="text-lg font-semibold text-gray-800">Reeca Travel</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto py-4">
+            <nav className="px-4 space-y-1">
+              <a href="#" className="flex items-center px-4 py-3 text-sm font-medium rounded-lg bg-[#009393]/10 text-[#009393]">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Dashboard
+              </a>
+              <a href="#" className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Bookings
+              </a>
+              <a href="#" className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Clients
+              </a>
+              <a href="#" className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
+                <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Reports
+              </a>
+            </nav>
+          </div>
+          <div className="p-4 border-t border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-[#009393] flex items-center justify-center text-white font-medium">
+                {consultant.name.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Consultant Dashboard</h1>
-                <p className="text-sm text-[#958c55]">Manage bookings and clients</p>
+                <p className="text-sm font-medium text-gray-900">{consultant.name}</p>
+                <p className="text-xs text-gray-500">{consultant.email}</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center space-x-2">
+            <Image 
+              src="/images/reeca-travel-logo.png"
+              alt="Reeca Travel Logo"
+              width={32}
+              height={32}
+              className="rounded-md"
+            />
+            <span className="text-lg font-semibold text-gray-800">Dashboard</span>
+          </div>
+          <button className="p-1 rounded-md text-gray-500 hover:text-gray-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="md:pl-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
+          {/* Header */}
+          <div className="md:flex md:items-center md:justify-between mb-8">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">Welcome back, {consultant.name.split(' ')[0]}</h1>
+              <p className="mt-1 text-sm text-gray-500">Here's what's happening with your bookings today</p>
+            </div>
+            <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+              <Button
+                variant="outline"
+                className="border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
+                onClick={handleExport}
+              >
+                Export
+              </Button>
+              <Button
+                className="bg-[#009393] hover:bg-[#007a7a]"
+                onClick={() => router.push("/")}
+              >
+                New Booking
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats cards */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-[#009393]/10 p-3 rounded-md">
+                    <svg className="h-6 w-6 text-[#009393]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Total Bookings</dt>
+                      <dd className="flex items-baseline">
+                        <div className="text-2xl font-semibold text-gray-900">{stats.bookings}</div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-[#febf00]/10 p-3 rounded-md">
+                    <svg className="h-6 w-6 text-[#febf00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Most Booked Route</dt>
+                      <dd className="flex items-baseline">
+                        <div className="text-2xl font-semibold text-gray-900 truncate">{getMostBookedRoute(bookings)}</div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 bg-[#958c55]/10 p-3 rounded-md">
+                    <svg className="h-6 w-6 text-[#958c55]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
+                      <dd className="flex items-baseline">
+                        <div className="text-2xl font-semibold text-gray-900">
+                          ₱{stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">{consultant.name}</p>
-              <p className="text-xs text-gray-500">{consultant.email}</p>
-            </div>
-            <div className="h-10 w-10 rounded-full bg-[#009393] flex items-center justify-center text-white font-bold shadow-sm">
-              {consultant.name.charAt(0).toUpperCase()}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-2 border-[#009393] text-[#009393] hover:bg-[#009393]/10"
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="border-l-4 border-[#009393] bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-500">TOTAL BOOKINGS</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.bookings}</div>
-            <div className="mt-2 text-xs text-gray-500">All time bookings</div>
-          </div>
-          <div className="border-l-4 border-[#febf00] bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-500">MOST ROUTE BOOKED FOR</div>
-            <div className="text-2xl font-bold text-gray-900">{getMostBookedRoute(bookings)}</div>
-            <div className="mt-2 text-xs text-gray-500">Most frequently booked route</div>
-          </div>
-          <div className="border-l-4 border-[#958c55] bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-500">QUICK ACTIONS</div>
-            <div className="flex flex-col sm:flex-row gap-3 mt-2">
-              <Button 
-                onClick={() => router.push("/")}
-                className="bg-[#009393] hover:bg-[#007a7a] text-white px-4 py-2 text-sm transition-colors duration-200 shadow-sm"
-              >
-                New Booking
-              </Button>
-              <Button 
-                variant="outline"
-                className="text-sm border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
-                onClick={() => router.push("/")}
-              >
-                View Schedule
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Bookings Section */}
-        <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#009393] mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
-              </svg>
-              Recent Bookings
-            </h2>
-            <div className="flex flex-col xs:flex-row gap-3 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push("/")}
-                className="flex items-center justify-center gap-2 border-[#009393] text-[#009393] hover:bg-[#009393]/10"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                New Booking
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center justify-center gap-2 border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
-                onClick={handleExport}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export
-              </Button>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            {bookings.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-[#febf00]/10 text-[#febf00] mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+          {/* Recent bookings */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <div className="-ml-4 -mt-2 flex items-center justify-between flex-wrap sm:flex-nowrap">
+                <div className="ml-4 mt-2">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Bookings</h3>
                 </div>
+                <div className="ml-4 mt-2 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    className="border-[#009393] text-[#009393] hover:bg-[#009393]/10"
+                    onClick={() => router.push("/")}
+                  >
+                    View Schedule
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            {bookings.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 <h3 className="mt-2 text-lg font-medium text-gray-900">No bookings yet</h3>
                 <p className="mt-1 text-sm text-gray-500">Get started by creating a new booking for your clients.</p>
                 <div className="mt-6">
@@ -250,20 +331,17 @@ export default function ConsultantDashboard() {
                     onClick={() => router.push("/")}
                     className="bg-[#009393] hover:bg-[#007a7a] px-6 py-3 shadow-sm"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
                     Create New Booking
                   </Button>
                 </div>
               </div>
             ) : (
-              <>
+              <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order ID
+                        Order
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Client
@@ -272,24 +350,24 @@ export default function ConsultantDashboard() {
                         Trip Details
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Seats
+                        Date & Time
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
+                      <th scope="col" className="relative px-6 py-3">
+                        <span className="sr-only">Actions</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {bookings.map((b) => (
-                      <tr key={b.id} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#009393]">
-                          #{b.orderId}
+                    {bookings.slice(0, 5).map((b) => (
+                      <tr key={b.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-[#009393]">#{b.orderId}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            <span className="px-2 py-1 bg-gray-100 rounded-full">{b.seatCount} {b.seatCount === 1 ? 'seat' : 'seats'}</span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -298,30 +376,26 @@ export default function ConsultantDashboard() {
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{b.userName || 'Customer'}</div>
-                              <div className="text-sm text-gray-500">{b.userEmail || ''}</div>
+                              <div className="text-xs text-gray-500">{b.userEmail || ''}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{b.trip?.routeName}</div>
-                          <div className="text-xs text-gray-500">
-                            {b.trip?.departureTime} • {b.trip?.busType}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(b.trip?.departureDate).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          <div className="text-xs text-gray-500">{b.trip?.busType}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#009393]/10 text-[#009393]">
-                            {b.seatCount} {b.seatCount === 1 ? 'seat' : 'seats'}
-                          </span>
+                          <div className="text-sm text-gray-900">
+                            {new Date(b.trip?.departureDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500">{b.trip?.departureTime}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          P{b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          P {b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <Button 
@@ -336,58 +410,21 @@ export default function ConsultantDashboard() {
                     ))}
                   </tbody>
                 </table>
-                <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-sm text-gray-500">
-                    Showing <span className="font-medium">1</span> to <span className="font-medium">{bookings.length}</span> of{' '}
-                    <span className="font-medium">{bookings.length}</span> bookings
-                  </div>
-                  <div className="flex space-x-2">
+                {bookings.length > 5 && (
+                  <div className="px-6 py-4 border-t border-gray-200 text-right">
                     <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled
-                      className="border-gray-300 text-gray-500"
+                      variant="ghost"
+                      className="text-[#009393] hover:text-[#007a7a]"
                     >
-                      Previous
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled
-                      className="border-gray-300 text-gray-500"
-                    >
-                      Next
+                      View all bookings
                     </Button>
                   </div>
-                </div>
-              </>
+                )}
+              </div>
             )}
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Image 
-                src="/images/reeca-travel-logo.png"
-                alt="Bus Company Logo"
-                width={32}
-                height={32}
-                className="rounded-md"
-              />
-              <span className="text-sm text-gray-500">© {new Date().getFullYear()} Reeca Travel.</span>
-            </div>
-            <div className="mt-4 md:mt-0 flex space-x-6">
-              <a href="#" className="text-sm text-[#009393] hover:text-[#007a7a]">Privacy</a>
-              <a href="#" className="text-sm text-[#009393] hover:text-[#007a7a]">Terms</a>
-              <a href="#" className="text-sm text-[#009393] hover:text-[#007a7a]">Help</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

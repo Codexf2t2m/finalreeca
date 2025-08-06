@@ -9,8 +9,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronUp, Copy, Coffee, Sandwich, Cookie } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
-import PaymentGateway from "../paymentgateway";
+
 import { PolicyModal } from "@/components/PolicyModal";
+import PaymentGateway from "../paymentgateway";
+
 
 type PassengerType = "adult" | "child";
 interface Passenger {
@@ -170,6 +172,7 @@ export default function PassengerDetailsForm({
     addons: true
   });
   const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [consultant, setConsultant] = useState<{ id: string; name: string; email: string } | null>(null);
   const [infantFare, setInfantFare] = useState(250);
   const [childFare, setChildFare] = useState(400);
 
@@ -258,6 +261,19 @@ export default function PassengerDetailsForm({
   }, []);
 
   useEffect(() => {
+    fetch("/api/consultant/me")
+      .then(async res => {
+        if (res.ok) {
+          const consultantData = await res.json();
+          setConsultant(consultantData);
+        } else {
+          setConsultant(null);
+        }
+      })
+      .catch(() => setConsultant(null));
+  }, []);
+
+  useEffect(() => {
     fetch("/api/getfareprices")
       .then(res => res.json())
       .then(data => {
@@ -266,8 +282,9 @@ export default function PassengerDetailsForm({
       });
   }, []);
 
+  const consultantDiscount: number = consultant ? Math.round(baseTotal * 0.05) : 0;
   const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
-  const finalTotal: number = baseTotal - agentDiscount;
+  const finalTotal: number = baseTotal - agentDiscount - consultantDiscount;
 
   const getBoardingPoints = (key: string): BoardingPoint[] => {
     if (!boardingPoints || typeof boardingPoints !== 'object') {
@@ -327,6 +344,16 @@ export default function PassengerDetailsForm({
   };
 
   const handleSubmit = () => {
+  console.log("\n===== [FORM] SUBMITTING PASSENGER DATA =====");
+  console.log("Passengers:", JSON.stringify(passengers, null, 2));
+  console.log("Contact Details:", JSON.stringify(contactDetails, null, 2));
+  console.log("Emergency Contact:", JSON.stringify(emergencyContact, null, 2));
+  console.log("Boarding Points:", {
+    departure: departureBoardingPoint,
+    return: returnBoardingPoint
+  });
+  console.log("Addons:", JSON.stringify(selectedAddons, null, 2));
+  console.log("==========================================\n");
     if (passengers.some(p => !p.firstName.trim() || !p.lastName.trim())) {
       alert('Please provide first and last names for all passengers');
       return;
@@ -427,6 +454,55 @@ export default function PassengerDetailsForm({
     setPassengers([...departurePassengers, ...returnPassengers]);
   }, [departureSeats.join(','), returnSeats.join(',')]);
 
+  useEffect(() => {
+    if (showPayment && departureBus) {
+      console.log("\n===== [FORM] SENDING TO PAYMENT GATEWAY =====");
+      const bookingData = {
+        orderId: generateOrderId(),
+        tripId: departureBus?.id,
+        totalPrice: finalTotal,
+        discountAmount: agentDiscount,
+        selectedSeats: [...(departureSeats || []), ...(returnSeats || [])],
+        departureSeats,
+        returnSeats,
+        addons: selectedAddons,
+        passengers: passengers.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          seatNumber: p.seatNumber,
+          title: p.title,
+          isReturn: p.isReturn,
+          hasInfant: !!p.hasInfant,
+          infantBirthdate: p.infantBirthdate || null,
+          type: p.type,
+          birthdate: p.birthdate || null,
+          passportNumber: p.passportNumber || null,
+          infantName: p.infantName || null,
+          infantPassportNumber: p.infantPassportNumber || null,
+        })),
+        userName: contactDetails.name,
+        userEmail: contactDetails.email,
+        userPhone: contactDetails.mobile,
+        boardingPoint: departureBoardingPoint,
+        droppingPoint: departureDroppingPoint,
+        contactDetails,
+        emergencyContact: {
+          name: emergencyContact.name,
+          phone: emergencyContact.phone,
+        },
+        paymentMode,
+        returnTripId: returnBus?.id,
+        returnBoardingPoint,
+        returnDroppingPoint,
+        agentId: agent?.id,
+        consultantId: consultant?.id, // <-- Pass consultantId
+      };
+       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
+       console.log("==============================================\n");
+    }
+    // eslint-disable-next-line
+  }, [showPayment]);
+
   if (!boardingPoints || !departureBus || !searchData) {
     return <div className="text-center py-8 text-gray-600">Loading form data...</div>;
   }
@@ -478,6 +554,12 @@ export default function PassengerDetailsForm({
                 <div className="flex justify-between pt-2">
                   <p className="font-medium text-gray-700">Agent Discount (10%):</p>
                   <p className="font-medium text-[#009393]">-P {agentDiscount.toFixed(2)}</p>
+                </div>
+              )}
+              {consultant && (
+                <div className="flex justify-between pt-2">
+                  <p className="font-medium text-gray-700">Consultant Discount (5%):</p>
+                  <p className="font-medium text-blue-600">-P {consultantDiscount.toFixed(2)}</p>
                 </div>
               )}
               {infantCount > 0 && (
@@ -583,12 +665,12 @@ export default function PassengerDetailsForm({
                           )}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              {isChild ? "Birth Certificate Number" : "Passport Number"}
+                              {isChild ? "Passport Number" : "Passport Number"}
                             </label>
                             <Input
                               value={passenger.passportNumber || ""}
                               onChange={e => updatePassenger(passenger.id, "passportNumber", e.target.value)}
-                              placeholder={isChild ? "Birth Certificate Number" : "Passport Number"}
+                              placeholder={isChild ? "Passport Number" : "Passport Number"}
                               required
                               className="focus:ring-[#009393] focus:border-[#009393]"
                             />
@@ -633,11 +715,11 @@ export default function PassengerDetailsForm({
                               </div>
                             </div>
                             <div className="mt-4">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Birth Certificate Number</label>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
                               <Input
                                 value={passenger.infantPassportNumber || ""}
                                 onChange={e => updatePassenger(passenger.id, "infantPassportNumber", e.target.value)}
-                                placeholder="Birth Certificate Number"
+                                placeholder="Passport Number"
                                 required
                                 className="focus:ring-[#009393] focus:border-[#009393]"
                               />
@@ -942,6 +1024,9 @@ export default function PassengerDetailsForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Credit Card">Credit Card | Debit Card | Net Banking | Visa</SelectItem>
+                  {consultant && (
+                    <SelectItem value="Cash">Paid in Cash (Consultant Only)</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -992,6 +1077,7 @@ export default function PassengerDetailsForm({
                 selectedSeats: [...(departureSeats || []), ...(returnSeats || [])],
                 departureSeats,
                 returnSeats,
+                addons: selectedAddons,
                 passengers: passengers.map(p => ({
                   firstName: p.firstName,
                   lastName: p.lastName,
@@ -1021,11 +1107,13 @@ export default function PassengerDetailsForm({
                 returnBoardingPoint,
                 returnDroppingPoint,
                 agentId: agent?.id,
+                consultantId: consultant?.id, // <-- Pass consultantId
               }}
               onPaymentComplete={onPaymentComplete}
               setShowPayment={setShowPayment}
             />
           )}
+          
         </DialogContent>
       </Dialog>
       <PolicyModal

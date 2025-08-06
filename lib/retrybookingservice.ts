@@ -1,14 +1,24 @@
 import { prisma } from '@/lib/prisma';
 
 export async function createBookingWithRetry(data: any, maxRetries = 3) {
+  console.log("\n===== [DB] START: CREATE BOOKING =====");
+  console.log("Received booking data:", JSON.stringify(data, null, 2));
+  
   const discountAmount = data.discountAmount || 0;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`Attempt ${attempt}/${maxRetries}`);
+    
     try {
-      return await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
+        console.log("Checking for existing booking...");
         const existing = await tx.booking.findUnique({ where: { orderId: data.orderId } });
-        if (existing) return existing;
+        if (existing) {
+          console.log("Booking already exists:", existing.id);
+          return existing;
+        }
 
+        console.log("Creating new booking...");
         const created = await tx.booking.create({
           data: {
             tripId: data.tripId,
@@ -30,12 +40,18 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             returnSeats: data.returnSeats?.length ? JSON.stringify(data.returnSeats) : null,
             promoCode: data.promoCode || null,
             discountAmount: discountAmount,
-            contactIdNumber: data.contactDetails?.idNumber,
+            emergencyContactName: data.emergencyContact?.name || "",
+            emergencyContactPhone: data.emergencyContact?.phone || "",
+            addons: data.addons || null,
             agentId: data.agentId || null,
+            contactIdNumber: data.contactDetails?.idNumber || "", 
           },
         });
 
+        console.log(`Booking created: ${created.id}`);
+
         if (data.passengers?.length) {
+          console.log(`Creating ${data.passengers.length} passengers...`);
           await tx.passenger.createMany({
             data: data.passengers.map((p: any) => ({
               bookingId: created.id,
@@ -44,15 +60,20 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
               seatNumber: p.seatNumber,
               title: p.title,
               isReturn: p.isReturn,
+              hasInfant: p.hasInfant ?? false,
+              infantBirthdate: p.infantBirthdate ?? null,
+              infantName: p.infantName ?? null,
+              infantPassportNumber: p.infantPassportNumber ?? null,
+              birthdate: p.birthdate ?? null,
+              passportNumber: p.passportNumber ?? null,
+              type: p.type ?? 'adult',
             })),
-            skipDuplicates: true,
           });
+          console.log("Passengers created successfully");
         }
 
-        const savedPassengers = await prisma.passenger.findMany({ where: { bookingId: created.id } });
-        console.log("Saved passengers:", savedPassengers);
-
         if (data.departureSeats?.length) {
+          console.log("Updating departure trip seats...");
           const existingTrip = await tx.trip.findUnique({ where: { id: data.tripId } });
           await tx.trip.update({
             where: { id: data.tripId },
@@ -66,6 +87,7 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
         }
 
         if (data.returnSeats?.length && data.returnTripId) {
+          console.log("Updating return trip seats...");
           const returnTrip = await tx.trip.findUnique({ where: { id: data.returnTripId } });
           await tx.trip.update({
             where: { id: data.returnTripId },
@@ -78,22 +100,32 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
           });
         }
 
-        console.log('Received agentId:', data.agentId);
-
-        return await tx.booking.findUnique({
+        const fullBooking = await tx.booking.findUnique({
           where: { orderId: data.orderId },
           include: { passengers: true },
         });
+
+        console.log("Full booking data with passengers:", JSON.stringify(fullBooking, null, 2));
+        return fullBooking;
       }, {
         maxWait: 10000,
         timeout: 20000,
         isolationLevel: 'ReadCommitted',
       });
+
+      console.log("===== [DB] END: CREATE BOOKING SUCCESS =====\n");
+      return result;
     } catch (error: any) {
+      console.error(`Attempt ${attempt} failed:`, error);
+      
       if (error.code === 'P2028' && attempt < maxRetries) {
-        await new Promise(res => setTimeout(res, 1000 * attempt));
+        const delay = 1000 * attempt;
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(res => setTimeout(res, delay));
         continue;
       }
+      
+      console.error("===== [DB] END: CREATE BOOKING FAILED =====\n");
       throw error;
     }
   }

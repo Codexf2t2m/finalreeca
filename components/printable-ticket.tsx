@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from 'react';
 
 interface Passenger {
   name: string;
@@ -7,10 +7,11 @@ interface Passenger {
   isReturn?: boolean;
   hasInfant?: boolean;
   infantBirthdate?: string;
-  type?: "adult" | "child"; // Added type
-  passportNumber?: string;
   infantName?: string;
   infantPassportNumber?: string;
+  birthdate?: string;
+  passportNumber?: string;
+  type?: "adult" | "child";
 }
 
 interface TripData {
@@ -48,16 +49,26 @@ interface BookingData {
     name: string;
     phone: string;
   };
+  passengers?: Passenger[];
 }
 
 interface PrintableTicketProps {
   bookingData: BookingData;
 }
 
-// Define PrintableTripData as an alias for TripData
-type PrintableTripData = TripData;
-
 export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData }) => {
+  useEffect(() => {
+    console.log("\n===== [TICKET] RENDERING TICKET =====");
+    console.log("Booking data received:", JSON.stringify(bookingData, null, 2));
+    console.log("Passengers:", bookingData.passengers?.length || 0);
+    console.log("Departure trip passengers:", bookingData.departureTrip?.passengers?.length || 0);
+    console.log("Return trip passengers:", bookingData.returnTrip?.passengers?.length || 0);
+    console.log("Addons:", bookingData.addons?.length || 0);
+    console.log("Emergency contact:", bookingData.emergencyContact);
+    console.log("Contact details:", bookingData.contactDetails);
+    console.log("====================================\n");
+  }, []);
+
   const formatDate = (dateInput: Date | string | undefined, formatStr: string) => {
     if (!dateInput) return "N/A";
     const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
@@ -89,6 +100,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       if (numA !== numB) return numA - numB;
       return a.localeCompare(b);
     });
+    
     return (
       <div className="mb-8">
         <div className="bg-gray-100 p-2 mb-2">
@@ -147,19 +159,12 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
                     <td className="px-2 md:px-3 py-1 md:py-2">{passenger.type === "child" ? "Child" : "Adult"}</td>
                     <td className="px-2 md:px-3 py-1 md:py-2">
                       {passenger.hasInfant ? (
-                        <span>
-                          Yes
-                          {passenger.infantName ? ` (${passenger.infantName})` : ""}
-                          {passenger.infantBirthdate
-                            ? `, DOB: ${new Date(passenger.infantBirthdate).toLocaleDateString()}`
-                            : ""}
-                          {passenger.infantPassportNumber
-                            ? `, Cert: ${passenger.infantPassportNumber}`
-                            : ""}
-                        </span>
-                      ) : (
-                        "No"
-                      )}
+                        <div className="text-xs">
+                          <div><span className="font-semibold">Infant:</span> {passenger.infantName}</div>
+                          <div><span className="font-semibold">DOB:</span> {passenger.infantBirthdate}</div>
+                          <div><span className="font-semibold">Passport:</span> {passenger.infantPassportNumber}</div>
+                        </div>
+                      ) : "No"}
                     </td>
                     <td className="px-2 md:px-3 py-1 md:py-2">
                       {passenger.passportNumber || "-"}
@@ -342,6 +347,9 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
               <strong>Mobile:</strong> {bookingData.contactDetails?.mobile || bookingData.userPhone || "N/A"}
             </p>
             <p>
+              <strong>Alt Mobile:</strong> {bookingData.contactDetails?.alternateMobile || "-"}
+            </p>
+            <p>
               <strong>ID Type:</strong> {bookingData.contactDetails?.idType || "Passport"}
             </p>
             <p>
@@ -416,4 +424,4 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
   );
 };
 
-export type { BookingData, PrintableTripData };
+export type { BookingData };

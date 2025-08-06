@@ -637,7 +637,7 @@ export default function BookingsManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div><span style={{ color: colors.accent }}>Method:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentMethod}</span></div>
                   <div><span style={{ color: colors.accent }}>Status:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentStatus}</span></div>
-                  <div><span style={{ color: colors.accent }}>Amount:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.totalAmount.toFixed(2)} USD</span></div>
+                  <div><span style={{ color: colors.accent }}>Amount:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.totalAmount.toFixed(2)} BWP</span></div>
                 </div>
               </section>
               

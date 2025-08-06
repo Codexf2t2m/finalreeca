@@ -69,7 +69,7 @@ export default function ConsultantAuth() {
         {/* Left: Image */}
         <div className="hidden lg:block relative h-[600px]">
           <Image
-            src="/images/consultantlog.jpg"
+            src="/images/cons.jpg"
             alt="Consultant image"
             fill
             className="object-cover"
