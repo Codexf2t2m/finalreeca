@@ -290,7 +290,7 @@ export default function ConsultantDashboard() {
                       <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
                       <dd className="flex items-baseline">
                         <div className="text-2xl font-semibold text-gray-900">
-                          ₱{stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          P {stats.revenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </div>
                       </dd>
                     </dl>

@@ -44,7 +44,8 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             emergencyContactPhone: data.emergencyContact?.phone || "",
             addons: data.addons || null,
             agentId: data.agentId || null,
-            contactIdNumber: data.contactDetails?.idNumber || "", 
+            consultantId: data.consultantId || null, // <-- ADD THIS LINE
+            contactIdNumber: data.contactDetails?.idNumber || "",
           },
         });
 

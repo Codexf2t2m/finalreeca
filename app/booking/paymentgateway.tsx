@@ -60,8 +60,10 @@ export default function PaymentGateway({
           body: JSON.stringify({ ...paymentData, skipStripe: true }),
         });
         const data = await response.json();
-        if (data.success) {
-          onPaymentComplete();
+        if (data.success && data.orderId) {
+          // Redirect to the ticket page for download/print
+          window.location.href = `/ticket/${data.orderId}`;
+          return;
         } else {
           setError(data.error || 'Failed to create booking. Please try again.');
           setIsProcessing(false);
