@@ -73,6 +73,14 @@ interface AgentSales {
   commission: number;
 }
 
+interface ConsultantSales {
+  id: string;
+  name: string;
+  bookings: number;
+  revenue: number;
+  commission: number;
+}
+
 const COLORS = {
   primary: "#0d9488",
   secondary: "#f59e0b",
@@ -84,6 +92,7 @@ const COLORS = {
 export default function ReportsPage() {
   const [routeSales, setRouteSales] = useState<RouteSales[]>([]);
   const [agentSales, setAgentSales] = useState<AgentSales[]>([]);
+  const [consultantSales, setConsultantSales] = useState<ConsultantSales[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +143,7 @@ export default function ReportsPage() {
       try {
         setLoading(true);
         
-        const [routeRes, agentRes] = await Promise.all([
+        const [routeRes, agentRes, consultantRes] = await Promise.all([
           fetch("/api/reports/sales-by-route").then(res => {
             if (!res.ok) throw new Error("Failed to fetch route sales");
             return res.json();
@@ -142,18 +151,23 @@ export default function ReportsPage() {
           fetch("/api/reports/sales-by-agent").then(res => {
             if (!res.ok) throw new Error("Failed to fetch agent sales");
             return res.json();
-          })
+          }),
+          fetch("/api/reports/sales-by-consultant").then(res => {
+            if (!res.ok) throw new Error("Failed to fetch consultant sales");
+            return res.json();
+          }),
         ]);
 
-        // Ensure we have arrays even if the data is malformed
         setRouteSales(Array.isArray(routeRes) ? routeRes : []);
         setAgentSales(Array.isArray(agentRes) ? agentRes : []);
+        setConsultantSales(Array.isArray(consultantRes) ? consultantRes : []);
 
       } catch (err) {
         console.error("Fetch error:", err);
         setError(err instanceof Error ? err.message : "An unknown error occurred");
         setRouteSales([]);
         setAgentSales([]);
+        setConsultantSales([]);
       } finally {
         setLoading(false);
       }
@@ -211,6 +225,7 @@ export default function ReportsPage() {
   const chartData = useMemo(() => {
     const safeRouteSales = routeSales || [];
     const safeAgentSales = agentSales || [];
+    const safeConsultantSales = consultantSales || [];
     const safeFilteredRoutes = filteredRoutes || [];
 
     // Revenue vs Bookings by Route
@@ -239,6 +254,10 @@ export default function ReportsPage() {
       .slice(0, 5);
 
     const topAgents = [...safeAgentSales]
+      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+      .slice(0, 5);
+
+    const topConsultants = [...safeConsultantSales]
       .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
       .slice(0, 5);
 
@@ -301,8 +320,19 @@ export default function ReportsPage() {
           },
         ],
       },
+      topConsultants: {
+        labels: topConsultants.map((c) => c.name || 'Unknown'),
+        datasets: [
+          {
+            label: "Revenue (P)",
+            data: topConsultants.map((c) => c.revenue || 0),
+            backgroundColor: "#9333ea",
+            borderRadius: 6,
+          },
+        ],
+      },
     };
-  }, [filteredRoutes, routeSales, agentSales]);
+  }, [filteredRoutes, routeSales, agentSales, consultantSales]);
 
   // Enhanced Excel export with proper error handling
   const downloadExcel = () => {
@@ -358,6 +388,21 @@ export default function ReportsPage() {
       if (agentRows.length > 0) {
         const agentSheet = XLSX.utils.aoa_to_sheet([agentHeaders, ...agentRows]);
         XLSX.utils.book_append_sheet(workbook, agentSheet, "Agent Performance");
+      }
+
+      // 4. Consultant Performance Sheet
+      const consultantHeaders = ["Consultant Name", "Bookings", "Revenue", "Commission", "Avg. Ticket Value"];
+      const consultantRows = (consultantSales || []).map((consultant) => [
+        consultant.name || '',
+        consultant.bookings || 0,
+        consultant.revenue || 0,
+        consultant.commission || 0,
+        consultant.bookings ? (consultant.revenue || 0) / consultant.bookings : 0
+      ]);
+
+      if (consultantRows.length > 0) {
+        const consultantSheet = XLSX.utils.aoa_to_sheet([consultantHeaders, ...consultantRows]);
+        XLSX.utils.book_append_sheet(workbook, consultantSheet, "Consultant Performance");
       }
 
       // Generate Excel file
@@ -732,6 +777,49 @@ export default function ReportsPage() {
             />
           </CardContent>
         </Card>
+
+        {/* Top Consultants */}
+        <Card className="bg-white shadow-sm border border-gray-100 h-96">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              Top Consultants
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              Revenue by sales consultant
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarChart
+              data={chartData.topConsultants}
+              options={{
+                indexAxis: "y" as const,
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const value = context.parsed?.x ?? context.parsed?.y ?? context.parsed;
+                        return value !== undefined ? `P${value.toLocaleString()}` : '';
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    beginAtZero: true,
+                    grid: { color: "rgba(0,0,0,0.05)" },
+                    ticks: {
+                      callback: (value) => `P${Number(value).toLocaleString()}`
+                    }
+                  },
+                  y: { grid: { display: false } }
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Detailed Data */}
@@ -742,6 +830,9 @@ export default function ReportsPage() {
           </TabsTrigger>
           <TabsTrigger value="agents" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
             Agent Performance
+          </TabsTrigger>
+          <TabsTrigger value="consultants" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+            Consultant Performance
           </TabsTrigger>
         </TabsList>
 
@@ -838,6 +929,55 @@ export default function ReportsPage() {
                           <TableCell className="text-right">P{(agent.commission || 0).toLocaleString()}</TableCell>
                           <TableCell className="text-right">
                             P{agent.bookings ? ((agent.revenue || 0) / agent.bookings).toFixed(2) : 0}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="consultants">
+          <Card className="bg-white shadow-sm border border-gray-100">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">
+                Consultant Performance
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Sales performance by consultant
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-medium text-gray-700">Consultant</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Commission</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-right">Avg. Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {consultantSales.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          No consultant data available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      consultantSales.map((consultant) => (
+                        <TableRow key={consultant.id || ''} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">{consultant.name || 'Unknown'}</TableCell>
+                          <TableCell className="text-right">{(consultant.bookings || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">P{(consultant.revenue || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">P{(consultant.commission || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right">
+                            P{consultant.bookings ? ((consultant.revenue || 0) / consultant.bookings).toFixed(2) : 0}
                           </TableCell>
                         </TableRow>
                       ))

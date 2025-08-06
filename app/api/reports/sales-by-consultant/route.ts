@@ -25,7 +25,7 @@ export async function GET() {
     const paidBookings = consultantBookings.filter(b => b.paymentStatus === "paid");
     const revenue = paidBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
     const commission = paidBookings.reduce((sum, b) => {
-      const original = b.totalPrice ? b.totalPrice / 0.9 : 0;
+      const original = b.totalPrice ? b.totalPrice / 0.95 : 0; // 5% discount for consultant
       const commissionForBooking = original - (b.totalPrice || 0);
       return sum + commissionForBooking;
     }, 0);
