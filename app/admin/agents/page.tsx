@@ -7,7 +7,56 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Mail,
+  Phone,
+  User,
+  XCircle,
+  Plus,
+  Search,
+  Loader2,
+  Gauge,
+  CreditCard,
+  Calendar,
+  AlertTriangle,
+  UserCheck,
+  UserX,
+  Shield,
+  ShieldOff,
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+
+// Color palette
+const colors = {
+  primary: "hsl(240, 5%, 26%)",       // Dark slate
+  secondary: "hsl(210, 20%, 98%)",    // Light background
+  accent: "hsl(210, 80%, 60%)",       // Vibrant blue
+  success: "hsl(142, 72%, 45%)",      // Green
+  warning: "hsl(38, 92%, 50%)",       // Amber
+  destructive: "hsl(0, 84%, 60%)",    // Red
+  muted: "hsl(240, 5%, 96%)",         // Very light slate
+  border: "hsl(240, 5%, 90%)",        // Borders
+};
 
 export default function AgentManagementPage() {
   const [agents, setAgents] = useState<any[]>([]);
@@ -21,6 +70,7 @@ export default function AgentManagementPage() {
     revenue: 0,
     commission: 0,
   });
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetch("/api/agents")
@@ -83,7 +133,7 @@ export default function AgentManagementPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ days: 30 }), // Suspend for 30 days
+        body: JSON.stringify({ days: 30 }),
       });
       if (!response.ok) throw new Error("Failed to suspend agent");
       setAgents(
@@ -114,7 +164,6 @@ export default function AgentManagementPage() {
 
   const handleViewActivity = async (id: string) => {
     setActivityModalOpen(true);
-    // Fetch agent bookings and sales data
     try {
       const bookingsResponse = await fetch(`/api/agents/${id}/bookings`);
       const salesResponse = await fetch(`/api/agents/${id}/sales`);
@@ -128,232 +177,519 @@ export default function AgentManagementPage() {
     }
   };
 
+  const filteredAgents = agents.filter(agent => 
+    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    agent.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
-      <div className="py-12 text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-teal-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-        <p className="mt-4 text-lg font-medium text-teal-600">Loading agents...</p>
+      <div className="container mx-auto py-12" style={{ backgroundColor: colors.secondary }}>
+        <div className="flex flex-col gap-8">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-8 w-32" />
+          </div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="py-12 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-red-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+      <div className="container mx-auto py-12 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: colors.secondary }}>
+        <div className="bg-red-100 p-4 rounded-full">
+          <AlertCircle className="h-10 w-10 text-red-600" />
         </div>
-        <p className="mt-4 text-lg font-medium text-red-600">{error}</p>
+        <h2 className="text-2xl font-semibold text-red-600">Error Loading Agents</h2>
+        <p className="text-gray-600">{error}</p>
+        <Button
+          variant="outline"
+          onClick={() => window.location.reload()}
+          className="mt-4"
+          style={{ borderColor: colors.accent, color: colors.accent }}
+        >
+          Retry
+        </Button>
       </div>
     );
   }
 
   if (!agents.length) {
     return (
-      <div className="max-w-3xl mx-auto my-12 px-4 text-center">
-        <h2 className="text-3xl font-bold text-teal-900 mb-6">Agent Management</h2>
-        <div className="bg-gray-50 rounded-lg p-8 border border-gray-200">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+      <div className="container mx-auto py-12" style={{ backgroundColor: colors.secondary }}>
+        <div className="flex flex-col items-center justify-center gap-6 text-center">
+          <div className="bg-blue-100 p-6 rounded-full">
+            <User className="h-12 w-12 text-blue-600" />
+          </div>
+          <h2 className="text-3xl font-bold" style={{ color: colors.primary }}>No Agents Found</h2>
+          <p className="text-lg" style={{ color: colors.accent }}>
+            There are currently no agents registered in the system.
+          </p>
+          <Button 
+            className="mt-4" 
+            style={{ backgroundColor: colors.accent }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-            />
-          </svg>
-          <h3 className="mt-2 text-lg font-medium text-gray-900">No agents found</h3>
-          <p className="mt-1 text-gray-500">There are currently no agents registered in the system.</p>
+            Invite Agents
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto my-12 px-4">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-bold text-teal-900">Agent Management</h2>
-        <div className="text-sm text-gray-500">
-          Total agents: <span className="font-medium">{agents.length}</span>
+    <div className="container mx-auto py-8" style={{ backgroundColor: colors.secondary }}>
+      <div className="flex flex-col gap-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: colors.primary }}>Agent Management</h1>
+            <p className="mt-2" style={{ color: colors.accent }}>
+              Manage and review all agent activities and approvals
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="px-4 py-2" style={{ borderColor: colors.accent }}>
+              <User className="w-4 h-4 mr-2" style={{ color: colors.accent }} />
+              <span style={{ color: colors.accent }}>{agents.length} Agents</span>
+            </Badge>
+          </div>
         </div>
+
+        <Card style={{ backgroundColor: colors.secondary, borderColor: colors.border }}>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle style={{ color: colors.primary }}>Agent List</CardTitle>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: colors.accent }} />
+                <Input
+                  type="text"
+                  placeholder="Search agents..."
+                  className="pl-10 pr-4 py-2 rounded-lg text-sm w-64 focus:outline-none focus:ring-2"
+                  style={{ borderColor: colors.border }}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader style={{ backgroundColor: colors.muted }}>
+                <TableRow>
+                  <TableHead className="w-[200px]" style={{ color: colors.primary }}>Agent</TableHead>
+                  <TableHead style={{ color: colors.primary }}>Contact</TableHead>
+                  <TableHead style={{ color: colors.primary }}>Status</TableHead>
+                  <TableHead className="text-right" style={{ color: colors.primary }}>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAgents.map((agent) => (
+                  <TableRow key={agent.id} className="hover:bg-gray-50/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={agent.image} />
+                          <AvatarFallback>
+                            {agent.name
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium" style={{ color: colors.primary }}>{agent.name}</div>
+                          <div className="text-sm" style={{ color: colors.accent }}>
+                            {agent.organization}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4" style={{ color: colors.accent }} />
+                        <span style={{ color: colors.primary }}>{agent.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm mt-1">
+                        <Phone className="h-4 w-4" style={{ color: colors.accent }} />
+                        <span style={{ color: colors.primary }}>{agent.mobile || "N/A"}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {agent.suspended ? (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Suspended
+                        </Badge>
+                      ) : agent.approved ? (
+                        <Badge className="gap-1" style={{ backgroundColor: colors.success }}>
+                          <UserCheck className="h-3 w-3" />
+                          Approved
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1" style={{ borderColor: colors.warning }}>
+                          <Clock className="h-3 w-3" />
+                          Pending
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {!agent.approved && !agent.suspended && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1"
+                              onClick={() => handleApprove(agent.id)}
+                              style={{ backgroundColor: colors.success }}
+                            >
+                              <UserCheck className="h-3.5 w-3.5" />
+                              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                                Approve
+                              </span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 gap-1"
+                              onClick={() => handleDecline(agent.id)}
+                              style={{ borderColor: colors.destructive, color: colors.destructive }}
+                            >
+                              <UserX className="h-3.5 w-3.5" />
+                              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                                Decline
+                              </span>
+                            </Button>
+                          </>
+                        )}
+                        {!agent.suspended && agent.approved && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1"
+                            onClick={() => handleSuspend(agent.id)}
+                            style={{ borderColor: colors.warning, color: colors.warning }}
+                          >
+                            <ShieldOff className="h-3.5 w-3.5" />
+                            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                              Suspend
+                            </span>
+                          </Button>
+                        )}
+                        {agent.suspended && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1"
+                            onClick={() => handleUnsuspend(agent.id)}
+                            style={{ borderColor: colors.success, color: colors.success }}
+                          >
+                            <Shield className="h-3.5 w-3.5" />
+                            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                              Unsuspend
+                            </span>
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1"
+                          onClick={() => setSelectedAgent(agent)}
+                          style={{ borderColor: colors.accent, color: colors.accent }}
+                        >
+                          <User className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            Details
+                          </span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 gap-1"
+                          onClick={() => handleViewActivity(agent.id)}
+                          style={{ borderColor: colors.primary, color: colors.primary }}
+                        >
+                          <Activity className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            Activity
+                          </span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-8 gap-1"
+                          onClick={() => handleRemove(agent.id)}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                            Remove
+                          </span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {agents.map((agent) => (
-              <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{agent.name}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{agent.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {agent.suspended ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                      Suspended
-                    </span>
-                  ) : agent.approved ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      Approved
-                    </span>
-                  ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                      Pending
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                  {!agent.approved && !agent.suspended && (
-                    <>
-                      <Button
-                        size="sm"
-                        className="bg-teal-600 hover:bg-teal-700 text-white"
-                        onClick={() => handleApprove(agent.id)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-gray-300 hover:bg-gray-50"
-                        onClick={() => handleDecline(agent.id)}
-                      >
-                        Decline
-                      </Button>
-                    </>
-                  )}
-                  {!agent.suspended && agent.approved && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-yellow-300 hover:bg-yellow-50 text-yellow-700"
-                      onClick={() => handleSuspend(agent.id)}
-                    >
-                      Suspend
-                    </Button>
-                  )}
-                  {agent.suspended && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-green-300 hover:bg-green-50 text-green-700"
-                      onClick={() => handleUnsuspend(agent.id)}
-                    >
-                      Unsuspend
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="hover:bg-red-700"
-                    onClick={() => handleRemove(agent.id)}
-                  >
-                    Remove
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-blue-300 hover:bg-blue-50 text-blue-700"
-                    onClick={() => setSelectedAgent(agent)}
-                  >
-                    View Details
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-purple-300 hover:bg-purple-50 text-purple-700"
-                    onClick={() => handleViewActivity(agent.id)}
-                  >
-                    View Activity
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+      {/* Agent Details Modal */}
       {selectedAgent && (
         <Dialog open={!!selectedAgent} onOpenChange={() => setSelectedAgent(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-2xl" style={{ backgroundColor: colors.secondary }}>
             <DialogHeader>
-              <DialogTitle>Agent Details</DialogTitle>
+              <DialogTitle className="flex items-center gap-2" style={{ color: colors.primary }}>
+                <User className="h-5 w-5" style={{ color: colors.accent }} />
+                Agent Details
+              </DialogTitle>
+              <DialogDescription style={{ color: colors.accent }}>
+                Full profile information for {selectedAgent.name}
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2">
-              <div><strong>Name:</strong> {selectedAgent.name}</div>
-              <div><strong>Email:</strong> {selectedAgent.email}</div>
-              <div><strong>Organization:</strong> {selectedAgent.organization}</div>
-              <div><strong>Mobile:</strong> {selectedAgent.mobile}</div>
-              <div><strong>ID Number:</strong> {selectedAgent.idNumber}</div>
-              <div><strong>Status:</strong> {selectedAgent.approved ? "Approved" : "Pending"}</div>
+            <div className="grid gap-6 py-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={selectedAgent.image} />
+                  <AvatarFallback>
+                    {selectedAgent.name
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-xl font-semibold" style={{ color: colors.primary }}>{selectedAgent.name}</h3>
+                  <p className="text-sm" style={{ color: colors.accent }}>
+                    {selectedAgent.organization}
+                  </p>
+                  <div className="mt-1">
+                    {selectedAgent.approved ? (
+                      <Badge style={{ backgroundColor: colors.success }}>
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" style={{ borderColor: colors.warning }}>
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending Approval
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium" style={{ color: colors.primary }}>Contact Information</h4>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4" style={{ color: colors.accent }} />
+                    <span style={{ color: colors.primary }}>{selectedAgent.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4" style={{ color: colors.accent }} />
+                    <span style={{ color: colors.primary }}>{selectedAgent.mobile || "Not provided"}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium" style={{ color: colors.primary }}>Identification</h4>
+                  <div className="text-sm" style={{ color: colors.primary }}>
+                    ID: {selectedAgent.idNumber || "Not provided"}
+                  </div>
+                </div>
+              </div>
+
+              <Separator style={{ backgroundColor: colors.border }} />
+
+              <div className="space-y-2">
+                <h4 className="font-medium" style={{ color: colors.primary }}>Performance Metrics</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <Card className="text-center p-4" style={{ backgroundColor: colors.muted }}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Gauge className="h-5 w-5" style={{ color: colors.accent }} />
+                      <div className="text-2xl font-bold" style={{ color: colors.primary }}>{agentSales.bookings}</div>
+                    </div>
+                    <div className="text-sm" style={{ color: colors.accent }}>Bookings</div>
+                  </Card>
+                  <Card className="text-center p-4" style={{ backgroundColor: colors.muted }}>
+                    <div className="flex items-center justify-center gap-2">
+                      <CreditCard className="h-5 w-5" style={{ color: colors.accent }} />
+                      <div className="text-2xl font-bold" style={{ color: colors.primary }}>{agentSales.revenue.toLocaleString()}</div>
+                    </div>
+                    <div className="text-sm" style={{ color: colors.accent }}>Revenue (BWP)</div>
+                  </Card>
+                  <Card className="text-center p-4" style={{ backgroundColor: colors.muted }}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Calendar className="h-5 w-5" style={{ color: colors.accent }} />
+                      <div className="text-2xl font-bold" style={{ color: colors.primary }}>{agentSales.commission.toLocaleString()}</div>
+                    </div>
+                    <div className="text-sm" style={{ color: colors.accent }}>Commission (BWP)</div>
+                  </Card>
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              {!selectedAgent.approved && (
-                <Button onClick={() => handleApprove(selectedAgent.id)}>Approve</Button>
-              )}
-              <Button variant="destructive" onClick={() => handleDecline(selectedAgent.id)}>Decline</Button>
+              <div className="flex justify-between w-full">
+                {!selectedAgent.approved && (
+                  <Button 
+                    onClick={() => handleApprove(selectedAgent.id)}
+                    style={{ backgroundColor: colors.success }}
+                  >
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Approve Agent
+                  </Button>
+                )}
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedAgent(null)}
+                    style={{ borderColor: colors.accent, color: colors.accent }}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDecline(selectedAgent.id)}
+                  >
+                    <UserX className="h-4 w-4 mr-2" />
+                    Decline Agent
+                  </Button>
+                </div>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
+      {/* Activity Modal */}
       {activityModalOpen && (
         <Dialog open={activityModalOpen} onOpenChange={() => setActivityModalOpen(false)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-4xl" style={{ backgroundColor: colors.secondary }}>
             <DialogHeader>
-              <DialogTitle>Agent Activity</DialogTitle>
+              <DialogTitle className="flex items-center gap-2" style={{ color: colors.primary }}>
+                <Activity className="h-5 w-5" style={{ color: colors.accent }} />
+                Agent Activity
+              </DialogTitle>
+              <DialogDescription style={{ color: colors.accent }}>
+                Detailed booking and sales information
+              </DialogDescription>
             </DialogHeader>
-            <div>
-              <h4 className="font-semibold mb-2">Bookings</h4>
-              <ul>
-                {agentBookings.map(b => (
-                  <li key={b.id}>
-                    {b.orderId} - {b.userName} - {b.seatCount} seats - {b.totalPrice} - {b.trip.routeName} ({b.trip.departureDate})
-                  </li>
-                ))}
-              </ul>
-              <h4 className="font-semibold mt-4 mb-2">Sales</h4>
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Card style={{ backgroundColor: colors.muted }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: colors.primary }}>
+                      Total Bookings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                      {agentSales.bookings}
+                    </div>
+                    <div className="text-xs" style={{ color: colors.accent }}>
+                      
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card style={{ backgroundColor: colors.muted }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: colors.primary }}>
+                      Total Revenue
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                      {agentSales.revenue.toLocaleString()} BWP
+                    </div>
+                    <div className="text-xs" style={{ color: colors.accent }}>
+                     
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card style={{ backgroundColor: colors.muted }}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium" style={{ color: colors.primary }}>
+                      Total Commission
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold" style={{ color: colors.primary }}>
+                      {agentSales.commission.toLocaleString()} BWP
+                    </div>
+                    <div className="text-xs" style={{ color: colors.accent }}>
+                      10% commission rate
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               <div>
-                Bookings: {agentSales.bookings}<br />
-                Revenue: {agentSales.revenue}<br />
-                Commission: {agentSales.commission}
+                <h4 className="font-semibold mb-4" style={{ color: colors.primary }}>Recent Bookings</h4>
+                <div className="border rounded-lg overflow-hidden" style={{ borderColor: colors.border }}>
+                  <Table>
+                    <TableHeader style={{ backgroundColor: colors.muted }}>
+                      <TableRow>
+                        <TableHead style={{ color: colors.primary }}>Order ID</TableHead>
+                        <TableHead style={{ color: colors.primary }}>Customer</TableHead>
+                        <TableHead style={{ color: colors.primary }}>Route</TableHead>
+                        <TableHead className="text-right" style={{ color: colors.primary }}>Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agentBookings.length > 0 ? (
+                        agentBookings.map((booking) => (
+                          <TableRow key={booking.id} style={{ backgroundColor: colors.secondary }}>
+                            <TableCell className="font-medium" style={{ color: colors.primary }}>
+                              {booking.orderId}
+                            </TableCell>
+                            <TableCell style={{ color: colors.primary }}>{booking.userName}</TableCell>
+                            <TableCell style={{ color: colors.primary }}>
+                              {booking.trip.routeName} ({booking.trip.departureDate})
+                            </TableCell>
+                            <TableCell className="text-right" style={{ color: colors.primary }}>
+                              {booking.totalPrice} BWP
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8" style={{ backgroundColor: colors.secondary }}>
+                            <div style={{ color: colors.accent }}>
+                              No bookings found for this agent
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4" style={{ color: colors.primary }}>Performance Overview</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: colors.primary }}>Booking Completion</span>
+                    <span className="text-sm font-medium" style={{ color: colors.primary }}>85%</span>
+                  </div>
+                  <Progress value={85} className="h-2" style={{ backgroundColor: colors.muted }} />
+                </div>
               </div>
             </div>
+            <DialogFooter>
+              <Button 
+                onClick={() => setActivityModalOpen(false)}
+                style={{ backgroundColor: colors.accent }}
+              >
+                Close
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}

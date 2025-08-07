@@ -24,18 +24,18 @@ export async function GET() {
     const agentBookings = agent.bookings.filter(b => b.agentId === agent.id);
     const paidBookings = agentBookings.filter(b => b.paymentStatus === "paid");
     const revenue = paidBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    // Commission: original = totalPrice / 0.9, commission = original - totalPrice
     const commission = paidBookings.reduce((sum, b) => {
       const original = b.totalPrice ? b.totalPrice / 0.9 : 0;
-      const commissionForBooking = original - (b.totalPrice || 0);
-      console.log(`Booking: ${b.id}, Original: ${original}, Paid: ${b.totalPrice}, Commission: ${commissionForBooking}`);
-      return sum + commissionForBooking;
+      return sum + (original - (b.totalPrice || 0));
     }, 0);
     return {
       id: agent.id,
       name: agent.name,
       bookings: paidBookings.length,
       revenue,
-      commission
+      commission,
+      commissionRate: 0.10 // Add this if you want to show on dashboard
     };
   });
 
