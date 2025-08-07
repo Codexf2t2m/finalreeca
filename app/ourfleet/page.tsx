@@ -62,7 +62,7 @@ export default function FleetPage() {
             <div className="flex items-center gap-3">
               <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                 <Image
-                  src="/images/reeca-travel-logo.jpg"
+                  src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
                   width={100}
                   height={80}

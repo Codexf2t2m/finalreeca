@@ -94,7 +94,7 @@ export default function AgentAuth() {
             <div className="flex justify-center mb-4">
               <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
                 <Image
-                  src="/images/reeca-travel-logo.jpg"
+                  src="/images/reeca-travel-logo.png"
                   alt="Company Logo"
                   width={60}
                   height={60}

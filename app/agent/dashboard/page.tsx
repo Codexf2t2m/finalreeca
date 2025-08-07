@@ -105,7 +105,7 @@ export default function AgentDashboard() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <Image 
-                src="/images/reeca-travel-logo.jpg"
+                src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={48}
                 height={48}
@@ -377,7 +377,7 @@ export default function AgentDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2">
               <Image 
-                src="/images/reeca-travel-logo.jpg"
+                src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={32}
                 height={32}

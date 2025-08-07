@@ -230,7 +230,7 @@ export default function BookingApp() {
               <div className="flex items-center gap-3">
                 <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                   <Image
-                    src="/images/reeca-travel-logo.jpg"
+                    src="/images/reeca-travel-logo.png"
                     alt="Reeca Travel"
                     width={96}
                     height={56}
@@ -309,7 +309,7 @@ export default function BookingApp() {
               <div className="flex items-center gap-3">
                 <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                   <Image
-                    src="/images/reeca-travel-logo.jpg"
+                    src="/images/reeca-travel-logo.png"
                     alt="Reeca Travel"
                     width={100}
                     height={80}
@@ -347,7 +347,7 @@ export default function BookingApp() {
 
         <div className="relative h-[500px] w-full bg-gray-900 overflow-hidden">
           <Image
-            src="/images/reecabus.png"
+            src="/images/back.jpg"
             alt="REECA Travel Premium Bus"
             fill
             className="object-cover object-[center_60%] opacity-90"
@@ -408,7 +408,7 @@ export default function BookingApp() {
                 <address className="not-italic text-gray-400">
                   <p>Gaborone, Botswana</p>
                   <p>Phone: +26777655348 </p>
-                  <p>Email: tickets@reecattavel.co.bw</p>
+                  <p>Email: tickets@reecatravel.co.bw</p>
                 </address>
               </div>
             </div>
@@ -506,7 +506,7 @@ export default function BookingApp() {
             <div className="flex items-center gap-3">
               <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                 <Image
-                  src="/images/reeca-travel-logo.jpg"
+                  src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
                   width={100}
                   height={58}

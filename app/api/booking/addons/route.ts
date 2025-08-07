@@ -253,7 +253,7 @@ function generateTicketHTML(bookingData: any) {
             <div class="footer">
                 <p>Thank you for choosing Reeca Travel!</p>
                 <p>Please arrive at the boarding point at least 15 minutes before departure.</p>
-                <p>For inquiries, contact us at tickets@reecattavel.co.bw</p>
+                <p>For inquiries, contact us at tickets@reecatravel.co.bw</p>
             </div>
         </div>
     </body>

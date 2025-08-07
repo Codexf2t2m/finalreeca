@@ -419,7 +419,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       </div>
       <div className="mt-6 md:mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-600">
         <p>Thank you for choosing REECA TRAVEL for your journey!</p>
-        <p>For support, contact us at +26777655348 or tickets@reecattavel.co.bw</p>
+        <p>For support, contact us at +26777655348 or tickets@reecatravel.co.bw</p>
       </div>
     </div>
   );
