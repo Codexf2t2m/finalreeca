@@ -85,7 +85,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
     });
   };
 
-  // Helper to render trip details
   const renderTripSection = (trip: TripData, label: string) => {
     if (!trip) return null;
     const sortedPassengers = [...trip.passengers].sort((a, b) => {
@@ -101,7 +100,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       return a.localeCompare(b);
     });
     
-    // Convert to uppercase
     const boardingPoint = trip.boardingPoint?.toUpperCase() || 'N/A';
     const droppingPoint = trip.droppingPoint?.toUpperCase() || 'N/A';
     
@@ -203,7 +201,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
     );
   };
 
-  // QR code data includes both trips if roundtrip
   const qrData = {
     ref: bookingData.bookingRef,
     name: bookingData.userName,
@@ -260,14 +257,12 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       `}</style>
       <div className="flex justify-between items-start mb-6 md:mb-8">
         <div className="flex items-center">
-          <div className="flex gap-1 mr-4">
-            <div className="w-8 h-8 bg-teal-500 rounded"></div>
-            <div className="w-8 h-8 bg-orange-400 rounded"></div>
-            <div className="w-8 h-8 bg-amber-400 rounded"></div>
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-800 leading-tight">REECA TRAVEL</h1>
-            <p className="text-xs md:text-sm text-gray-600">Your Journey, Our Priority</p>
+          <div className="mr-4">
+            <img 
+              src="/images/reeca-travel-logo.png" 
+              alt="REECA TRAVEL Logo"
+              className="h-16 md:h-20 object-contain"
+            />
           </div>
         </div>
         <div className="text-right">
@@ -302,7 +297,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
         </div>
       </div>
-      {/* Payment Information */}
       <div className="mb-6 md:mb-8">
         <div className="bg-gray-100 p-2 mb-2 md:mb-4">
           <h3 className="font-bold text-gray-800">Payment Information</h3>
@@ -335,7 +329,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
         </div>
       </div>
-      {/* Cardholder & Emergency Contact */}
       <div className="mb-6 md:mb-8">
         <div className="bg-gray-100 p-2 mb-2">
           <h3 className="font-bold text-gray-800">Cardholder & Emergency Contact</h3>
@@ -371,7 +364,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
         </div>
       </div>
-      {/* Addons */}
       {bookingData.addons && bookingData.addons.length > 0 && (
         <div className="mb-6 md:mb-8">
           <div className="bg-gray-100 p-2 mb-2">
@@ -386,7 +378,6 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </ul>
         </div>
       )}
-      {/* QR Code and Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
         <div>
           <div className="bg-gray-100 p-2 mb-2">
