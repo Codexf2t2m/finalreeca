@@ -230,7 +230,7 @@ export default function BookingApp() {
               <div className="flex items-center gap-3">
                 <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                   <Image
-                    src="/images/reeca-travel-logo.png"
+                    src="/images/reeca-travel-logo.jpg"
                     alt="Reeca Travel"
                     width={96}
                     height={56}
@@ -309,7 +309,7 @@ export default function BookingApp() {
               <div className="flex items-center gap-3">
                 <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                   <Image
-                    src="/images/reeca-travel-logo.png"
+                    src="/images/reeca-travel-logo.jpg"
                     alt="Reeca Travel"
                     width={100}
                     height={80}
@@ -407,8 +407,8 @@ export default function BookingApp() {
                 <h4 className="font-bold mb-4">Contact</h4>
                 <address className="not-italic text-gray-400">
                   <p>Gaborone, Botswana</p>
-                  <p>Phone: +267 123 4567</p>
-                  <p>Email: info@reecatravel.com</p>
+                  <p>Phone: +26777655348 </p>
+                  <p>Email: tickets@reecattavel.co.bw</p>
                 </address>
               </div>
             </div>
@@ -506,7 +506,7 @@ export default function BookingApp() {
             <div className="flex items-center gap-3">
               <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
                 <Image
-                  src="/images/reeca-travel-logo.png"
+                  src="/images/reeca-travel-logo.jpg"
                   alt="Reeca Travel"
                   width={100}
                   height={58}

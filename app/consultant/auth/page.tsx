@@ -93,7 +93,7 @@ export default function ConsultantAuth() {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <Image
-                src="/images/reeca-travel-logo.png"
+                src="/images/reeca-travel-logo.jpg"
                 alt="Company Logo"
                 width={60}
                 height={60}

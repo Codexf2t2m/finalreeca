@@ -268,7 +268,10 @@ export default function SeatSelection({
               </div>
             </div>
 
-            <div className="border-2 border-gray-300 rounded-xl p-6 bg-white">
+            <div
+              className="border-2 rounded-xl p-6 bg-white"
+              style={{ borderColor: "rgb(243,193,39)" }} // <-- Use the amber color for the bus border
+            >
               <div className="flex justify-end mb-8">
                 <div className="relative">
                   <div className="w-16 h-16 bg-teal-600 rounded-lg flex items-center justify-center shadow-md">

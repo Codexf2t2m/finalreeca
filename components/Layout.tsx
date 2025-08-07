@@ -48,7 +48,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/admin" className="flex items-center gap-3">
                 <div className="relative h-10 w-10">
                   <Image
-                    src="/images/reeca-travel-logo.png"
+                    src="/images/reeca-travel-logo.jpg"
                     alt="Reeca Travel"
                     fill
                     className="object-contain"
@@ -158,7 +158,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <div className="flex-shrink-0 flex items-center px-4 mb-6">
                     <div className="relative h-10 w-10">
                       <Image
-                        src="/images/reeca-travel-logo.png"
+                        src="/images/reeca-travel-logo.jpg"
                         alt="Reeca Travel"
                         fill
                         className="object-contain"

@@ -180,14 +180,23 @@ export default function BookingForm({ onSearch, agentInfo, onHireBus }: BookingF
             <Button
               onClick={onHireBus}
               variant="outline"
-              className="w-full md:w-auto h-12 border-teal-600 text-teal-600 hover:bg-teal-50 font-medium"
+              className="w-full md:w-auto h-12 font-medium"
+              style={{
+                borderColor: "rgb(243,193,39)",
+                color: "rgb(243,193,39)"
+              }}
             >
               Hire a Coach
             </Button>
           )}
           <Button
             onClick={handleSearch}
-            className="w-full md:w-auto h-12 bg-teal-600 hover:bg-teal-700 text-white font-medium"
+            className="w-full md:w-auto h-12 font-medium"
+            style={{
+              backgroundColor: "rgb(243,193,39)",
+              color: "#fff",
+              borderColor: "rgb(243,193,39)"
+            }}
           >
             Search Buses
           </Button>

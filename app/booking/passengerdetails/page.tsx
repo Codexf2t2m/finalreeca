@@ -385,7 +385,7 @@ export default function PassengerDetailsForm({
           (p.hasInfant && !isValidInfant(p.infantBirthdate || ""))
       )
     ) {
-      alert("Children must be 2-5 years old. Infants must be under 2 years old.");
+      alert("Children must be 2-11 years old. Infants must be under 11 years old.");
       return;
     }
     onProceedToPayment();
@@ -403,7 +403,7 @@ export default function PassengerDetailsForm({
     const birth = new Date(birthdate);
     const now = new Date();
     const age = (now.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    return age >= 2 && age < 5;
+    return age >= 2 && age < 11;
   }
 
   function isValidInfant(birthdate: string): boolean {
@@ -621,7 +621,7 @@ export default function PassengerDetailsForm({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="adult">Adult</SelectItem>
-                              <SelectItem value="child">Child (2-5 yrs)</SelectItem>
+                              <SelectItem value="child">Child (2-11 yrs)</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

@@ -60,7 +60,7 @@ export default function AdminLogin() {
         <div className="bg-gradient-to-r from-[#009393] to-[#febf00] p-6 text-white relative">
           <div className="flex justify-center mb-4">
             <img 
-              src="/images/reeca-travel-logo.png"
+              src="/images/reeca-travel-logo.jpg"
               alt="Reeca Travel" 
               className="h-12 w-auto drop-shadow-lg"
               style={{ background: "transparent" }}
