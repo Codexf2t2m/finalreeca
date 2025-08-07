@@ -323,8 +323,20 @@ export default function BookingApp() {
               </div>
               <div className="flex items-center gap-4">
                 <nav className="hidden md:flex gap-6">
-                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Plan Journey</a>
-                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Our Fleet</a>
+                  <a
+                    href="https://reecatravel.co.bw/?cat=5"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-teal-800 hover:text-amber-600 font-medium"
+                  >
+                    Plan Journey
+                  </a>
+                  <a
+                    href="/ourfleet"
+                    className="text-teal-800 hover:text-amber-600 font-medium"
+                  >
+                    Our Fleet
+                  </a>
                   <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
                 </nav>
                 <ThemeToggle />
