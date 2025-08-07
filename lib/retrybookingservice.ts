@@ -26,7 +26,7 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
             userEmail: data.userEmail,
             userPhone: data.userPhone,
             seats: JSON.stringify(data.selectedSeats),
-            seatCount: data.selectedSeats.length + (data.returnSeats?.length || 0),
+            seatCount: data.passengers.length,
             totalPrice: data.totalPrice,
             boardingPoint: data.boardingPoint,
             droppingPoint: data.droppingPoint,

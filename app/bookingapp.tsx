@@ -228,15 +228,16 @@ export default function BookingApp() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image
-                    src="/images/reeca-travel-logo.png"
-                    alt="Reeca Travel"
-                    width={96}
-                    height={56}
-                    className="object-contain"
-                  />
-                </div>
+                <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
+                <Image
+                  src="/images/reeca-travel-logo.png"
+                  alt="Reeca Travel"
+                  width={900}
+                  height={360}
+                  style={{ width: "100%", height: "auto" }}
+                  priority
+                />
+              </div>
                 <div>
                   <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
                   <p className="text-xs text-amber-600">Tour Vehicle Request</p>
@@ -307,20 +308,17 @@ export default function BookingApp() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
-                  <Image
-                    src="/images/reeca-travel-logo.png"
-                    alt="Reeca Travel"
-                    width={100}
-                    height={80}
-                    className="object-contain"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-teal-900">REECA TRAVEL</h1>
-                  <p className="text-xs text-amber-600">Premium Intercity Bus Services</p>
-                </div>
+              <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
+                <Image
+                  src="/images/reeca-travel-logo.png"
+                  alt="Reeca Travel"
+                  width={900}
+                  height={360}
+                  style={{ width: "100%", height: "auto" }}
+                  priority
+                />
               </div>
+            </div>
               <div className="flex items-center gap-4">
                 <nav className="hidden md:flex gap-6">
                   <a
@@ -504,19 +502,17 @@ export default function BookingApp() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="w-24 h-14 bg-white rounded-lg flex items-center justify-center p-1">
+              <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
                 <Image
                   src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
-                  width={100}
-                  height={58}
-                  className="object-contain"
+                  width={900}
+                  height={360}
+                  style={{ width: "100%", height: "auto" }}
+                  priority
                 />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
-                <p className="text-xs text-amber-600">Booking Portal</p>
-              </div>
+              
             </div>
             <ThemeToggle />
           </div>

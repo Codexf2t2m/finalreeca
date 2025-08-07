@@ -101,6 +101,10 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
       return a.localeCompare(b);
     });
     
+    // Convert to uppercase
+    const boardingPoint = trip.boardingPoint?.toUpperCase() || 'N/A';
+    const droppingPoint = trip.droppingPoint?.toUpperCase() || 'N/A';
+    
     return (
       <div className="mb-8">
         <div className="bg-gray-100 p-2 mb-2">
@@ -124,10 +128,10 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             </div>
             <div>
               <p>
-                <strong>Boarding:</strong> {trip.boardingPoint}
+                <strong>Boarding:</strong> {boardingPoint}
               </p>
               <p>
-                <strong>Dropping:</strong> {trip.droppingPoint}
+                <strong>Dropping:</strong> {droppingPoint}
               </p>
               <p>
                 <strong>Seats:</strong> {sortedSeats.join(", ")}

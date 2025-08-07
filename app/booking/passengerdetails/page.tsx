@@ -282,9 +282,9 @@ export default function PassengerDetailsForm({
       });
   }, []);
 
-  const consultantDiscount: number = consultant ? Math.round(baseTotal * 0.05) : 0;
+ 
   const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
-  const finalTotal: number = baseTotal - agentDiscount - consultantDiscount;
+  const finalTotal: number = baseTotal - agentDiscount;
 
   const getBoardingPoints = (key: string): BoardingPoint[] => {
     if (!boardingPoints || typeof boardingPoints !== 'object') {
@@ -554,12 +554,6 @@ export default function PassengerDetailsForm({
                 <div className="flex justify-between pt-2">
                   <p className="font-medium text-gray-700">Agent Discount (10%):</p>
                   <p className="font-medium text-[#009393]">-P {agentDiscount.toFixed(2)}</p>
-                </div>
-              )}
-              {consultant && (
-                <div className="flex justify-between pt-2">
-                  <p className="font-medium text-gray-700">Consultant Discount (5%):</p>
-                  <p className="font-medium text-blue-600">-P {consultantDiscount.toFixed(2)}</p>
                 </div>
               )}
               {infantCount > 0 && (

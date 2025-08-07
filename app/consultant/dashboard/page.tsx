@@ -129,8 +129,8 @@ export default function ConsultantDashboard() {
               <Image 
                 src="/images/reeca-travel-logo.png"
                 alt="Reeca Travel Logo"
-                width={36}
-                height={36}
+                width={150}
+                height={150}
                 className="rounded-md"
               />
               <span className="text-lg font-semibold text-gray-800">Reeca Travel</span>
@@ -194,8 +194,8 @@ export default function ConsultantDashboard() {
             <Image 
               src="/images/reeca-travel-logo.png"
               alt="Reeca Travel Logo"
-              width={32}
-              height={32}
+              width={150}
+              height={150}
               className="rounded-md"
             />
             <span className="text-lg font-semibold text-gray-800">Dashboard</span>

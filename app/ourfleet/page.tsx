@@ -14,7 +14,7 @@ export default function FleetPage() {
       name: "Luxury Intercity Bus",
       description: "Our flagship service with premium comfort for long-distance travel between Gaborone and Johannesburg. Features reclining seats, onboard entertainment, and climate control.",
       capacity: "44 passengers",
-      image: "/images/bus2.png",
+      image: "/images/.png",
       features: [
         "Air conditioning",
         "Reclining seats",
@@ -64,8 +64,8 @@ export default function FleetPage() {
                 <Image
                   src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
-                  width={100}
-                  height={80}
+                  width={150}
+                  height={150}
                   className="object-contain"
                 />
               </div>

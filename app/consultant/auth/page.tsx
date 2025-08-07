@@ -95,8 +95,8 @@ export default function ConsultantAuth() {
               <Image
                 src="/images/reeca-travel-logo.png"
                 alt="Company Logo"
-                width={60}
-                height={60}
+                width={150}
+                height={150}
                 className="rounded-lg"
               />
             </div>

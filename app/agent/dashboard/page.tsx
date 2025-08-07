@@ -107,8 +107,8 @@ export default function AgentDashboard() {
               <Image 
                 src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
-                width={48}
-                height={48}
+                width={150}
+                height={150}
                 className="rounded-md object-cover border-2 border-[#958c55]/30"
               />
               <div>
@@ -379,8 +379,8 @@ export default function AgentDashboard() {
               <Image 
                 src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
-                width={32}
-                height={32}
+                width={150}
+                height={150}
                 className="rounded-md"
               />
               <span className="text-sm text-gray-500">© {new Date().getFullYear()} Reeca Travel.</span>

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request, context: { params: { agentId: string } }) {
-  const { agentId } = context.params;
+export async function GET(req: Request, context: { params: Promise<{ agentId: string }> }) {
+  const { agentId } = await context.params; // Await params!
   console.log("[API] Fetching bookings for agentId:", agentId);
 
   const bookings = await prisma.booking.findMany({
