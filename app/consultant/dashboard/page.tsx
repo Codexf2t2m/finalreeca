@@ -133,7 +133,7 @@ export default function ConsultantDashboard() {
                 height={150}
                 className="rounded-md"
               />
-              <span className="text-lg font-semibold text-gray-800">Reeca Travel</span>
+              
             </div>
           </div>
           <div className="flex-1 overflow-y-auto py-4">

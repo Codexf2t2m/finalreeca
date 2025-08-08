@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -11,14 +10,19 @@ import RequestForm from "./booking/requestform";
 import BusSchedules from "./booking/busschedule";
 import PassengerDetailsForm from "./booking/passengerdetails/page";
 import HireBusModal from "./booking/hirebusmodal";
-import { Bus } from "lucide-react";
+import { Bus, User } from "lucide-react";
 import BookingForm from "@/components/bookingform";
 
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
-    "search" | "schedules" | "departure-seats" | "return-schedules" | "return-seats" | "passenger-details"
+    | "search"
+    | "schedules"
+    | "departure-seats"
+    | "return-schedules"
+    | "return-seats"
+    | "passenger-details"
   >("search");
-  
+
   const [searchData, setSearchData] = useState<SearchData | null>(null);
   const [selectedDepartureBus, setSelectedDepartureBus] = useState<any>(null);
   const [selectedReturnBus, setSelectedReturnBus] = useState<any>(null);
@@ -34,12 +38,12 @@ export default function BookingApp() {
 
   const parseDate = (dateStr: string): Date => {
     if (!dateStr) return new Date();
-    
-    if (dateStr.includes('/')) {
-      const [day, month, year] = dateStr.split('/').map(Number);
+
+    if (dateStr.includes("/")) {
+      const [day, month, year] = dateStr.split("/").map(Number);
       return new Date(year, month - 1, day);
     }
-    
+
     return new Date(dateStr);
   };
 
@@ -54,20 +58,24 @@ export default function BookingApp() {
     return parseDate(date);
   };
 
-  const handleSearch = (data: { from: string; to: string; date: any; returnDate?: any; seats: number }) => {
+  const handleSearch = (data: {
+    from: string;
+    to: string;
+    date: any;
+    returnDate?: any;
+    seats: number;
+  }) => {
     const departureDate = toDateObj(data.date);
     const returnDate = data.returnDate ? toDateObj(data.returnDate) : null;
-
     if (!isValidDate(departureDate)) {
       alert("Please select a valid departure date");
       return;
     }
-    
+
     if (data.returnDate && !isValidDate(returnDate)) {
       alert("Please select a valid return date");
       return;
     }
-
     setSearchData({
       from: data.from,
       to: data.to,
@@ -143,8 +151,14 @@ export default function BookingApp() {
   };
 
   const handleLogout = async () => {
-    await fetch("/api/agent/logout", { method: "POST", credentials: "include" });
-    await fetch("/api/consultant/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/agent/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    await fetch("/api/consultant/logout", {
+      method: "POST",
+      credentials: "include",
+    });
     setAgent(null);
     setConsultant(null);
     window.location.href = "/";
@@ -153,7 +167,7 @@ export default function BookingApp() {
   useEffect(() => {
     const fetchAuthStatus = () => {
       fetch("/api/agent/me")
-        .then(async res => {
+        .then(async (res) => {
           if (res.ok) {
             const agentData = await res.json();
             setAgent(agentData);
@@ -162,9 +176,8 @@ export default function BookingApp() {
           }
         })
         .catch(() => setAgent(null));
-
       fetch("/api/consultant/me")
-        .then(async res => {
+        .then(async (res) => {
           if (res.ok) {
             const consultantData = await res.json();
             setConsultant(consultantData);
@@ -174,7 +187,6 @@ export default function BookingApp() {
         })
         .catch(() => setConsultant(null));
     };
-
     fetchAuthStatus(); // initial check
     window.addEventListener("focus", fetchAuthStatus);
     return () => window.removeEventListener("focus", fetchAuthStatus);
@@ -185,28 +197,41 @@ export default function BookingApp() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-amber-50 to-teal-50">
         <div className="w-full max-w-md text-center bg-white p-8 rounded-xl shadow-2xl">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-10 h-10 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
           <h2 className="text-3xl font-bold mb-4 text-teal-900">
-            {selectedDepartureBus?.isRequest ? "Request Submitted!" : "Booking Confirmed!"}
+            {selectedDepartureBus?.isRequest
+              ? "Request Submitted!"
+              : "Booking Confirmed!"}
           </h2>
           <p className="text-amber-700 mb-6">
             {selectedDepartureBus?.isRequest
               ? "Your tour vehicle request has been submitted. We'll contact you within 2 hours."
               : "Your Reeca Travel bus ticket has been successfully booked"}
           </p>
-
           <div className="p-4 bg-gradient-to-br from-teal-50 to-amber-50 rounded-lg mb-6 border border-teal-200">
             <div className="text-sm text-teal-700">
-              {selectedDepartureBus?.isRequest ? "Request Reference" : "Booking Reference"}
+              {selectedDepartureBus?.isRequest
+                ? "Request Reference"
+                : "Booking Reference"}
             </div>
             <div className="text-xl font-bold text-teal-900">
               #RT{Math.random().toString(36).substr(2, 9).toUpperCase()}
             </div>
           </div>
-
           <div className="space-y-3">
             <Button
               onClick={() => window.location.reload()}
@@ -228,19 +253,26 @@ export default function BookingApp() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
-                <Image
-                  src="/images/reeca-travel-logo.png"
-                  alt="Reeca Travel"
-                  width={900}
-                  height={360}
-                  style={{ width: "100%", height: "auto" }}
-                  priority
-                />
-              </div>
+                <div
+                  className="bg-white rounded-lg flex items-center justify-center p-1"
+                  style={{ width: 180, height: 72 }}
+                >
+                  <Image
+                    src="/images/reeca-travel-logo.png"
+                    alt="Reeca Travel"
+                    width={900}
+                    height={360}
+                    style={{ width: "100%", height: "auto" }}
+                    priority
+                  />
+                </div>
                 <div>
-                  <h1 className="text-xl font-bold text-teal-900">Reeca Travel</h1>
-                  <p className="text-xs text-amber-600">Tour Vehicle Request</p>
+                  <h1 className="text-xl font-bold text-teal-900">
+                    Reeca Travel
+                  </h1>
+                  <p className="text-xs text-amber-600">
+                    Tour Vehicle Request
+                  </p>
                 </div>
               </div>
               <Button
@@ -256,8 +288,10 @@ export default function BookingApp() {
             </div>
           </div>
         </header>
-
-        <RequestForm selectedBus={bus} onSubmitRequest={handleRequestSubmit} />
+        <RequestForm
+          selectedBus={bus}
+          onSubmitRequest={handleRequestSubmit}
+        />
       </div>
     );
   }
@@ -266,168 +300,210 @@ export default function BookingApp() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
         {agent && (
-          <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-between">
-            <span className="text-amber-800 font-semibold text-lg">
+          <div className="w-full bg-yellow-200 border-b border-yellow-300 py-2 px-4 flex items-center justify-between">
+            <span className="text-yellow-800 font-semibold text-lg">
               Booking as Agent: {agent.name}
             </span>
             <div className="flex gap-2">
               <Button
-              size="sm"
-              className="bg-teal-600 text-white"
-              onClick={async () => {
-                await handleLogout();
-                window.location.href = "/agent/dashboard";
-              }}
-            >
-              Leave Booking
-            </Button>
+                size="sm"
+                className="bg-teal-600 text-white"
+                onClick={async () => {
+                  await handleLogout();
+                  window.location.href = "/agent/dashboard";
+                }}
+              >
+                Leave Booking
+              </Button>
             </div>
           </div>
         )}
         {!agent && consultant && (
-          <div className="w-full bg-blue-100 border-b border-blue-300 py-2 px-4 flex items-center justify-between">
-            <span className="text-blue-800 font-semibold text-lg">
+          <div className="w-full bg-yellow-200 border-b border-yellow-300 py-2 px-4 flex items-center justify-between">
+            <span className="text-yellow-800 font-semibold text-lg">
               Booking as Consultant: {consultant.name}
             </span>
             <div className="flex gap-2">
-             <Button
+              <Button
                 size="sm"
-                className="bg-blue-600 text-white"
+                className="bg-teal-600 text-white"
                 onClick={async () => {
                   await handleLogout();
                   window.location.href = "/consultant/dashboard";
                 }}
               >
                 Leave Booking
-              </Button> 
+              </Button>
             </div>
           </div>
         )}
-        
+
         <header className="bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-              <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
-                <Image
-                  src="/images/reeca-travel-logo.png"
-                  alt="Reeca Travel"
-                  width={900}
-                  height={360}
-                  style={{ width: "100%", height: "auto" }}
-                  priority
-                />
+                <div
+                  className="bg-white rounded-lg flex items-center justify-center p-1"
+                  style={{ width: 180, height: 72 }}
+                >
+                  <Image
+                    src="/images/reeca-travel-logo.png"
+                    alt="Reeca Travel"
+                    width={900}
+                    height={360}
+                    style={{ width: "100%", height: "auto" }}
+                    priority
+                  />
+                </div>
               </div>
-            </div>
-              <div className="flex items-center gap-4">
-                <nav className="hidden md:flex gap-6">
-                  <a
-                    href="https://reecatravel.co.bw/?cat=5"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-teal-800 hover:text-amber-600 font-medium"
-                  >
-                    Plan Journey
-                  </a>
-                  <a
-                    href="/ourfleet"
-                    className="text-teal-800 hover:text-amber-600 font-medium"
-                  >
-                    Our Fleet
-                  </a>
-                  <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
-                </nav>
+              <nav className="hidden md:flex gap-6">
+                <a
+                  href="https://reecatravel.co.bw/?cat=5"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-800 hover:text-amber-600 font-medium"
+                >
+                  Plan Journey
+                </a>
+                <a
+                  href="/ourfleet"
+                  className="text-teal-800 hover:text-amber-600 font-medium"
+                >
+                  Our Fleet
+                </a>
+                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
+                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">About Us</a>
+                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Contact</a>
+              </nav>
+              <div className="flex items-center gap-2">
                 <ThemeToggle />
+                <Button
+                  className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2"
+                  onClick={() => window.location.href = "/agent/auth"}
+                >
+                  <User className="h-4 w-4" />
+                  Agent Portal
+                </Button>
               </div>
             </div>
           </div>
         </header>
-
         <div className="relative h-[500px] w-full bg-gray-900 overflow-hidden">
           <Image
             src="/images/back.jpg"
             alt="REECA Travel Premium Bus"
             fill
-            className="object-cover object-[center_60%] opacity-90"
+            className="object-cover object-[center_40%] opacity-90 md:object-[center_60%]"
             priority
             quality={100}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">
             <div className="container mx-auto px-4 pb-12 text-white">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Travel in Comfort & Style</h1>
-              <p className="text-xl md:text-2xl max-w-2xl">Premium bus services between Gaborone and Johannesburg</p>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                Travel in Comfort & Style
+              </h1>
+              <p className="text-xl md:text-2xl max-w-2xl">
+                Premium bus services between Gaborone and Johannesburg
+              </p>
             </div>
           </div>
         </div>
-
         <div className="container mx-auto px-4 py-8 -mt-16 relative z-10">
           <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-12 border border-gray-200">
             <div className="p-6 bg-gradient-to-r from-teal-600 to-teal-800 text-white">
               <h2 className="text-2xl font-bold">Book Your Journey</h2>
               <p className="opacity-90">Find and book your perfect trip</p>
             </div>
-            
+
             <div className="p-6">
-              <BookingForm 
-                onSearch={handleSearch} 
+              <BookingForm
+                onSearch={handleSearch}
                 agentInfo={agent}
                 onHireBus={() => setShowHireModal(true)}
               />
             </div>
           </div>
         </div>
-
         <footer className="bg-gray-900 text-white py-12">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <h3 className="text-lg font-bold mb-4">REECA TRAVEL</h3>
-                <p className="text-gray-400">Premium bus services between Botswana and South Africa.</p>
+                <p className="text-gray-400">
+                  Premium bus services between Botswana and South Africa.
+                </p>
               </div>
               <div>
                 <h4 className="font-bold mb-4">Quick Links</h4>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white">Home</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white">Book a Trip</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white">Our Fleet</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white">Contact Us</a></li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Home
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Book a Trip
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Our Fleet
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Contact Us
+                    </a>
+                  </li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-bold mb-4">Information</h4>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white">Terms & Conditions</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white">FAQ</a></li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Terms & Conditions
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      FAQ
+                    </a>
+                  </li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-bold mb-4">Contact</h4>
                 <address className="not-italic text-gray-400">
                   <p>Gaborone, Botswana</p>
-                  <p>Phone: +26777655348 </p>
+                  <p>Phone: +26777655348</p>
                   <p>Email: tickets@reecatravel.co.bw</p>
                 </address>
               </div>
             </div>
-            
+
             <div className="mt-8 text-center">
-              <a 
-                href="https://toporapuladev.vercel.app/" 
-                target="_blank" 
+              <a
+                href="https://toporapuladev.vercel.app/"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
+                className="text-gray-500 hover:text-gray-400"
               >
-                Contact Developer
+                Developed by TLR
               </a>
             </div>
-            
+
             <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
               <p>© {new Date().getFullYear()} REECA Travel. All rights reserved.</p>
             </div>
           </div>
         </footer>
-
         {showHireModal && (
           <HireBusModal
             onClose={() => setShowHireModal(false)}
@@ -450,15 +526,15 @@ export default function BookingApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       {agent && (
-        <div className="w-full bg-amber-100 border-b border-amber-300 py-2 px-4 flex items-center justify-between">
-          <span className="text-amber-800 font-semibold text-lg">
+        <div className="w-full bg-yellow-200 border-b border-yellow-300 py-2 px-4 flex items-center justify-between">
+          <span className="text-yellow-800 font-semibold text-lg">
             Booking as Agent: {agent.name}
           </span>
           <div className="flex gap-2">
             <Button
               size="sm"
               className="bg-teal-600 text-white"
-              onClick={() => window.location.href = "/agent/dashboard"}
+              onClick={() => (window.location.href = "/agent/dashboard")}
             >
               Go to Dashboard
             </Button>
@@ -474,15 +550,15 @@ export default function BookingApp() {
         </div>
       )}
       {!agent && consultant && (
-        <div className="w-full bg-blue-100 border-b border-blue-300 py-2 px-4 flex items-center justify-between">
-          <span className="text-blue-800 font-semibold text-lg">
+        <div className="w-full bg-yellow-200 border-b border-yellow-300 py-2 px-4 flex items-center justify-between">
+          <span className="text-yellow-800 font-semibold text-lg">
             Booking as Consultant: {consultant.name}
           </span>
           <div className="flex gap-2">
             <Button
               size="sm"
-              className="bg-blue-600 text-white"
-              onClick={() => window.location.href = "/consultant/dashboard"}
+              className="bg-teal-600 text-white"
+              onClick={() => (window.location.href = "/consultant/dashboard")}
             >
               Go to Dashboard
             </Button>
@@ -497,12 +573,15 @@ export default function BookingApp() {
           </div>
         </div>
       )}
-      
+
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-white rounded-lg flex items-center justify-center p-1" style={{ width: 180, height: 72 }}>
+              <div
+                className="bg-white rounded-lg flex items-center justify-center p-1"
+                style={{ width: 180, height: 72 }}
+              >
                 <Image
                   src="/images/reeca-travel-logo.png"
                   alt="Reeca Travel"
@@ -512,13 +591,11 @@ export default function BookingApp() {
                   priority
                 />
               </div>
-              
             </div>
             <ThemeToggle />
           </div>
         </div>
       </header>
-
       <main className="container mx-auto px-4 py-8">
         {currentStep === "schedules" && searchData && (
           <div>
@@ -527,8 +604,17 @@ export default function BookingApp() {
               onClick={() => setCurrentStep("search")}
               className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Back to Search
             </Button>
@@ -540,7 +626,6 @@ export default function BookingApp() {
             />
           </div>
         )}
-
         {currentStep === "departure-seats" && selectedDepartureBus && searchData && (
           <div>
             <Button
@@ -548,8 +633,17 @@ export default function BookingApp() {
               onClick={() => setCurrentStep("schedules")}
               className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Back to Schedule
             </Button>
@@ -563,7 +657,6 @@ export default function BookingApp() {
             />
           </div>
         )}
-
         {currentStep === "return-schedules" && searchData && (
           <div>
             <Button
@@ -571,8 +664,17 @@ export default function BookingApp() {
               onClick={() => setCurrentStep("departure-seats")}
               className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Back to Departure Seats
             </Button>
@@ -582,7 +684,7 @@ export default function BookingApp() {
                 from: searchData.to,
                 to: searchData.from,
                 departureDate: searchData.returnDate || new Date(),
-                returnDate: null
+                returnDate: null,
               }}
               onSelectBus={(bus) => handleSelectBus(bus, true)}
               boardingPoints={boardingPoints}
@@ -590,7 +692,6 @@ export default function BookingApp() {
             />
           </div>
         )}
-
         {currentStep === "return-seats" && selectedReturnBus && searchData && (
           <div>
             <Button
@@ -598,8 +699,17 @@ export default function BookingApp() {
               onClick={() => setCurrentStep("return-schedules")}
               className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Back to Return Schedules
             </Button>
@@ -619,7 +729,6 @@ export default function BookingApp() {
             />
           </div>
         )}
-
         {currentStep === "passenger-details" && searchData && (
           <div>
             <Button
@@ -635,8 +744,17 @@ export default function BookingApp() {
               }}
               className="mb-6 text-teal-600 hover:bg-teal-50 flex items-center gap-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
               Back to Seat Selection
             </Button>

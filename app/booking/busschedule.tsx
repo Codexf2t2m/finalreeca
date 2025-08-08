@@ -3,14 +3,27 @@ import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
-import { Wifi, Luggage, Snowflake, Coffee, BatteryCharging } from "lucide-react";
+import { 
+  Wifi, 
+  Luggage, 
+  Snowflake, 
+  Coffee, 
+  BatteryCharging,
+  Bus,
+  Clock,
+  Calendar,
+  MapPin,
+  ArrowRight,
+  DollarSign,
+  Users
+} from "lucide-react";
 
 // Define color variables based on company colors
 const colors = {
   primary: '#009393',       // Teal
   secondary: '#febf00',     // Gold
   accent: '#958c55',        // Olive
-  muted: '#fdbe00a4',         // Light gray
+  muted: '#fdbe00a4',       // Light gray
   dark: '#1a1a1a',          // Dark gray
   light: '#ffffff',         // White
   destructive: '#ef4444'    // Red (kept for errors)
@@ -115,18 +128,9 @@ export default function BusSchedules({
       departureDate: departureDateStr
     });
     const url = `/api/trips?${params.toString()}`;
-    console.log('Fetching trips with URL:', url);
-    console.log('Search params:', {
-      from: searchData.from,
-      to: searchData.to,
-      departureDate: departureDateStr,
-      selectedDay,
-      selectedDate: days[selectedDay]?.date
-    });
 
     const cached = tripsCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log('Using cached trips:', cached.data.length);
       setTrips(cached.data);
       return;
     }
@@ -145,19 +149,6 @@ export default function BusSchedules({
         throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
       }
       const data: Trip[] = await res.json();
-
-      console.log('Received trips from API:', {
-        count: data.length,
-        trips: data.map(t => ({
-          id: t.id,
-          departureDate: t.departureDate,
-          departureTime: t.departureTime,
-          route: `${t.routeOrigin} → ${t.routeDestination}`,
-          availableSeats: t.availableSeats,
-          hasDeparted: t.hasDeparted
-        }))
-      });
-
       tripsCache.set(url, { data, timestamp: Date.now() });
       setTrips(data);
     } catch (error) {
@@ -175,10 +166,7 @@ export default function BusSchedules({
 
   const filteredTrips = useMemo(() => {
     const selectedDate = days[selectedDay]?.date;
-    if (!selectedDate) {
-      console.log('No selected date available');
-      return [];
-    }
+    if (!selectedDate) return [];
 
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
@@ -186,44 +174,13 @@ export default function BusSchedules({
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    console.log('Filtering trips for date range:', {
-      selectedDate: selectedDate.toISOString(),
-      startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString(),
-      totalTrips: trips.length,
-      searchData: `${searchData.from} → ${searchData.to}`
-    });
-
-    const filtered = trips.filter((trip) => {
+    return trips.filter((trip) => {
       const tripDate = new Date(trip.departureDate);
       const matchesDate = tripDate >= startOfDay && tripDate <= endOfDay;
       const matchesRoute = trip.routeOrigin.toLowerCase() === searchData.from.toLowerCase() &&
                           trip.routeDestination.toLowerCase() === searchData.to.toLowerCase();
-      const result = matchesRoute && matchesDate;
-
-      if (result) {
-        console.log('Trip matches:', {
-          tripId: trip.id,
-          tripDate: tripDate.toISOString(),
-          route: `${trip.routeOrigin} → ${trip.routeDestination}`,
-          departureTime: trip.departureTime,
-          hasDeparted: trip.hasDeparted,
-          availableSeats: trip.availableSeats
-        });
-      }
-
-      return result;
+      return matchesRoute && matchesDate;
     });
-
-    console.log('Filtered trips result:', {
-      filteredCount: filtered.length,
-      selectedDay,
-      selectedDate: days[selectedDay]?.date?.toISOString(),
-      searchRoute: `${searchData.from} → ${searchData.to}`,
-      allTripsCount: trips.length
-    });
-
-    return filtered;
   }, [trips, selectedDay, days, searchData]);
 
   const TripCard = useCallback(({ trip }: { trip: Trip }) => {
@@ -271,100 +228,245 @@ export default function BusSchedules({
     };
 
     const features = [
-      { icon: <Wifi className="w-5 h-5" style={{ color: colors.accent }} />, label: "WiFi" },
-      { icon: <Luggage className="w-5 h-5" style={{ color: colors.accent }} />, label: "Baggage" },
-      { icon: <Snowflake className="w-5 h-5" style={{ color: colors.accent }} />, label: "AC" },
-      { icon: <Coffee className="w-5 h-5" style={{ color: colors.accent }} />, label: "Snack" },
-      { icon: <BatteryCharging className="w-5 h-5" style={{ color: colors.accent }} />, label: "Charging" },
+      { icon: <Wifi className="w-4 h-4" style={{ color: colors.accent }} />, label: "WiFi" },
+      { icon: <Luggage className="w-4 h-4" style={{ color: colors.accent }} />, label: "Baggage" },
+      { icon: <Snowflake className="w-4 h-4" style={{ color: colors.accent }} />, label: "AC" },
+      { icon: <Coffee className="w-4 h-4" style={{ color: colors.accent }} />, label: "Snack" },
+      { icon: <BatteryCharging className="w-4 h-4" style={{ color: colors.accent }} />, label: "Charging" },
     ];
 
     return (
-      <div className="flex flex-col md:grid md:grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors rounded-lg mb-2">
-        <div className="col-span-2">
-          <div className="flex items-center space-x-3">
-            <div className="w-28 h-20 bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
-              <Image
-                src={busImg}
-                alt={`${trip.serviceType} bus`}
-                width={84}
-                height={56}
-                className="object-contain"
-                priority={true}
-              />
+      <div className="mb-4">
+        {/* Mobile Card Design */}
+        <div className="md:hidden bg-white rounded-xl shadow-md border hover:shadow-lg transition-all duration-200">
+          {/* Card Header */}
+          <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  {trip.serviceType.charAt(0)}
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900 text-sm">{trip.serviceType}</div>
+                  <div className="text-xs text-gray-500">{trip.totalSeats} seats</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-lg" style={{ color: colors.primary }}>
+                  P{trip.fare}
+                </div>
+                <div className="text-xs text-gray-500">One-way</div>
+              </div>
             </div>
-            <div>
-              <div className="font-semibold text-gray-900 flex items-center">
-                {trip.serviceType}
-                {isDeparted && (
-                  <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    Departed
-                  </span>
-                )}
+          </div>
+
+          {/* Journey Details */}
+          <div className="px-4 py-4">
+            {/* Bus Image */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                <Image
+                  src={busImg}
+                  alt={`${trip.serviceType} bus`}
+                  width={64}
+                  height={48}
+                  className="object-contain"
+                  priority={true}
+                />
               </div>
-              <div className="text-sm text-gray-600">
-                {trip.routeOrigin} → {trip.routeDestination}
+            </div>
+
+            {/* Time and Route */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {trip.departureTime}
+                </div>
+                <div className="text-sm text-gray-600 max-w-20 truncate">
+                  {trip.routeOrigin}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">{trip.totalSeats} seats</div>
-              <div className="flex gap-2 mt-1">
-                {features.map((f, idx) => (
-                  <span key={idx} title={f.label} className="flex items-center">
-                    {f.icon}
-                  </span>
+              
+              <div className="flex-1 px-4">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.secondary }}></div>
+                  <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
+                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {durationHours}h {durationMinutes > 0 ? `${durationMinutes}m` : ''}
+                  </div>
+                  <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.secondary }}></div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xs text-gray-500">Direct</div>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {arrivalDate ? dateUtils.safeFormat(arrivalDate, "HH:mm") : "N/A"}
+                </div>
+                <div className="text-sm text-gray-600 max-w-20 truncate">
+                  {trip.routeDestination}
+                </div>
+              </div>
+            </div>
+
+            {/* Features and Availability */}
+            <div className="flex items-center justify-between border-t pt-3">
+              <div className="flex space-x-2">
+                {features.slice(0, 4).map((feature, idx) => (
+                  <div key={idx} className="flex items-center" title={feature.label}>
+                    {feature.icon}
+                  </div>
                 ))}
               </div>
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4 text-gray-400" />
+                <span className={`text-sm font-medium ${
+                  isDeparted ? "text-red-600" :
+                  isFull ? "text-red-600" : "text-green-600"
+                }`}>
+                  {isDeparted ? "Departed" :
+                   isFull ? "Full" : `${trip.availableSeats} left`}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <div className="mt-4">
+              {isDeparted ? (
+                <Button 
+                  disabled
+                  className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
+                >
+                  Bus Departed
+                </Button>
+              ) : !isFull ? (
+                <Button
+                  onClick={handleSelectBus}
+                  className="w-full text-white font-semibold py-3 rounded-lg"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  Select
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleRequestBus}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold py-3 rounded-lg"
+                >
+                  Request
+                </Button>
+              )}
             </div>
           </div>
         </div>
-        <div>
-          <div className="flex items-center text-gray-900">
-            <span className="font-semibold text-lg">{trip.departureTime}</span>
+
+        {/* Desktop Layout (Original) */}
+        <div className="hidden md:flex md:grid md:grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors rounded-lg border-b">
+          {/* Bus Details */}
+          <div className="w-full md:col-span-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-20 md:w-28 h-16 md:h-20 bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
+                <Image
+                  src={busImg}
+                  alt={`${trip.serviceType} bus`}
+                  width={84}
+                  height={56}
+                  className="object-contain"
+                  priority={true}
+                />
+              </div>
+              <div>
+                <div className="font-semibold text-gray-900 flex items-center">
+                  {trip.serviceType}
+                  {isDeparted && (
+                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Departed
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-600 hidden md:block">
+                  {trip.routeOrigin} → {trip.routeDestination}
+                </div>
+                <div className="text-xs text-gray-500 hidden md:block">{trip.totalSeats} seats</div>
+                <div className="flex gap-2 mt-1">
+                  {features.map((f, idx) => (
+                    <span key={idx} title={f.label} className="flex items-center">
+                      {f.icon}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="text-xs text-gray-500">
-            {departureDate ? dateUtils.safeFormat(departureDate, "dd MMM yyyy") : "N/A"}
+
+          {/* Desktop Departure */}
+          <div className="hidden md:block">
+            <div className="flex items-center text-gray-900">
+              <span className="font-semibold text-lg">{trip.departureTime}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              {departureDate ? dateUtils.safeFormat(departureDate, "dd MMM yyyy") : "N/A"}
+            </div>
           </div>
-        </div>
-        <div className="text-center">
-          <div className="font-medium text-gray-900">
-            {durationHours}h {durationMinutes > 0 ? `${durationMinutes}min` : ''}
+
+          {/* Desktop Duration */}
+          <div className="hidden md:block text-center">
+            <div className="font-medium text-gray-900">
+              {durationHours}h {durationMinutes > 0 ? `${durationMinutes}min` : ''}
+            </div>
+            <div className="text-xs text-gray-500">Non-stop</div>
           </div>
-          <div className="text-xs text-gray-500">Non-stop</div>
-        </div>
-        <div>
-          <div className="flex items-center text-gray-900">
-            <span className="font-semibold text-lg">
-              {arrivalDate ? dateUtils.safeFormat(arrivalDate, "HH:mm") : "N/A"}
-            </span>
+
+          {/* Desktop Arrival */}
+          <div className="hidden md:block">
+            <div className="flex items-center text-gray-900">
+              <span className="font-semibold text-lg">
+                {arrivalDate ? dateUtils.safeFormat(arrivalDate, "HH:mm") : "N/A"}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500">
+              {arrivalDate ? dateUtils.safeFormat(arrivalDate, "dd MMM yyyy") : "N/A"}
+            </div>
           </div>
-          <div className="text-xs text-gray-500">
-            {arrivalDate ? dateUtils.safeFormat(arrivalDate, "dd MMM yyyy") : "N/A"}
+
+          {/* Fare & Action */}
+          <div className="w-full md:w-auto text-right mt-2 md:mt-0">
+            <div className="flex items-center justify-end md:justify-start">
+              <DollarSign className="w-4 h-4 mr-1 md:hidden" />
+              <span className="font-bold text-lg md:text-xl" style={{ color: colors.primary }}>
+                P {trip.fare}/-
+              </span>
+            </div>
+            <div className={`text-xs mb-2 font-medium ${
+              isDeparted ? "text-red-600" :
+              isFull ? "text-red-600" : "text-green-600"
+            }`}>
+              {isDeparted ? "" :
+               isFull ? "Bus Full" : `✓ ${trip.availableSeats} seats available`}
+            </div>
+            {isDeparted ? (
+              <div className="text-red-600 font-medium">Bus Departed</div>
+            ) : !isFull ? (
+              <Button
+                onClick={handleSelectBus}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm w-full md:w-auto"
+              >
+                BOOK SEATS
+              </Button>
+            ) : (
+              <Button
+                onClick={handleRequestBus}
+                className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2 text-sm font-semibold w-full md:w-auto"
+              >
+                REQUEST
+              </Button>
+            )}
           </div>
-        </div>
-        <div className="text-right">
-          <div className="font-bold text-xl" style={{ color: colors.primary }}>P {trip.fare}/-</div>
-          <div className={`text-xs mb-2 font-medium ${
-            isDeparted ? "text-red-600" :
-            isFull ? "text-red-600" : "text-green-600"
-          }`}>
-            {isDeparted ? "" :
-             isFull ? "Bus Full" : `✓ ${trip.availableSeats} seats available`}
-          </div>
-          {isDeparted ? (
-            <div className="text-red-600 font-medium">Bus Departed</div>
-          ) : !isFull ? (
-            <Button
-              onClick={handleSelectBus}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm w-full md:w-auto"
-            >
-              BOOK SEATS
-            </Button>
-          ) : (
-            <Button
-              onClick={handleRequestBus}
-              className="bg-amber-500 hover:bg-amber-600 text-gray-900 px-4 py-2 text-sm font-semibold w-full md:w-auto"
-            >
-              REQUEST
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -386,6 +488,8 @@ export default function BusSchedules({
             </div>
           </div>
         </div>
+        
+        {/* Day Selector */}
         <div className="flex overflow-x-auto border-b bg-gray-50">
           {days.map((day, index) => (
             <button
@@ -401,63 +505,48 @@ export default function BusSchedules({
             </button>
           ))}
         </div>
+        
+        {/* Desktop Table Headers */}
         <div className="divide-y">
-          <div className="grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold" style={{ color: colors.dark }}>
+          <div className="hidden md:grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold" style={{ color: colors.dark }}>
             <div className="col-span-2">Bus Details</div>
             <div>Departure</div>
             <div>Duration</div>
             <div>Arrival</div>
             <div className="text-right">Fare & Action</div>
           </div>
-          {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading trips...</p>
-            </div>
-          ) : filteredTrips.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              No trips found for this day.
-              <div className="mt-4 text-sm">
-                <p><strong>Debug info:</strong></p>
-                <p>Selected date: {dateUtils.toISODateString(days[selectedDay]?.date)}</p>
-                <p>Total trips available: {trips.length}</p>
-                <p>Route: {searchData.from} → {searchData.to}</p>
-                <p>Selected day index: {selectedDay}</p>
-                <p>Days array length: {days.length}</p>
 
-                {trips.length > 0 && (
-                  <div className="mt-2">
-                    <p><strong>Available trips:</strong></p>
-                    {trips.slice(0, 3).map(trip => (
-                      <p key={trip.id} className="text-xs">
-                        {new Date(trip.departureDate).toLocaleDateString()} {trip.departureTime} -
-                        {trip.routeOrigin} → {trip.routeDestination}
-                        {trip.hasDeparted ? ' (Departed)' : ` (${trip.availableSeats} seats)`}
-                      </p>
-                    ))}
-                    {trips.length > 3 && <p className="text-xs">... and {trips.length - 3} more</p>}
-                  </div>
-                )}
+          {/* Content Area */}
+          <div className="p-4 md:p-0">
+            {/* Loading State */}
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading trips...</p>
               </div>
-              <Button
-                onClick={() => onSelectBus({
-                  id: `request-${Date.now()}`,
-                  routeOrigin: searchData.from,
-                  routeDestination: searchData.to,
-                  departureDate: days[selectedDay]?.date.toISOString() || '',
-                  isRequest: true,
-                  route: `${searchData.from} → ${searchData.to}`,
-                }, isReturnTrip)}
-                className="mt-4 bg-amber-500 hover:bg-amber-600 text-gray-900"
-              >
-                Request Custom Trip
-              </Button>
-            </div>
-          ) : (
-            filteredTrips.map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
-            ))
-          )}
+            ) : filteredTrips.length === 0 ? (
+              <div className="p-8 text-center text-gray-400">
+                No trips found for this day.
+                <Button
+                  onClick={() => onSelectBus({
+                    id: `request-${Date.now()}`,
+                    routeOrigin: searchData.from,
+                    routeDestination: searchData.to,
+                    departureDate: days[selectedDay]?.date.toISOString() || '',
+                    isRequest: true,
+                    route: `${searchData.from} → ${searchData.to}`,
+                  }, isReturnTrip)}
+                  className="mt-4 bg-amber-500 hover:bg-amber-600 text-gray-900"
+                >
+                  Request Custom Trip
+                </Button>
+              </div>
+            ) : (
+              filteredTrips.map((trip) => (
+                <TripCard key={trip.id} trip={trip} />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

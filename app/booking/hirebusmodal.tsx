@@ -73,7 +73,7 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
         <h2 className="text-2xl font-bold text-teal-900 mb-4">Inquire for Your Trip</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label className="text-gray-700">Company Name</Label>
+            <Label className="text-gray-700">Company /Individual</Label>
             <Input
               name="companyName"
               value={form.companyName}

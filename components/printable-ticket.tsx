@@ -385,7 +385,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
           </div>
           <div className="text-xs text-gray-700 space-y-1 md:space-y-2">
             <p>• Please arrive at the boarding point 15 minutes before departure time</p>
-            <p>• Valid ID required for boarding</p>
+            <p>• Valid Passport required for boarding</p>
             <p>• No refunds for no-shows</p>
             <p>• Baggage allowance: 20kg per passenger</p>
             <p>• Present this ticket (digital or printed) at boarding</p>

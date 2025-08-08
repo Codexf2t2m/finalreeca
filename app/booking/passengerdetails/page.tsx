@@ -1,20 +1,17 @@
-'use client';
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp, Copy, Coffee, Sandwich, Cookie } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Luggage, ShoppingBag, Shield, Car } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
-
 import { PolicyModal } from "@/components/PolicyModal";
 import PaymentGateway from "../paymentgateway";
 
-
 type PassengerType = "adult" | "child";
+
 interface Passenger {
   type: PassengerType;
   id: string;
@@ -72,25 +69,32 @@ function generateOrderId() {
 
 const ADDONS = [
   {
-    key: "snackPack",
-    label: "Snack Pack",
-    description: "Enjoy a delicious snack pack during your trip.",
-    price: 40,
-    icon: <span role="img" aria-label="snack">🍪</span>,
+    key: "extraBaggage",
+    label: "Extra Baggage",
+    description: "Additional baggage allowance for your trip.",
+    price: 300,
+    icon: <Luggage className="h-5 w-5 text-[#ffc721]" />,
   },
   {
-    key: "breakfast",
-    label: "Breakfast",
-    description: "Start your journey with a fresh breakfast.",
+    key: "wimpyMeal",
+    label: "Wimpy Meal",
+    description: "Delicious Wimpy meal for your journey available from Gaborone only.",
     price: 60,
-    icon: <span role="img" aria-label="breakfast">🥐</span>,
+    icon: <ShoppingBag className="h-5 w-5 text-[#ffc721]" />,
   },
   {
-    key: "drink",
-    label: "Beverage",
-    description: "Choose a cold drink for your ride.",
-    price: 25,
-    icon: <span role="img" aria-label="drink">🥤</span>,
+    key: "travelInsurance",
+    label: "Add Travel Insurance",
+    description: "Comprehensive travel insurance coverage.",
+    price: 150,
+    icon: <Shield className="h-5 w-5 text-[#ffc721]" />,
+  },
+  {
+    key: "winCarCompetition",
+    label: "Win a Car Competition",
+    description: "Enter our exciting car competition at no extra cost!",
+    price: 0,
+    icon: <Car className="h-5 w-5 text-[#ffc721]" />,
   },
 ];
 
@@ -106,10 +110,8 @@ export default function PassengerDetailsForm({
   setShowPayment,
   onPaymentComplete
 }: PassengerDetailsFormProps) {
-  // Helper for roundtrip - moved to top
   const isRoundTrip = !!returnBus;
 
-  // 1. All useState hooks at the top
   const [selectedAddons, setSelectedAddons] = useState<{ [key: string]: { departure: boolean; return: boolean } }>({});
   const [passengers, setPassengers] = useState<Passenger[]>(() => {
     const departurePassengers = (departureSeats || []).map(seat => ({
@@ -144,6 +146,7 @@ export default function PassengerDetailsForm({
     }));
     return [...departurePassengers, ...returnPassengers];
   });
+
   const [contactDetails, setContactDetails] = useState<ContactDetails>({
     name: '',
     email: '',
@@ -152,10 +155,12 @@ export default function PassengerDetailsForm({
     idType: 'Passport',
     idNumber: ''
   });
+
   const [emergencyContact, setEmergencyContact] = useState<EmergencyContact>({
     name: '',
     phone: ''
   });
+
   const [paymentMode, setPaymentMode] = useState('Credit Card');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -164,6 +169,7 @@ export default function PassengerDetailsForm({
   const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
   const [returnBoardingPoint, setReturnBoardingPoint] = useState('');
   const [returnDroppingPoint, setReturnDroppingPoint] = useState('');
+
   const [openSections, setOpenSections] = useState<SectionState>({
     passengers: true,
     contact: true,
@@ -171,6 +177,7 @@ export default function PassengerDetailsForm({
     points: true,
     addons: true
   });
+
   const [agent, setAgent] = useState<{ id: string; name: string; email: string } | null>(null);
   const [consultant, setConsultant] = useState<{ id: string; name: string; email: string } | null>(null);
   const [infantFare, setInfantFare] = useState(250);
@@ -186,13 +193,11 @@ export default function PassengerDetailsForm({
     return total;
   };
 
-  // Helper to open only one section at a time
   const openOnlySection = (section: keyof SectionState) => {
     setOpenSections(prev => {
       const newState: SectionState = { ...prev };
       Object.keys(newState).forEach(key => {
-        // @ts-ignore
-        newState[key] = key === section;
+        newState[key as keyof SectionState] = key === section;
       });
       return newState;
     });
@@ -201,7 +206,6 @@ export default function PassengerDetailsForm({
   const copyDepartureToReturn = () => {
     const departurePassengers = passengers.filter(p => !p.isReturn);
     const returnPassengers = passengers.filter(p => p.isReturn);
-
     const updatedPassengers = passengers.map(passenger => {
       if (passenger.isReturn) {
         const index = returnPassengers.findIndex(rp => rp.id === passenger.id);
@@ -211,7 +215,7 @@ export default function PassengerDetailsForm({
             title: departurePassengers[index].title,
             firstName: departurePassengers[index].firstName,
             lastName: departurePassengers[index].lastName,
-            passportNumber: departurePassengers[index].passportNumber, // <-- include passport number
+            passportNumber: departurePassengers[index].passportNumber,
             birthdate: departurePassengers[index].birthdate,
             type: departurePassengers[index].type,
             hasInfant: departurePassengers[index].hasInfant,
@@ -223,7 +227,6 @@ export default function PassengerDetailsForm({
       }
       return passenger;
     });
-
     setPassengers(updatedPassengers);
   };
 
@@ -236,15 +239,8 @@ export default function PassengerDetailsForm({
 
   const infantCount = passengers.filter(p => p.hasInfant).length;
   const infantTotal = infantCount * infantFare;
-
-  const departureTotal = passengers
-    .filter(p => !p.isReturn)
-    .reduce((sum, p) => sum + getPassengerFare(p), 0);
-
-  const returnTotal = passengers
-    .filter(p => p.isReturn)
-    .reduce((sum, p) => sum + getPassengerFare(p), 0);
-
+  const departureTotal = passengers.filter(p => !p.isReturn).reduce((sum, p) => sum + getPassengerFare(p), 0);
+  const returnTotal = passengers.filter(p => p.isReturn).reduce((sum, p) => sum + getPassengerFare(p), 0);
   const baseTotal = departureTotal + returnTotal + infantTotal + getAddonsTotal();
 
   useEffect(() => {
@@ -282,7 +278,6 @@ export default function PassengerDetailsForm({
       });
   }, []);
 
- 
   const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
   const finalTotal: number = baseTotal - agentDiscount;
 
@@ -344,16 +339,17 @@ export default function PassengerDetailsForm({
   };
 
   const handleSubmit = () => {
-  console.log("\n===== [FORM] SUBMITTING PASSENGER DATA =====");
-  console.log("Passengers:", JSON.stringify(passengers, null, 2));
-  console.log("Contact Details:", JSON.stringify(contactDetails, null, 2));
-  console.log("Emergency Contact:", JSON.stringify(emergencyContact, null, 2));
-  console.log("Boarding Points:", {
-    departure: departureBoardingPoint,
-    return: returnBoardingPoint
-  });
-  console.log("Addons:", JSON.stringify(selectedAddons, null, 2));
-  console.log("==========================================\n");
+    console.log("\n===== [FORM] SUBMITTING PASSENGER DATA =====");
+    console.log("Passengers:", JSON.stringify(passengers, null, 2));
+    console.log("Contact Details:", JSON.stringify(contactDetails, null, 2));
+    console.log("Emergency Contact:", JSON.stringify(emergencyContact, null, 2));
+    console.log("Boarding Points:", {
+      departure: departureBoardingPoint,
+      return: returnBoardingPoint
+    });
+    console.log("Addons:", JSON.stringify(selectedAddons, null, 2));
+    console.log("==========================================\n");
+
     if (passengers.some(p => !p.firstName.trim() || !p.lastName.trim())) {
       alert('Please provide first and last names for all passengers');
       return;
@@ -495,12 +491,11 @@ export default function PassengerDetailsForm({
         returnBoardingPoint,
         returnDroppingPoint,
         agentId: agent?.id,
-        consultantId: consultant?.id, // <-- Pass consultantId
+        consultantId: consultant?.id,
       };
-       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
-       console.log("==============================================\n");
+      console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
+      console.log("==============================================\n");
     }
-    // eslint-disable-next-line
   }, [showPayment]);
 
   if (!boardingPoints || !departureBus || !searchData) {
@@ -508,92 +503,108 @@ export default function PassengerDetailsForm({
   }
 
   return (
-    <div className="max-w-6xl mx-auto my-8 px-4 font-sans">
+    <div className="max-w-7xl mx-auto my-4 sm:my-8 px-3 sm:px-4 font-sans">
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-        {/* Header with gradient */}
-        <div className="p-6 border-b bg-gradient-to-r from-[#009393] to-[#0a6e6e]">
-          <h2 className="text-2xl font-bold text-white tracking-wide">
+        <div className="p-4 sm:p-6 border-b" style={{ backgroundColor: 'rgb(0, 153, 153)' }}>
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-wide">
             Passenger Details & Contact Information
           </h2>
           <p className="text-sm text-white/90 mt-1">
             Please provide details for all passengers and your contact information
           </p>
         </div>
-
-        <div className="p-6 space-y-6">
-          {/* Fare Summary Card */}
-          <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 shadow-sm">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+          <div className="bg-gray-50 rounded-lg p-4 sm:p-5 border border-gray-200 shadow-sm">
             <h3 className="font-bold text-lg text-gray-800 mb-4 flex items-center">
-              <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">1</span>
+              <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">1</span>
               Fare Summary
             </h3>
             <div className="space-y-3">
               {departureBus && (
-                <div className="flex justify-between border-b pb-2">
-                  <div>
-                    <p className="font-medium text-gray-700">Departure: {departureBus.routeOrigin} → {departureBus.routeDestination}</p>
-                    <p className="text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row sm:justify-between border-b pb-2">
+                  <div className="mb-2 sm:mb-0">
+                    <p className="font-medium text-gray-700 text-sm sm:text-base">Departure: {departureBus.routeOrigin} → {departureBus.routeDestination}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {departureBus.departureDate ? format(new Date(departureBus.departureDate), "dd MMM yyyy") : 'N/A'} • {departureSeats?.length || 0} seat(s)
                     </p>
                   </div>
-                  <p className="font-semibold text-[#009393]">P {departureTotal.toFixed(2)}</p>
+                  <p className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">P {departureTotal.toFixed(2)}</p>
                 </div>
               )}
               {returnBus && (
-                <div className="flex justify-between border-b pb-2">
-                  <div>
-                    <p className="font-medium text-gray-700">Return: {returnBus.routeOrigin} → {returnBus.routeDestination}</p>
-                    <p className="text-sm text-gray-500">
+                <div className="flex flex-col sm:flex-row sm:justify-between border-b pb-2">
+                  <div className="mb-2 sm:mb-0">
+                    <p className="font-medium text-gray-700 text-sm sm:text-base">Return: {returnBus.routeOrigin} → {returnBus.routeDestination}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {returnBus.departureDate ? format(new Date(returnBus.departureDate), "dd MMM yyyy") : 'N/A'} • {returnSeats?.length || 0} seat(s)
                     </p>
                   </div>
-                  <p className="font-semibold text-[#009393]">P {returnTotal.toFixed(2)}</p>
+                  <p className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">P {returnTotal.toFixed(2)}</p>
                 </div>
               )}
-              {agent && (
+              {passengers.filter(p => p.type === "child").length > 0 && (
                 <div className="flex justify-between pt-2">
-                  <p className="font-medium text-gray-700">Agent Discount (10%):</p>
-                  <p className="font-medium text-[#009393]">-P {agentDiscount.toFixed(2)}</p>
+                  <p className="font-medium text-gray-700 text-sm sm:text-base">Child Fare ({passengers.filter(p => p.type === "child").length}):</p>
+                  <p className="font-medium text-[rgb(0,153,153)] text-sm sm:text-base">P {passengers.filter(p => p.type === "child").length * childFare}</p>
                 </div>
               )}
               {infantCount > 0 && (
                 <div className="flex justify-between pt-2">
-                  <p className="font-medium text-gray-700">Infant Fare ({infantCount}):</p>
-                  <p className="font-medium text-[#009393]">P {infantTotal.toFixed(2)}</p>
+                  <p className="font-medium text-gray-700 text-sm sm:text-base">Infant Fare ({infantCount}):</p>
+                  <p className="font-medium text-[rgb(0,153,153)] text-sm sm:text-base">P {infantTotal.toFixed(2)}</p>
                 </div>
               )}
-              <div className="flex justify-between pt-3 border-t border-gray-200 mt-2">
-                <p className="font-bold text-lg text-gray-800">Grand Total:</p>
-                <p className="font-bold text-[#009393] text-xl">P {finalTotal.toFixed(2)}</p>
+              {Object.entries(selectedAddons).map(([key, value]) => {
+                const addon = ADDONS.find(a => a.key === key);
+                if (addon && (value.departure || value.return)) {
+                  const addonTotal = addon.price * passengers.length * (value.departure ? 1 : 0) + (isRoundTrip && value.return ? addon.price * passengers.length : 0);
+                  return (
+                    <div key={key} className="flex justify-between pt-2">
+                      <p className="font-medium text-gray-700 text-sm sm:text-base">{addon.label}:</p>
+                      <p className="font-medium text-[rgb(0,153,153)] text-sm sm:text-base">P {addonTotal.toFixed(2)}</p>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+              {agent && (
+                <div className="flex justify-between pt-2">
+                  <p className="font-medium text-gray-700 text-sm sm:text-base">Agent Discount (10%):</p>
+                  <p className="font-medium text-[rgb(0,153,153)] text-sm sm:text-base">-P {agentDiscount.toFixed(2)}</p>
+                </div>
+              )}
+              <div className="flex justify-between pt-3 border-t-2 border-gray-200 mt-2">
+                <p className="font-bold text-base sm:text-lg text-gray-800">Grand Total:</p>
+                <p className="font-bold text-[rgb(0,153,153)] text-lg sm:text-xl">P {finalTotal.toFixed(2)}</p>
               </div>
             </div>
           </div>
-
-          {/* Passenger Details Section */}
-          <div className="border rounded-lg overflow-hidden border-gray-200">
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => openOnlySection('passengers')}
-              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
+              className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex flex-col sm:flex-row sm:justify-between sm:items-center transition-colors"
             >
-              <div className="flex items-center gap-3">
-                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
+              <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
                 <h3 className="font-bold text-lg text-gray-800">
                   Passenger Details ({passengers.length})
                 </h3>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 {returnSeats.length > 0 && (
                   <Button
                     onClick={e => {
                       e.stopPropagation();
                       copyDepartureToReturn();
                     }}
-                    className="ml-2 bg-[#009393]/10 hover:bg-[#009393]/20 text-[#009393] px-3 py-1 h-auto text-sm border border-[#009393]/30"
+                    className="bg-[rgb(255,199,33)] hover:bg-[rgb(255,219,33)] text-white px-3 py-1 h-auto text-xs sm:text-sm border border-[rgb(255,199,33)] w-full sm:w-auto"
                     tabIndex={-1}
                   >
-                    <Copy className="mr-2 h-4 w-4" /> Copy Departure Details to Return
+                    <Copy className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Copy to Return
                   </Button>
                 )}
+                {openSections.passengers ? <ChevronUp className="text-gray-500 mt-1 sm:mt-0" /> : <ChevronDown className="text-gray-500 mt-1 sm:mt-0" />}
               </div>
-              {openSections.passengers ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.passengers && (
               <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
@@ -601,16 +612,16 @@ export default function PassengerDetailsForm({
                   passengers.map((passenger, idx) => {
                     const isChild = passenger.type === "child";
                     return (
-                      <div key={passenger.id} className="border rounded-lg p-4 bg-white shadow-sm">
-                        <div className="flex items-center gap-4 mb-3">
-                          <span className="font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full text-sm">
-                            Seat: {passenger.seatNumber}
+                      <div key={passenger.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 bg-white shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                          <span className={`font-medium text-white px-3 py-1 rounded-full text-sm w-fit ${passenger.isReturn ? 'bg-[rgb(148,138,84)]' : 'bg-[rgb(255,199,33)]'}`}>
+                            {passenger.isReturn ? 'Return Seat' : 'Departure Seat'}: {passenger.seatNumber}
                           </span>
                           <Select
                             value={passenger.type || "adult"}
                             onValueChange={value => updatePassenger(passenger.id, "type", value)}
                           >
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full sm:w-[180px] border-gray-300 focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)]">
                               <SelectValue placeholder="Passenger Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -619,7 +630,25 @@ export default function PassengerDetailsForm({
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <Select
+                              value={passenger.title}
+                              onValueChange={value => updatePassenger(passenger.id, "title", value)}
+                            >
+                              <SelectTrigger className="w-full border-gray-300 focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)]">
+                                <SelectValue placeholder="Title" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Mr">Mr</SelectItem>
+                                <SelectItem value="Mrs">Mrs</SelectItem>
+                                <SelectItem value="Ms">Ms</SelectItem>
+                                <SelectItem value="Miss">Miss</SelectItem>
+                                <SelectItem value="Dr">Dr</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
                             <Input
@@ -627,7 +656,7 @@ export default function PassengerDetailsForm({
                               onChange={e => updatePassenger(passenger.id, "firstName", e.target.value)}
                               placeholder="First name"
                               required
-                              className="focus:ring-[#009393] focus:border-[#009393]"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                             />
                           </div>
                           <div>
@@ -637,11 +666,11 @@ export default function PassengerDetailsForm({
                               onChange={e => updatePassenger(passenger.id, "lastName", e.target.value)}
                               placeholder="Last name"
                               required
-                              className="focus:ring-[#009393] focus:border-[#009393]"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                             />
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
                           {isChild && (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Birthdate</label>
@@ -651,8 +680,8 @@ export default function PassengerDetailsForm({
                                 onChange={e => updatePassenger(passenger.id, "birthdate", e.target.value)}
                                 placeholder="Birthdate"
                                 required={isChild}
-                                className="focus:ring-[#009393] focus:border-[#009393]"
-                                min={getDateYearsAgo(5)}
+                                className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
+                                min={getDateYearsAgo(11)}
                                 max={getDateYearsAgo(2)}
                               />
                             </div>
@@ -666,7 +695,7 @@ export default function PassengerDetailsForm({
                               onChange={e => updatePassenger(passenger.id, "passportNumber", e.target.value)}
                               placeholder={isChild ? "Passport Number" : "Passport Number"}
                               required
-                              className="focus:ring-[#009393] focus:border-[#009393]"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                             />
                           </div>
                         </div>
@@ -675,16 +704,16 @@ export default function PassengerDetailsForm({
                             id={`infant-${passenger.id}`}
                             checked={!!passenger.hasInfant}
                             onCheckedChange={checked => updatePassenger(passenger.id, "hasInfant", checked)}
-                            className="border-gray-300 data-[state=checked]:bg-[#009393] data-[state=checked]:border-[#009393]"
+                            className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
                           />
                           <label htmlFor={`infant-${passenger.id}`} className="text-sm text-gray-600">
                             Bringing an infant (0-2 yrs, sits on lap)
                           </label>
                         </div>
                         {passenger.hasInfant && (
-                          <div className="mt-4 p-4 rounded bg-[#009393]/5 border border-[#009393]/20">
-                            <h4 className="font-medium text-[#009393] mb-3">Infant Details</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="mt-4 p-3 sm:p-4 rounded bg-gray-50 border border-gray-200">
+                            <h4 className="font-medium text-[rgb(0,153,153)] mb-3">Infant Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Infant's Name</label>
                                 <Input
@@ -692,7 +721,7 @@ export default function PassengerDetailsForm({
                                   onChange={e => updatePassenger(passenger.id, "infantName", e.target.value)}
                                   placeholder="Infant's Name"
                                   required
-                                  className="focus:ring-[#009393] focus:border-[#009393]"
+                                  className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                                 />
                               </div>
                               <div>
@@ -703,7 +732,7 @@ export default function PassengerDetailsForm({
                                   onChange={e => updatePassenger(passenger.id, "infantBirthdate", e.target.value)}
                                   placeholder="Infant's Birthdate"
                                   required
-                                  className="focus:ring-[#009393] focus:border-[#009393]"
+                                  className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                                   max={new Date().toISOString().split("T")[0]}
                                 />
                               </div>
@@ -715,7 +744,7 @@ export default function PassengerDetailsForm({
                                 onChange={e => updatePassenger(passenger.id, "infantPassportNumber", e.target.value)}
                                 placeholder="Passport Number"
                                 required
-                                className="focus:ring-[#009393] focus:border-[#009393]"
+                                className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                               />
                             </div>
                           </div>
@@ -731,29 +760,27 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-
-          {/* Contact Details Section */}
-          <div className="border rounded-lg overflow-hidden border-gray-200">
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => openOnlySection('contact')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
+                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
                 <h3 className="font-bold text-lg text-gray-800">CardHolder Details</h3>
               </div>
               {openSections.contact ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.contact && (
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
                     <Input
                       value={contactDetails.name}
                       onChange={(e) => handleContactChange('name', e.target.value)}
                       placeholder="Your Name"
-                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                      className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
                   <div>
@@ -763,11 +790,11 @@ export default function PassengerDetailsForm({
                       value={contactDetails.email}
                       onChange={(e) => handleContactChange('email', e.target.value)}
                       placeholder="Email"
-                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                      className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
                     <Input
@@ -775,7 +802,7 @@ export default function PassengerDetailsForm({
                       value={contactDetails.mobile}
                       onChange={(e) => handleContactChange('mobile', e.target.value)}
                       placeholder="Mobile"
-                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                      className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
                   <div>
@@ -785,11 +812,11 @@ export default function PassengerDetailsForm({
                       value={contactDetails.alternateMobile}
                       onChange={(e) => handleContactChange('alternateMobile', e.target.value)}
                       placeholder="Alternate Mobile"
-                      className="w-full focus:ring-[#009393] focus:border-[#009393]"
+                      className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ID Type</label>
                     <Select
@@ -797,7 +824,7 @@ export default function PassengerDetailsForm({
                       onValueChange={(value) => handleContactChange('idType', value)}
                       required
                     >
-                      <SelectTrigger className="focus:ring-[#009393] focus:border-[#009393]">
+                      <SelectTrigger className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300">
                         <SelectValue placeholder="ID Type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -811,35 +838,33 @@ export default function PassengerDetailsForm({
                       value={contactDetails.idNumber}
                       onChange={(e) => handleContactChange('idNumber', e.target.value)}
                       placeholder="Passport Number"
-                      className="focus:ring-[#009393] focus:border-[#009393]"
+                      className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
                 </div>
               </div>
             )}
           </div>
-
-          {/* Emergency Contact Section */}
-          <div className="border rounded-lg overflow-hidden border-gray-200">
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => openOnlySection('emergency')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">4</span>
+                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">4</span>
                 <h3 className="font-bold text-lg text-gray-800">Emergency Contact</h3>
               </div>
               {openSections.emergency ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
             {openSections.emergency && (
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                   <Input
                     value={emergencyContact.name}
                     onChange={(e) => handleEmergencyChange('name', e.target.value)}
                     placeholder="Name"
-                    className="focus:ring-[#009393] focus:border-[#009393]"
+                    className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                   />
                 </div>
                 <div>
@@ -849,21 +874,19 @@ export default function PassengerDetailsForm({
                     value={emergencyContact.phone}
                     onChange={(e) => handleEmergencyChange('phone', e.target.value)}
                     placeholder="Phone Number"
-                    className="focus:ring-[#009393] focus:border-[#009393]"
+                    className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                   />
                 </div>
               </div>
             )}
           </div>
-
-          {/* Trip Points Section */}
-          <div className="border rounded-lg overflow-hidden border-gray-200">
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
             <button
               onClick={() => openOnlySection('points')}
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex justify-between items-center transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">5</span>
+                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">5</span>
                 <h3 className="font-bold text-lg text-gray-800">Trip Points</h3>
               </div>
               {openSections.points ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
@@ -871,8 +894,8 @@ export default function PassengerDetailsForm({
             {openSections.points && (
               <div className="p-4 space-y-6">
                 <div>
-                  <h4 className="font-bold text-gray-700 mb-3">Departure Trip Points</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <h4 className="font-bold text-[rgb(148,138,84)] mb-3 text-base sm:text-lg">Departure Trip Points</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Boarding Point
@@ -880,7 +903,7 @@ export default function PassengerDetailsForm({
                       <select
                         value={departureBoardingPoint}
                         onChange={(e) => setDepartureBoardingPoint(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] text-sm sm:text-base"
                       >
                         <option value="">Select boarding point</option>
                         {departureOriginPoints.map((point) => (
@@ -897,7 +920,7 @@ export default function PassengerDetailsForm({
                       <select
                         value={departureDroppingPoint}
                         onChange={(e) => setDepartureDroppingPoint(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] text-sm sm:text-base"
                       >
                         <option value="">Select dropping point</option>
                         {departureDestinationPoints.map((point) => (
@@ -911,8 +934,8 @@ export default function PassengerDetailsForm({
                 </div>
                 {isRoundTrip && (
                   <div>
-                    <h4 className="font-bold text-gray-700 mb-3">Return Trip Points</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h4 className="font-bold text-[rgb(148,138,84)] mb-3 text-base sm:text-lg">Return Trip Points</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Boarding Point
@@ -920,7 +943,7 @@ export default function PassengerDetailsForm({
                         <select
                           value={returnBoardingPoint}
                           onChange={(e) => setReturnBoardingPoint(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
+                          className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] text-sm sm:text-base"
                         >
                           <option value="">Select boarding point</option>
                           {returnOriginPoints.map((point) => (
@@ -937,7 +960,7 @@ export default function PassengerDetailsForm({
                         <select
                           value={returnDroppingPoint}
                           onChange={(e) => setReturnDroppingPoint(e.target.value)}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#009393] focus:border-[#009393]"
+                          className="w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] text-sm sm:text-base"
                         >
                           <option value="">Select dropping point</option>
                           {returnDestinationPoints.map((point) => (
@@ -953,58 +976,66 @@ export default function PassengerDetailsForm({
               </div>
             )}
           </div>
-
-          {/* Add-ons Section */}
-          <div className="border rounded-xl overflow-hidden border-[#958c55]/30 mt-6">
+          <div className="border-2 border-[rgb(255,199,33)] rounded-xl overflow-hidden mt-6 bg-gray-50">
             <button
               onClick={() => openOnlySection('addons')}
-              className="w-full p-4 bg-[#fece3c]/10 text-left flex justify-between items-center"
+              className="w-full p-4 bg-gray-100 text-left flex justify-between items-center hover:bg-gray-200 transition-all"
             >
-              <h3 className="font-bold text-lg text-[#958c55] flex items-center gap-2">
-                <span role="img" aria-label="personalize">✨</span>
-                Personalise Your Trip (Add-ons)
+              <h3 className="font-bold text-lg text-[rgb(148,138,84)] flex items-center gap-2">
+                <span role="img" aria-label="personalize" className="text-xl">✨</span>
+                Personalize Your Trip (Add-ons)
               </h3>
-              {openSections.addons ? <ChevronUp /> : <ChevronDown />}
+              {openSections.addons ? <ChevronUp className="text-[rgb(148,138,84)]" /> : <ChevronDown className="text-[rgb(148,138,84)]" />}
             </button>
             {openSections.addons && (
               <div className="p-4 space-y-4">
-                <div className="text-sm text-[#009393] mb-2">Select extras for each passenger. Prices are per passenger, per trip.</div>
+                <div className="text-sm text-[rgb(0,153,153)] mb-4 font-medium bg-gray-100 p-3 rounded-lg border border-gray-200">
+                  Select extras for each passenger. Prices are per passenger, per trip.
+                </div>
                 {ADDONS.map(addon => (
-                  <div key={addon.key} className="flex items-center gap-4 border-b py-3">
-                    <div className="text-2xl">{addon.icon}</div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-[#009393]">{addon.label}</div>
-                      <div className="text-xs text-[#958c55]">{addon.description}</div>
+                  <div key={addon.key} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 border border-gray-200 rounded-lg p-3 sm:p-4 bg-white hover:bg-gray-50 transition-all">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="p-2 bg-gray-100 rounded-full border border-gray-200">
+                        {addon.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">{addon.label}</div>
+                        <div className="text-xs sm:text-sm text-[rgb(148,138,84)] mt-1">{addon.description}</div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-1 text-sm">
-                        <Checkbox
-                          checked={!!selectedAddons[addon.key]?.departure}
-                          onCheckedChange={checked => handleAddonChange(addon.key, "departure", !!checked)}
-                        />
-                        Departure
-                      </label>
-                      {isRoundTrip && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 ml-auto">
+                      <div className="flex gap-3">
                         <label className="flex items-center gap-1 text-sm">
                           <Checkbox
-                            checked={!!selectedAddons[addon.key]?.return}
-                            onCheckedChange={checked => handleAddonChange(addon.key, "return", !!checked)}
+                            checked={!!selectedAddons[addon.key]?.departure}
+                            onCheckedChange={checked => handleAddonChange(addon.key, "departure", !!checked)}
+                            className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
                           />
-                          Return
+                          <span className="text-xs sm:text-sm">Departure</span>
                         </label>
-                      )}
-                      <span className="font-bold text-[#fece3c] ml-2">P {addon.price}</span>
+                        {isRoundTrip && (
+                          <label className="flex items-center gap-1 text-sm">
+                            <Checkbox
+                              checked={!!selectedAddons[addon.key]?.return}
+                              onCheckedChange={checked => handleAddonChange(addon.key, "return", !!checked)}
+                              className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
+                            />
+                            <span className="text-xs sm:text-sm">Return</span>
+                          </label>
+                        )}
+                      </div>
+                      <span className="font-bold text-[rgb(255,199,33)] text-sm sm:text-base bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                        {addon.price > 0 ? `P ${addon.price}` : 'FREE'}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Payment Mode Section */}
-          <div className="border rounded-lg p-5 bg-gray-50 border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-              <span className="bg-[#009393] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">6</span>
+          <div className="border border-gray-200 rounded-lg p-4 sm:p-5 bg-gray-50">
+            <h3 className="font-bold text-gray-800 mb-3 flex items-center text-base sm:text-lg">
+              <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">6</span>
               Payment Mode
             </h3>
             <div>
@@ -1013,21 +1044,19 @@ export default function PassengerDetailsForm({
                 onValueChange={setPaymentMode}
                 required
               >
-                <SelectTrigger className="focus:ring-[#009393] focus:border-[#009393]">
+                <SelectTrigger className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300">
                   <SelectValue placeholder="Select payment mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Credit Card">Credit Card | Debit Card | Net Banking | Visa</SelectItem>
+                  <SelectItem value="Credit Card">Credit Card | Debit Card </SelectItem>
                   {consultant && (
-                    <SelectItem value="Cash">Paid in Cash (Consultant Only)</SelectItem>
+                    <SelectItem value="Cash">Paid in Cash</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          {/* Terms and Conditions */}
-          <div className="flex items-start space-x-2 mt-4">
+          <div className="flex items-start space-x-2 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <Checkbox
               id="terms"
               checked={agreedToTerms}
@@ -1035,12 +1064,13 @@ export default function PassengerDetailsForm({
                 setAgreedToTerms(!!checked);
                 if (checked) setShowPolicyModal(true);
               }}
-              className="border-gray-300 data-[state=checked]:bg-[#009393] data-[state=checked]:border-[#009393] mt-1"
+              className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)] mt-1"
             />
             <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700">
-              By continuing you agree to our <span className="underline text-[#009393] cursor-pointer hover:text-[#007575]" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
+              By continuing you agree to our <span className="underline text-[rgb(0,153,153)] cursor-pointer hover:text-[rgb(0,123,123)] font-semibold" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
             </label>
           </div>
+
           <Button
             onClick={() => {
               if (!policyAccepted) {
@@ -1050,21 +1080,21 @@ export default function PassengerDetailsForm({
               handleSubmit();
             }}
             disabled={!agreedToTerms}
-            className="w-full h-14 bg-[#009393] hover:bg-[#958c55] text-white font-semibold rounded-xl text-lg transition-colors"
+            className="w-full h-12 sm:h-14 bg-[rgb(0,153,153)] hover:bg-[rgb(0,123,123)] text-white font-semibold rounded-xl text-base sm:text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             Pay (P {finalTotal.toFixed(2)})
           </Button>
         </div>
       </div>
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle>Complete Your Booking</DialogTitle>
           </DialogHeader>
           {departureBus && (
             <PaymentGateway
               bookingData={{
-                orderId: generateOrderId(), // <-- always 6 digits with RT prefix
+                orderId: generateOrderId(),
                 tripId: departureBus?.id,
                 totalPrice: finalTotal,
                 discountAmount: agentDiscount,
@@ -1101,13 +1131,12 @@ export default function PassengerDetailsForm({
                 returnBoardingPoint,
                 returnDroppingPoint,
                 agentId: agent?.id,
-                consultantId: consultant?.id, // <-- Pass consultantId
+                consultantId: consultant?.id,
               }}
               onPaymentComplete={onPaymentComplete}
               setShowPayment={setShowPayment}
             />
           )}
-          
         </DialogContent>
       </Dialog>
       <PolicyModal
