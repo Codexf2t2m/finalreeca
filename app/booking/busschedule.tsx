@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
