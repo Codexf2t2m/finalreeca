@@ -282,37 +282,35 @@ export default function BookingsManagement() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6" style={{ backgroundColor: colors.muted }}>
+    <div className="space-y-4 p-2 sm:p-4" style={{ backgroundColor: colors.muted }}>
       {/* Search and Filter Card */}
       <Card className="border border-gray-200 shadow-sm" style={{ backgroundColor: colors.light }}>
-        <CardContent className="p-4 md:p-6">
-          <div className="flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 w-full">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by name, booking ref, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  style={{ borderColor: colors.accent }}
-                />
-              </div>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search bookings..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 text-xs sm:text-sm"
+                style={{ borderColor: colors.accent }}
+              />
             </div>
-            <div className="w-full md:w-auto">
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-48" style={{ borderColor: colors.accent }}>
-                  <SelectValue placeholder="Filter by status" />
+                <SelectTrigger className="w-full text-xs sm:text-sm h-9">
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent style={{ backgroundColor: colors.light }}>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="all" className="text-xs sm:text-sm">All</SelectItem>
+                  <SelectItem value="confirmed" className="text-xs sm:text-sm">Confirmed</SelectItem>
+                  <SelectItem value="pending" className="text-xs sm:text-sm">Pending</SelectItem>
+                  <SelectItem value="cancelled" className="text-xs sm:text-sm">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="w-full md:w-auto">
+
               <Select 
                 value={itemsPerPage.toString()} 
                 onValueChange={(value) => {
@@ -320,55 +318,56 @@ export default function BookingsManagement() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="w-full md:w-32" style={{ borderColor: colors.accent }}>
-                  <SelectValue placeholder="Items per page" />
+                <SelectTrigger className="w-full text-xs sm:text-sm h-9">
+                  <SelectValue placeholder="Per page" />
                 </SelectTrigger>
                 <SelectContent style={{ backgroundColor: colors.light }}>
-                  <SelectItem value="10">10 per page</SelectItem>
-                  <SelectItem value="25">25 per page</SelectItem>
-                  <SelectItem value="50">50 per page</SelectItem>
-                  <SelectItem value="100">100 per page</SelectItem>
+                  <SelectItem value="10" className="text-xs sm:text-sm">10</SelectItem>
+                  <SelectItem value="25" className="text-xs sm:text-sm">25</SelectItem>
+                  <SelectItem value="50" className="text-xs sm:text-sm">50</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button
+                variant="outline"
+                className="border-teal-600 text-teal-600 hover:bg-teal-50 text-xs sm:text-sm h-9"
+                onClick={handleExportExcel}
+                size="sm"
+                style={{ borderColor: colors.primary, color: colors.primary }}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Export</span>
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              className="border-teal-600 text-teal-600 hover:bg-teal-50"
-              onClick={handleExportExcel}
-              style={{ borderColor: colors.primary, color: colors.primary }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Excel
-            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Bookings Table Card */}
       <Card className="border border-gray-200 shadow-sm" style={{ backgroundColor: colors.light }}>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg font-semibold" style={{ color: colors.dark }}>
-                Bookings Management
-              </CardTitle>
-              <CardDescription className="text-sm" style={{ color: colors.accent }}>
+        <CardHeader className="p-3 sm:p-4">
+          <div className="flex flex-col gap-2">
+            <CardTitle className="text-sm sm:text-base font-semibold" style={{ color: colors.dark }}>
+              Bookings
+            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardDescription className="text-xs sm:text-sm" style={{ color: colors.accent }}>
                 {filteredBookings.length} bookings found
               </CardDescription>
+              {filteredBookings.length > 0 && (
+                <div className="text-xs sm:text-sm" style={{ color: colors.accent }}>
+                  Page {currentPage} of {totalPages}
+                </div>
+              )}
             </div>
-            {filteredBookings.length > 0 && (
-              <div className="flex items-center gap-2 text-sm" style={{ color: colors.accent }}>
-                <span>Page {currentPage} of {totalPages}</span>
-              </div>
-            )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {filteredBookings.length === 0 ? (
-            <div className="py-12 text-center">
-              <Users className="mx-auto h-12 w-12" style={{ color: colors.accent }} />
-              <h3 className="mt-2 text-sm font-medium" style={{ color: colors.dark }}>No bookings found</h3>
-              <p className="mt-1 text-sm" style={{ color: colors.accent }}>
+            <div className="py-8 text-center">
+              <Users className="mx-auto h-8 w-8 sm:h-10 sm:w-10" style={{ color: colors.accent }} />
+              <h3 className="mt-2 text-xs sm:text-sm font-medium" style={{ color: colors.dark }}>No bookings found</h3>
+              <p className="mt-1 text-xs sm:text-sm" style={{ color: colors.accent }}>
                 Try adjusting your search or filter criteria
               </p>
             </div>
@@ -378,22 +377,22 @@ export default function BookingsManagement() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
-                        Booking Ref
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
+                        Booking
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell" style={{ color: colors.dark }}>
                         Passenger
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Route
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
-                        Date & Time
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell" style={{ color: colors.dark }}>
+                        Date
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Status
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
+                      <th scope="col" className="px-3 py-2 sm:px-4 sm:py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: colors.dark }}>
                         Actions
                       </th>
                     </tr>
@@ -401,24 +400,24 @@ export default function BookingsManagement() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {currentItems.map((booking) => (
                       <tr key={booking.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium" style={{ color: colors.primary }}>{booking.bookingRef}</div>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm font-medium" style={{ color: colors.primary }}>{booking.bookingRef}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium" style={{ color: colors.dark }}>{booking.passengerName}</div>
-                          <div className="text-sm" style={{ color: colors.accent }}>{booking.email}</div>
+                        <td className="px-3 py-2 hidden sm:table-cell">
+                          <div className="text-xs sm:text-sm font-medium" style={{ color: colors.dark }}>{booking.passengerName}</div>
+                          <div className="text-xs" style={{ color: colors.accent }}>{booking.email}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm" style={{ color: colors.dark }}>{booking.route}</div>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-xs sm:text-sm" style={{ color: colors.dark }}>{booking.route}</div>
                           <div className="text-xs" style={{ color: colors.accent }}>{booking.bus}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm" style={{ color: colors.dark }}>
-                            {formatDate(booking.date, "MMM dd, yyyy")}
+                        <td className="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
+                          <div className="text-xs sm:text-sm" style={{ color: colors.dark }}>
+                            {formatDate(booking.date, "MMM dd")}
                           </div>
                           <div className="text-xs" style={{ color: colors.accent }}>{booking.time}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <Badge
                             className={cn(
                               "text-xs",
@@ -426,35 +425,35 @@ export default function BookingsManagement() {
                                 ? "bg-green-100 text-green-800"
                                 : booking.bookingStatus === "Pending"
                                   ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
                             )}
                           >
                             {booking.bookingStatus}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
+                        <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewBooking(booking)}
-                              className="text-gray-600 hover:text-teal-600"
+                              className="text-gray-600 hover:text-teal-600 p-1"
                               style={{ color: colors.primary }}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handlePrintTicket(booking)}
-                              className="text-gray-600 hover:text-amber-600"
+                              className="text-gray-600 hover:text-amber-600 p-1"
                               disabled={loading}
                               style={{ color: colors.secondary }}
                             >
                               {loading ? (
-                                <span className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+                                <span className="h-3 w-3 sm:h-4 sm:w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
                               ) : (
-                                <QrCode className="h-4 w-4" />
+                                <QrCode className="h-3 w-3 sm:h-4 sm:w-4" />
                               )}
                             </Button>
                           </div>
@@ -466,35 +465,36 @@ export default function BookingsManagement() {
               </div>
 
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <div className="text-sm" style={{ color: colors.dark }}>
-                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
-                    <span className="font-medium">
-                      {Math.min(indexOfLastItem, filteredBookings.length)}
-                    </span>{" "}
-                    of <span className="font-medium">{filteredBookings.length}</span> bookings
+                <div className="flex flex-col sm:flex-row items-center justify-between px-3 py-2 gap-2">
+                  <div className="text-xs sm:text-sm" style={{ color: colors.dark }}>
+                    Showing {indexOfFirstItem + 1} to{" "}
+                    {Math.min(indexOfLastItem, filteredBookings.length)} of{" "}
+                    {filteredBookings.length} bookings
                   </div>
-                  <div className="flex space-x-2">
+                  
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={prevPage}
                       disabled={currentPage === 1}
+                      className="h-8 px-2 text-xs"
                       style={{ borderColor: colors.primary, color: colors.primary }}
                     >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
+                      <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="sr-only sm:not-sr-only">Prev</span>
                     </Button>
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    
+                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) {
+                      if (totalPages <= 3) {
                         pageNum = i + 1;
-                      } else if (currentPage <= 3) {
+                      } else if (currentPage === 1) {
                         pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
+                      } else if (currentPage === totalPages) {
+                        pageNum = totalPages - 2 + i;
                       } else {
-                        pageNum = currentPage - 2 + i;
+                        pageNum = currentPage - 1 + i;
                       }
 
                       return (
@@ -503,6 +503,7 @@ export default function BookingsManagement() {
                           variant={currentPage === pageNum ? "default" : "outline"}
                           size="sm"
                           onClick={() => paginate(pageNum)}
+                          className="h-8 w-8 text-xs"
                           style={{
                             backgroundColor: currentPage === pageNum ? colors.primary : colors.light,
                             borderColor: currentPage === pageNum ? colors.primary : colors.accent,
@@ -513,28 +514,33 @@ export default function BookingsManagement() {
                         </Button>
                       );
                     })}
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <span className="flex items-center px-3 text-sm" style={{ color: colors.accent }}>...</span>
+                    
+                    {totalPages > 3 && currentPage < totalPages - 1 && (
+                      <span className="px-1 text-xs sm:text-sm" style={{ color: colors.accent }}>...</span>
                     )}
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
+                    
+                    {totalPages > 3 && currentPage < totalPages - 1 && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => paginate(totalPages)}
+                        className="h-8 w-8 text-xs"
                         style={{ borderColor: colors.primary, color: colors.primary }}
                       >
                         {totalPages}
                       </Button>
                     )}
+                    
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={nextPage}
                       disabled={currentPage === totalPages}
+                      className="h-8 px-2 text-xs"
                       style={{ borderColor: colors.primary, color: colors.primary }}
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <span className="sr-only sm:not-sr-only">Next</span>
+                      <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -546,19 +552,19 @@ export default function BookingsManagement() {
 
       {/* Booking Details Modal */}
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
           <DialogHeader>
-            <DialogTitle style={{ color: colors.primary }}>Booking Details</DialogTitle>
-            <DialogDescription style={{ color: colors.accent }}>
+            <DialogTitle className="text-sm sm:text-base" style={{ color: colors.primary }}>Booking Details</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm" style={{ color: colors.accent }}>
               Manage booking <span className="font-bold">{selectedBooking?.bookingRef}</span>
             </DialogDescription>
           </DialogHeader>
           {selectedBooking && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Booking Info */}
               <section>
-                <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Booking Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <h4 className="font-semibold mb-2 text-xs sm:text-sm" style={{ color: colors.dark }}>Booking Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                   <div><span style={{ color: colors.accent }}>Passenger:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.passengerName}</span></div>
                   <div><span style={{ color: colors.accent }}>Email:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.email}</span></div>
                   <div><span style={{ color: colors.accent }}>Phone:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.phone}</span></div>
@@ -569,47 +575,49 @@ export default function BookingsManagement() {
               {/* Passenger List */}
               {selectedBooking.passengerList && (
                 <section>
-                  <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Passenger List</h4>
+                  <h4 className="font-semibold mb-2 text-xs sm:text-sm" style={{ color: colors.dark }}>Passenger List</h4>
                   <div className="border rounded-lg overflow-hidden" style={{ borderColor: colors.accent }}>
-                    <table className="w-full text-sm">
-                      <thead style={{ backgroundColor: colors.muted }}>
-                        <tr>
-                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Name</th>
-                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Seat</th>
-                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Type</th>
-                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Passport</th>
-                          <th className="px-4 py-2 text-left" style={{ color: colors.dark }}>Infant</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedBooking.passengerList.map((p, idx) => (
-                          <tr key={idx} className={idx % 2 === 0 ? "" : "bg-gray-50"}>
-                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.name}</td>
-                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.seat}</td>
-                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.type || "Adult"}</td>
-                            <td className="px-4 py-2" style={{ color: colors.dark }}>{p.passportNumber || "-"}</td>
-                            <td className="px-4 py-2" style={{ color: colors.dark }}>
-                              {p.hasInfant ? (
-                                <>
-                                  Yes
-                                  {p.infantName && ` (${p.infantName})`}
-                                  {p.infantBirthdate && `, DOB: ${p.infantBirthdate}`}
-                                  {p.infantPassportNumber && `, Cert: ${p.infantPassportNumber}`}
-                                </>
-                              ) : "No"}
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs sm:text-sm">
+                        <thead style={{ backgroundColor: colors.muted }}>
+                          <tr>
+                            <th className="px-2 py-1 sm:px-3 sm:py-2 text-left" style={{ color: colors.dark }}>Name</th>
+                            <th className="px-2 py-1 sm:px-3 sm:py-2 text-left" style={{ color: colors.dark }}>Seat</th>
+                            <th className="px-2 py-1 sm:px-3 sm:py-2 text-left hidden sm:table-cell" style={{ color: colors.dark }}>Type</th>
+                            <th className="px-2 py-1 sm:px-3 sm:py-2 text-left hidden sm:table-cell" style={{ color: colors.dark }}>Passport</th>
+                            <th className="px-2 py-1 sm:px-3 sm:py-2 text-left" style={{ color: colors.dark }}>Infant</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {selectedBooking.passengerList.map((p, idx) => (
+                            <tr key={idx} className={idx % 2 === 0 ? "" : "bg-gray-50"}>
+                              <td className="px-2 py-1 sm:px-3 sm:py-2" style={{ color: colors.dark }}>{p.name}</td>
+                              <td className="px-2 py-1 sm:px-3 sm:py-2" style={{ color: colors.dark }}>{p.seat}</td>
+                              <td className="px-2 py-1 sm:px-3 sm:py-2 hidden sm:table-cell" style={{ color: colors.dark }}>{p.type || "Adult"}</td>
+                              <td className="px-2 py-1 sm:px-3 sm:py-2 hidden sm:table-cell" style={{ color: colors.dark }}>{p.passportNumber || "-"}</td>
+                              <td className="px-2 py-1 sm:px-3 sm:py-2" style={{ color: colors.dark }}>
+                                {p.hasInfant ? (
+                                  <>
+                                    Yes
+                                    {p.infantName && ` (${p.infantName})`}
+                                    {p.infantBirthdate && `, DOB: ${p.infantBirthdate}`}
+                                    {p.infantPassportNumber && `, Cert: ${p.infantPassportNumber}`}
+                                  </>
+                                ) : "No"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </section>
               )}
               
               {/* Journey Info */}
               <section>
-                <h4 className="font-semibold mb-2" style={{ color: colors.primary }}>Journey Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <h4 className="font-semibold mb-2 text-xs sm:text-sm" style={{ color: colors.primary }}>Journey Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                   <div>
                     <span style={{ color: colors.primary }}>Route:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.route}</span>
                   </div>
@@ -633,8 +641,8 @@ export default function BookingsManagement() {
               
               {/* Payment Info */}
               <section>
-                <h4 className="font-semibold mb-2" style={{ color: colors.secondary }}>Payment Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <h4 className="font-semibold mb-2 text-xs sm:text-sm" style={{ color: colors.secondary }}>Payment Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                   <div><span style={{ color: colors.accent }}>Method:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentMethod}</span></div>
                   <div><span style={{ color: colors.accent }}>Status:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.paymentStatus}</span></div>
                   <div><span style={{ color: colors.accent }}>Amount:</span> <span className="font-semibold" style={{ color: colors.dark }}>{selectedBooking.totalAmount.toFixed(2)} BWP</span></div>
@@ -643,30 +651,30 @@ export default function BookingsManagement() {
               
               {/* Actions */}
               <section>
-                <h4 className="font-semibold mb-2" style={{ color: colors.dark }}>Actions</h4>
-                <div className="flex gap-2">
+                <h4 className="font-semibold mb-2 text-xs sm:text-sm" style={{ color: colors.dark }}>Actions</h4>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm h-9"
                     onClick={() => {
                       setShowRescheduleModal(true);
                       setShowBookingDetails(false);
                     }}
                     style={{ borderColor: colors.primary, color: colors.primary }}
                   >
-                    <CalendarClock className="h-4 w-4 mr-2" />
-                    Reschedule Booking
+                    <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    Reschedule
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm h-9"
                     onClick={() => {
                       setShowSendTicketModal(true);
                       setShowBookingDetails(false);
                     }}
                     style={{ borderColor: colors.primary, color: colors.primary }}
                   >
-                    <Mail className="h-4 w-4 mr-2" />
+                    <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     Send Ticket
                   </Button>
                 </div>
@@ -676,130 +684,137 @@ export default function BookingsManagement() {
         </DialogContent>
       </Dialog>
 
-{/* Reschedule Modal */}
-<Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
-  <DialogContent className="max-w-md" style={{ backgroundColor: colors.light }}>
-    <DialogHeader>
-      <DialogTitle style={{ color: colors.primary }}>Reschedule Booking</DialogTitle>
-      <DialogDescription style={{ color: colors.accent }}>
-        Update the travel dates for booking {selectedBooking?.bookingRef}
-        {selectedBooking?.returnTrip && (
-          <span className="block mt-1 text-sm font-medium" style={{ color: colors.secondary }}>
-            (Round Trip Booking)
-          </span>
-        )}
-      </DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
-          New Departure Date
-        </label>
-        <Input 
-          type="date" 
-          value={newDepartureDate} 
-          onChange={(e) => setNewDepartureDate(e.target.value)} 
-          style={{ borderColor: colors.accent }}
-          min={formatDate(new Date(), 'yyyy-MM-dd')} // Can't reschedule to past dates
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
-          New Departure Time
-        </label>
-        <Input 
-          type="time" 
-          value={newDepartureTime} 
-          onChange={(e) => setNewDepartureTime(e.target.value)} 
-          style={{ borderColor: colors.accent }}
-        />
-      </div>
+      {/* Reschedule Modal */}
+      <Dialog open={showRescheduleModal} onOpenChange={setShowRescheduleModal}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md" style={{ backgroundColor: colors.light }}>
+          <DialogHeader>
+            <DialogTitle className="text-sm sm:text-base" style={{ color: colors.primary }}>Reschedule Booking</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm" style={{ color: colors.accent }}>
+              Update the travel dates for booking {selectedBooking?.bookingRef}
+              {selectedBooking?.returnTrip && (
+                <span className="block mt-1 text-xs sm:text-sm font-medium" style={{ color: colors.secondary }}>
+                  (Round Trip Booking)
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs sm:text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                New Departure Date
+              </label>
+              <Input 
+                type="date" 
+                value={newDepartureDate} 
+                onChange={(e) => setNewDepartureDate(e.target.value)} 
+                className="text-xs sm:text-sm h-9"
+                style={{ borderColor: colors.accent }}
+                min={formatDate(new Date(), 'yyyy-MM-dd')} // Can't reschedule to past dates
+              />
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                New Departure Time
+              </label>
+              <Input 
+                type="time" 
+                value={newDepartureTime} 
+                onChange={(e) => setNewDepartureTime(e.target.value)} 
+                className="text-xs sm:text-sm h-9"
+                style={{ borderColor: colors.accent }}
+              />
+            </div>
 
-      {/* Conditional Return Trip Fields */}
-      {selectedBooking?.returnTrip && (
-        <>
-          <div className="pt-4 border-t border-gray-200">
-            <h4 className="text-sm font-medium mb-3" style={{ color: colors.secondary }}>
-              Return Trip Details
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
-                  New Return Date
-                </label>
-                <Input 
-                  type="date" 
-                  value={newReturnDate} 
-                  onChange={(e) => setNewReturnDate(e.target.value)} 
-                  style={{ borderColor: colors.accent }}
-                  min={newDepartureDate || formatDate(new Date(), 'yyyy-MM-dd')} // Return can't be before departure
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>
-                  New Return Time
-                </label>
-                <Input 
-                  type="time" 
-                  value={newReturnTime} 
-                  onChange={(e) => setNewReturnTime(e.target.value)} 
-                  style={{ borderColor: colors.accent }}
-                />
-              </div>
-            </div>
+            {/* Conditional Return Trip Fields */}
+            {selectedBooking?.returnTrip && (
+              <>
+                <div className="pt-3 border-t border-gray-200">
+                  <h4 className="text-xs sm:text-sm font-medium mb-2" style={{ color: colors.secondary }}>
+                    Return Trip Details
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                        New Return Date
+                      </label>
+                      <Input 
+                        type="date" 
+                        value={newReturnDate} 
+                        onChange={(e) => setNewReturnDate(e.target.value)} 
+                        className="text-xs sm:text-sm h-9"
+                        style={{ borderColor: colors.accent }}
+                        min={newDepartureDate || formatDate(new Date(), 'yyyy-MM-dd')} // Return can't be before departure
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium mb-1" style={{ color: colors.dark }}>
+                        New Return Time
+                      </label>
+                      <Input 
+                        type="time" 
+                        value={newReturnTime} 
+                        onChange={(e) => setNewReturnTime(e.target.value)} 
+                        className="text-xs sm:text-sm h-9"
+                        style={{ borderColor: colors.accent }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Validation message if dates are invalid */}
+                {newDepartureDate && newReturnDate && newDepartureDate > newReturnDate && (
+                  <div className="text-xs sm:text-sm p-2 rounded-md" style={{ backgroundColor: colors.destructive + '10', color: colors.destructive }}>
+                    Return date cannot be before departure date
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          
-          {/* Validation message if dates are invalid */}
-          {newDepartureDate && newReturnDate && newDepartureDate > newReturnDate && (
-            <div className="text-sm p-2 rounded-md" style={{ backgroundColor: colors.destructive + '10', color: colors.destructive }}>
-              Return date cannot be before departure date
-            </div>
-          )}
-        </>
-      )}
-    </div>
-    <DialogFooter>
-      <Button 
-        variant="outline" 
-        onClick={() => setShowRescheduleModal(false)}
-        style={{ borderColor: colors.primary, color: colors.primary }}
-      >
-        Cancel
-      </Button>
-      <Button 
-        onClick={handleRescheduleBooking}
-        style={{ backgroundColor: colors.primary }}
-        disabled={
-          !!(
-            selectedBooking?.returnTrip &&
-            newDepartureDate &&
-            newReturnDate &&
-            newDepartureDate > newReturnDate
-          )
-        }
-      >
-        Reschedule & Send Ticket
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRescheduleModal(false)}
+              className="text-xs sm:text-sm h-9"
+              style={{ borderColor: colors.primary, color: colors.primary }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRescheduleBooking}
+              className="text-xs sm:text-sm h-9"
+              style={{ backgroundColor: colors.primary }}
+              disabled={
+                !!(
+                  selectedBooking?.returnTrip &&
+                  newDepartureDate &&
+                  newReturnDate &&
+                  newDepartureDate > newReturnDate
+                )
+              }
+            >
+              Reschedule & Send Ticket
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Send Ticket Modal */}
       <Dialog open={showSendTicketModal} onOpenChange={setShowSendTicketModal}>
-        <DialogContent className="max-w-md" style={{ backgroundColor: colors.light }}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md" style={{ backgroundColor: colors.light }}>
           <DialogHeader>
-            <DialogTitle style={{ color: colors.primary }}>Send Ticket</DialogTitle>
-            <DialogDescription style={{ color: colors.accent }}>
+            <DialogTitle className="text-sm sm:text-base" style={{ color: colors.primary }}>Send Ticket</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm" style={{ color: colors.accent }}>
               Send booking confirmation to the passenger
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.dark }}>Recipient Email</label>
+              <label className="block text-xs sm:text-sm font-medium mb-1" style={{ color: colors.dark }}>Recipient Email</label>
               <Input 
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
+                className="text-xs sm:text-sm h-9"
                 style={{ borderColor: colors.accent }}
               />
             </div>
@@ -808,12 +823,14 @@ export default function BookingsManagement() {
             <Button 
               variant="outline" 
               onClick={() => setShowSendTicketModal(false)}
+              className="text-xs sm:text-sm h-9"
               style={{ borderColor: colors.primary, color: colors.primary }}
             >
               Cancel
             </Button>
             <Button 
               onClick={handleSendTicket}
+              className="text-xs sm:text-sm h-9"
               style={{ backgroundColor: colors.primary }}
             >
               Send Ticket
@@ -824,20 +841,21 @@ export default function BookingsManagement() {
 
       {/* Print Ticket Modal */}
       <Dialog open={showPrintTicket} onOpenChange={setShowPrintTicket}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: colors.light }}>
           <DialogHeader>
-            <DialogTitle style={{ color: colors.primary }}>Printable Ticket</DialogTitle>
-            <DialogDescription style={{ color: colors.accent }}>
+            <DialogTitle className="text-sm sm:text-base" style={{ color: colors.primary }}>Printable Ticket</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm" style={{ color: colors.accent }}>
               Print or download ticket for {selectedBookingData?.bookingRef}
             </DialogDescription>
           </DialogHeader>
           {selectedBookingData && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <PrintableTicket bookingData={selectedBookingData} />
               <div className="flex justify-end gap-2">
                 <Button 
                   variant="outline" 
                   onClick={() => window.print()}
+                  className="text-xs sm:text-sm h-9"
                   style={{ borderColor: colors.primary, color: colors.primary }}
                 >
                   Print Ticket
@@ -847,9 +865,10 @@ export default function BookingsManagement() {
                     setShowSendTicketModal(true);
                     setShowPrintTicket(false);
                   }}
+                  className="text-xs sm:text-sm h-9"
                   style={{ backgroundColor: colors.primary }}
                 >
-                  <Mail className="h-4 w-4 mr-2" />
+                  <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Send to Passenger
                 </Button>
               </div>

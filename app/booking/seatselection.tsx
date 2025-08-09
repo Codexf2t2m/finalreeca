@@ -56,8 +56,8 @@ const colors = {
   destructive: '#ef4444'    // Red (kept for errors)
 };
 
-const morningBusImg = "/images/back.jpg";
-const afternoonBusImg = "/images/back.jpg";
+const morningBusImg = "/images/nbg.png";
+const afternoonBusImg = "/images/nbg.png";
 
 const fetchTripBookings = async (tripId: string) => {
   try {

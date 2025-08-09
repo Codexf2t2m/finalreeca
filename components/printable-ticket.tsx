@@ -344,9 +344,7 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
             <p>
               <strong>Mobile:</strong> {bookingData.contactDetails?.mobile || bookingData.userPhone || "N/A"}
             </p>
-            <p>
-              <strong>Alt Mobile:</strong> {bookingData.contactDetails?.alternateMobile || "-"}
-            </p>
+            
             <p>
               <strong>ID Type:</strong> {bookingData.contactDetails?.idType || "Passport"}
             </p>

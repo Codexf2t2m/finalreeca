@@ -12,6 +12,12 @@ import PassengerDetailsForm from "./booking/passengerdetails/page";
 import HireBusModal from "./booking/hirebusmodal";
 import { Bus, User } from "lucide-react";
 import BookingForm from "@/components/bookingform";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
@@ -377,13 +383,21 @@ export default function BookingApp() {
               </nav>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <Button
-                  className="bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2"
-                  onClick={() => window.location.href = "/agent/auth"}
-                >
-                  <User className="h-4 w-4" />
-                  Agent Portal
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="rounded-full">
+                      <User className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => window.location.href = "/agent/auth"}>
+                      Agent Portal
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = "/consultant/auth"}>
+                      Consultant Portal
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -393,9 +407,14 @@ export default function BookingApp() {
             src="/images/back.jpg"
             alt="REECA Travel Premium Bus"
             fill
-            className="object-cover object-[center_40%] opacity-90 md:object-[center_60%]"
+            className="object-cover object-[center_40%] md:object-[center_60%]"
             priority
             quality={100}
+            style={{
+              objectFit: "cover",
+              width: "100%",
+              height: "100%",
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">
             <div className="container mx-auto px-4 pb-12 text-white">

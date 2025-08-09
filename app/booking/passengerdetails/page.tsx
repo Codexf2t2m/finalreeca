@@ -806,16 +806,7 @@ export default function PassengerDetailsForm({
                       className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Mobile</label>
-                    <Input
-                      type="tel"
-                      value={contactDetails.alternateMobile}
-                      onChange={(e) => handleContactChange('alternateMobile', e.target.value)}
-                      placeholder="Alternate Mobile"
-                      className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
-                    />
-                  </div>
+                  
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>

@@ -415,25 +415,25 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-10 w-64" />
-            <Skeleton className="h-10 w-40" />
+      <div className="container mx-auto p-4">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-32" />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[...Array(5)].map((_, i) => (
-              <Card key={i} className="p-4">
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-8 w-full" />
+              <Card key={i} className="p-3">
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-6 w-full" />
               </Card>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="p-6 h-96">
+              <Card key={i} className="p-4 h-64 sm:h-80">
                 <Skeleton className="h-full w-full" />
               </Card>
             ))}
@@ -445,7 +445,7 @@ export default function ReportsPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center">
+      <div className="container mx-auto p-4 flex items-center justify-center">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle className="text-red-600">Error Loading Data</CardTitle>
@@ -465,91 +465,93 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 space-y-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Transport Analytics Dashboard</h1>
-          <p className="text-gray-600 mt-2">
-            Comprehensive insights for optimizing operations and revenue
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Transport Analytics</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Comprehensive insights for optimizing operations
           </p>
         </div>
         <Button
           onClick={downloadExcel}
-          className="bg-teal-600 hover:bg-teal-700 text-white shadow"
+          className="bg-teal-600 hover:bg-teal-700 text-white shadow text-sm sm:text-base"
+          size="sm"
         >
-          <Download className="h-4 w-4 mr-2" />
-          Export Full Report
+          <Download className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Export Full Report</span>
+          <span className="sm:hidden">Export</span>
         </Button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card className="bg-white shadow-sm border border-gray-100">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-3">
             <div className="flex items-center gap-2 text-gray-500">
               <BarChart2 className="h-4 w-4" />
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-gray-900">
+          <CardContent className="p-3">
+            <p className="text-lg sm:text-xl font-bold text-gray-900">
               P{(kpis.totalRevenue || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white shadow-sm border border-gray-100">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-3">
             <div className="flex items-center gap-2 text-gray-500">
               <Route className="h-4 w-4" />
-              <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Bookings</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-gray-900">
+          <CardContent className="p-3">
+            <p className="text-lg sm:text-xl font-bold text-gray-900">
               {(kpis.totalBookings || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white shadow-sm border border-gray-100">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-3">
             <div className="flex items-center gap-2 text-gray-500">
               <ArrowUpRight className="h-4 w-4" />
-              <CardTitle className="text-sm font-medium">Avg. Ticket Value</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Avg. Ticket</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-gray-900">
+          <CardContent className="p-3">
+            <p className="text-lg sm:text-xl font-bold text-gray-900">
               P{(kpis.avgRevenuePerBooking || 0).toFixed(2)}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white shadow-sm border border-gray-100">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-3">
             <div className="flex items-center gap-2 text-gray-500">
               <Route className="h-4 w-4" />
-              <CardTitle className="text-sm font-medium">Top Route</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Top Route</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-gray-900 line-clamp-1">
+          <CardContent className="p-3">
+            <p className="text-sm sm:text-base font-bold text-gray-900 line-clamp-1">
               {kpis.bestRoute}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-white shadow-sm border border-gray-100">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 p-3">
             <div className="flex items-center gap-2 text-gray-500">
               <Calendar className="h-4 w-4" />
-              <CardTitle className="text-sm font-medium">Peak Time</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Peak Time</CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg font-bold text-gray-900 line-clamp-1">
+          <CardContent className="p-3">
+            <p className="text-sm sm:text-base font-bold text-gray-900 line-clamp-1">
               {kpis.peakPerformance}
             </p>
           </CardContent>
@@ -558,19 +560,19 @@ export default function ReportsPage() {
 
       {/* Filters */}
       <Card className="bg-white shadow-sm border border-gray-100">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <Label htmlFor="route-filter" className="block mb-2 text-sm font-medium text-gray-700">
+              <Label htmlFor="route-filter" className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                 Route
               </Label>
               <Select value={selectedRoute} onValueChange={setSelectedRoute}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="Select route" />
                 </SelectTrigger>
                 <SelectContent>
                   {routeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs sm:text-sm">
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -579,16 +581,16 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <Label htmlFor="month-filter" className="block mb-2 text-sm font-medium text-gray-700">
+              <Label htmlFor="month-filter" className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                 Month
               </Label>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
                   {monthOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs sm:text-sm">
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -597,17 +599,17 @@ export default function ReportsPage() {
             </div>
 
             <div>
-              <Label htmlFor="timeframe-filter" className="block mb-2 text-sm font-medium text-gray-700">
+              <Label htmlFor="timeframe-filter" className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                 Timeframe
               </Label>
               <Select value={timeframe} onValueChange={(v: any) => setTimeframe(v)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="Select timeframe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="day">Daily</SelectItem>
-                  <SelectItem value="week">Weekly</SelectItem>
-                  <SelectItem value="month">Monthly</SelectItem>
+                  <SelectItem value="day" className="text-xs sm:text-sm">Daily</SelectItem>
+                  <SelectItem value="week" className="text-xs sm:text-sm">Weekly</SelectItem>
+                  <SelectItem value="month" className="text-xs sm:text-sm">Monthly</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -616,25 +618,25 @@ export default function ReportsPage() {
       </Card>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {/* Route Performance */}
-        <Card className="bg-white shadow-sm border border-gray-100 h-96">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+        <Card className="bg-white shadow-sm border border-gray-100 h-64 sm:h-80">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
               Route Performance
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-xs sm:text-sm text-gray-600">
               Bookings vs Revenue by route
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 h-[calc(100%-80px)]">
             <BarChart
               data={chartData.routeComparison}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: "top" },
+                  legend: { position: "top", labels: { boxWidth: 12, font: { size: 10 } } },
                   tooltip: {
                     callbacks: {
                       label: (context) => {
@@ -651,10 +653,14 @@ export default function ReportsPage() {
                     beginAtZero: true,
                     grid: { color: "rgba(0,0,0,0.05)" },
                     ticks: {
-                      callback: (value) => `P${Number(value).toLocaleString()}`
+                      callback: (value) => `P${Number(value).toLocaleString()}`,
+                      font: { size: 9 }
                     }
                   },
-                  x: { grid: { display: false } }
+                  x: { 
+                    grid: { display: false },
+                    ticks: { font: { size: 9 } }
+                  }
                 }
               }}
             />
@@ -662,23 +668,23 @@ export default function ReportsPage() {
         </Card>
 
         {/* Revenue Trend */}
-        <Card className="bg-white shadow-sm border border-gray-100 h-96">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+        <Card className="bg-white shadow-sm border border-gray-100 h-64 sm:h-80">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
               Revenue Trend
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-xs sm:text-sm text-gray-600">
               Monthly revenue performance
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 h-[calc(100%-80px)]">
             <LineChart
               data={chartData.revenueTrend}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: "top" },
+                  legend: { position: "top", labels: { boxWidth: 12, font: { size: 10 } } },
                   tooltip: {
                     callbacks: {
                       label: (context) => {
@@ -693,10 +699,14 @@ export default function ReportsPage() {
                     beginAtZero: true,
                     grid: { color: "rgba(0,0,0,0.05)" },
                     ticks: {
-                      callback: (value) => `P${Number(value).toLocaleString()}`
+                      callback: (value) => `P${Number(value).toLocaleString()}`,
+                      font: { size: 9 }
                     }
                   },
-                  x: { grid: { display: false } }
+                  x: { 
+                    grid: { display: false },
+                    ticks: { font: { size: 9 } }
+                  }
                 }
               }}
             />
@@ -704,23 +714,30 @@ export default function ReportsPage() {
         </Card>
 
         {/* Revenue Distribution */}
-        <Card className="bg-white shadow-sm border border-gray-100 h-96">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+        <Card className="bg-white shadow-sm border border-gray-100 h-64 sm:h-80">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
               Revenue Distribution
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-xs sm:text-sm text-gray-600">
               Top revenue-generating routes
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 h-[calc(100%-80px)]">
             <PieChart
               data={chartData.revenueDistribution}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: "bottom" },
+                  legend: { 
+                    position: "bottom",
+                    labels: { 
+                      boxWidth: 12,
+                      font: { size: 10 },
+                      padding: 10
+                    }
+                  },
                   tooltip: {
                     callbacks: {
                       label: (context) => {
@@ -736,16 +753,16 @@ export default function ReportsPage() {
         </Card>
 
         {/* Top Agents */}
-        <Card className="bg-white shadow-sm border border-gray-100 h-96">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+        <Card className="bg-white shadow-sm border border-gray-100 h-64 sm:h-80">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
               Top Agents
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-xs sm:text-sm text-gray-600">
               Revenue by sales agent
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 h-[calc(100%-80px)]">
             <BarChart
               data={chartData.topAgents}
               options={{
@@ -768,10 +785,14 @@ export default function ReportsPage() {
                     beginAtZero: true,
                     grid: { color: "rgba(0,0,0,0.05)" },
                     ticks: {
-                      callback: (value) => `P${Number(value).toLocaleString()}`
+                      callback: (value) => `P${Number(value).toLocaleString()}`,
+                      font: { size: 9 }
                     }
                   },
-                  y: { grid: { display: false } }
+                  y: { 
+                    grid: { display: false },
+                    ticks: { font: { size: 9 } }
+                  }
                 }
               }}
             />
@@ -779,16 +800,16 @@ export default function ReportsPage() {
         </Card>
 
         {/* Top Consultants */}
-        <Card className="bg-white shadow-sm border border-gray-100 h-96">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-900">
+        <Card className="bg-white shadow-sm border border-gray-100 h-64 sm:h-80">
+          <CardHeader className="p-4">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
               Top Consultants
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-xs sm:text-sm text-gray-600">
               Revenue by sales consultant
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-2 sm:p-4 h-[calc(100%-80px)]">
             <BarChart
               data={chartData.topConsultants}
               options={{
@@ -811,10 +832,14 @@ export default function ReportsPage() {
                     beginAtZero: true,
                     grid: { color: "rgba(0,0,0,0.05)" },
                     ticks: {
-                      callback: (value) => `P${Number(value).toLocaleString()}`
+                      callback: (value) => `P${Number(value).toLocaleString()}`,
+                      font: { size: 9 }
                     }
                   },
-                  y: { grid: { display: false } }
+                  y: { 
+                    grid: { display: false },
+                    ticks: { font: { size: 9 } }
+                  }
                 }
               }}
             />
@@ -824,60 +849,72 @@ export default function ReportsPage() {
 
       {/* Detailed Data */}
       <Tabs defaultValue="routes" className="w-full">
-        <TabsList className="bg-white border border-gray-200">
-          <TabsTrigger value="routes" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+        <TabsList className="bg-white border border-gray-200 w-full overflow-x-auto">
+          <TabsTrigger 
+            value="routes" 
+            className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700 text-xs sm:text-sm whitespace-nowrap"
+          >
             Route Performance
           </TabsTrigger>
-          <TabsTrigger value="agents" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+          <TabsTrigger 
+            value="agents" 
+            className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700 text-xs sm:text-sm whitespace-nowrap"
+          >
             Agent Performance
           </TabsTrigger>
-          <TabsTrigger value="consultants" className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700">
+          <TabsTrigger 
+            value="consultants" 
+            className="data-[state=active]:bg-teal-50 data-[state=active]:text-teal-700 text-xs sm:text-sm whitespace-nowrap"
+          >
             Consultant Performance
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="routes">
           <Card className="bg-white shadow-sm border border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
                 Route Performance Details
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-xs sm:text-sm text-gray-600">
                 Breakdown by departure time
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[600px] sm:min-w-full">
                   <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-medium text-gray-700">Route</TableHead>
-                      <TableHead className="font-medium text-gray-700">Departure</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
-                      <TableHead className="font-medium text-gray-700">Peak Day</TableHead>
-                      <TableHead className="font-medium text-gray-700">Peak Month</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Route</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Departure</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Peak Day</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Peak Month</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRoutes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500 text-sm">
                           No data available for selected filters
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredRoutes.flatMap((route) =>
                         (route.times || []).map((time) => (
-                          <TableRow key={`${route.route || ''}-${time.departureTime || ''}`} className="hover:bg-gray-50">
-                            <TableCell className="font-medium">{route.routeName || 'Unknown'}</TableCell>
-                            <TableCell>{time.departureTime || 'N/A'}</TableCell>
-                            <TableCell className="text-right">{(time.bookings || 0).toLocaleString()}</TableCell>
-                            <TableCell className="text-right">P{(time.revenue || 0).toLocaleString()}</TableCell>
-                            <TableCell>{route.bestDay || 'N/A'}</TableCell>
-                            <TableCell>
+                          <TableRow 
+                            key={`${route.route || ''}-${time.departureTime || ''}`} 
+                            className="hover:bg-gray-50"
+                          >
+                            <TableCell className="font-medium text-xs sm:text-sm">{route.routeName || 'Unknown'}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{time.departureTime || 'N/A'}</TableCell>
+                            <TableCell className="text-right text-xs sm:text-sm">{(time.bookings || 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-right text-xs sm:text-sm">P{(time.revenue || 0).toLocaleString()}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">{route.bestDay || 'N/A'}</TableCell>
+                            <TableCell className="text-xs sm:text-sm">
                               {route.bestMonth 
-                                ? new Date(route.bestMonth).toLocaleString('default', { month: 'long' }) 
+                                ? new Date(route.bestMonth).toLocaleString('default', { month: 'short' }) 
                                 : 'N/A'}
                             </TableCell>
                           </TableRow>
@@ -893,41 +930,41 @@ export default function ReportsPage() {
 
         <TabsContent value="agents">
           <Card className="bg-white shadow-sm border border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
                 Agent Performance
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-xs sm:text-sm text-gray-600">
                 Sales performance by agent
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[600px] sm:min-w-full">
                   <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-medium text-gray-700">Agent</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Commission</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Avg. Value</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Agent</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Commission</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Avg. Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {agentSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500 text-sm">
                           No agent data available
                         </TableCell>
                       </TableRow>
                     ) : (
                       agentSales.map((agent) => (
                         <TableRow key={agent.id || ''} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">{agent.name || 'Unknown'}</TableCell>
-                          <TableCell className="text-right">{(agent.bookings || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">P{(agent.revenue || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">P{(agent.commission || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="font-medium text-xs sm:text-sm">{agent.name || 'Unknown'}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">{(agent.bookings || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">P{(agent.revenue || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">P{(agent.commission || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">
                             P{agent.bookings ? ((agent.revenue || 0) / agent.bookings).toFixed(2) : 0}
                           </TableCell>
                         </TableRow>
@@ -942,41 +979,41 @@ export default function ReportsPage() {
 
         <TabsContent value="consultants">
           <Card className="bg-white shadow-sm border border-gray-100">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-900">
+            <CardHeader className="p-4">
+              <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
                 Consultant Performance
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-xs sm:text-sm text-gray-600">
                 Sales performance by consultant
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[600px] sm:min-w-full">
                   <TableHeader className="bg-gray-50">
                     <TableRow>
-                      <TableHead className="font-medium text-gray-700">Consultant</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Bookings</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Revenue</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Commission</TableHead>
-                      <TableHead className="font-medium text-gray-700 text-right">Avg. Value</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm">Consultant</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Bookings</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Revenue</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Commission</TableHead>
+                      <TableHead className="font-medium text-gray-700 text-xs sm:text-sm text-right">Avg. Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {consultantSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500 text-sm">
                           No consultant data available
                         </TableCell>
                       </TableRow>
                     ) : (
                       consultantSales.map((consultant) => (
                         <TableRow key={consultant.id || ''} className="hover:bg-gray-50">
-                          <TableCell className="font-medium">{consultant.name || 'Unknown'}</TableCell>
-                          <TableCell className="text-right">{(consultant.bookings || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">P{(consultant.revenue || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">P{(consultant.commission || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="font-medium text-xs sm:text-sm">{consultant.name || 'Unknown'}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">{(consultant.bookings || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">P{(consultant.revenue || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">P{(consultant.commission || 0).toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-xs sm:text-sm">
                             P{consultant.bookings ? ((consultant.revenue || 0) / consultant.bookings).toFixed(2) : 0}
                           </TableCell>
                         </TableRow>

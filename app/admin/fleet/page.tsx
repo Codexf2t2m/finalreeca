@@ -449,7 +449,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
               {baseTrips.map((trip, index) => (
                 <Card key={index}>
                   <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                       <CardTitle className="text-base">
                         {trip.routeName} <ArrowRightIcon className="inline mx-1 h-4 w-4" /> {trip.departureTime}
                       </CardTitle>
@@ -459,7 +459,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1">Available Seats</label>
                         <Input
@@ -492,21 +492,21 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
                           onChange={(e) => handleInputChange(index, 'durationMinutes', parseInt(e.target.value))}
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-sm font-medium mb-1">Boarding Point</label>
                         <Input
                           value={trip.boardingPoint}
                           onChange={(e) => handleInputChange(index, 'boardingPoint', e.target.value)}
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-sm font-medium mb-1">Dropping Point</label>
                         <Input
                           value={trip.droppingPoint}
                           onChange={(e) => handleInputChange(index, 'droppingPoint', e.target.value)}
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 sm:col-span-2">
                         <Checkbox
                           id={`promoActive-${index}`}
                           checked={trip.promoActive}
@@ -737,7 +737,7 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
         </div>
       </div>
 
-      <div className="flex items-center space-x-4 pt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
         <div className="flex items-center space-x-2">
           <Checkbox
             id="promoActive"
@@ -1074,14 +1074,14 @@ const FleetManagementPage = () => {
       <div className="flex-1 flex flex-col">
         <header className="border-b" style={{ backgroundColor: colors.light }}>
           <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <div>
                 <h1 className="text-2xl font-bold" style={{ color: colors.dark }}>Fleet Management</h1>
                 <p className="text-sm" style={{ color: colors.accent }}>
                   Manage your bus schedules and trips
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch 
                     id="auto-depart" 
@@ -1092,26 +1092,28 @@ const FleetManagementPage = () => {
                     Auto Depart
                   </label>
                 </div>
-                <Button onClick={handleAutomateTrips} className="hidden md:flex" style={{ backgroundColor: colors.accent }}>
-                  <SettingsIcon className="mr-2 h-4 w-4" />
-                  Generate Trips
-                </Button>
-                <Button 
-                  onClick={() => setIsBulkUpdateModalOpen(true)} 
-                  variant="outline" 
-                  className="hidden md:flex"
-                  style={{ borderColor: colors.primary, color: colors.primary }}
-                >
-                  Bulk Update
-                </Button>
-                <Button onClick={() => handleOpenModal()} style={{ backgroundColor: colors.primary }}>
-                  <PlusIcon className="mr-2 h-4 w-4" />
-                  Add Trip
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setIsBulkUpdateModalOpen(true)} 
+                    variant="outline" 
+                    className="hidden sm:flex"
+                    style={{ borderColor: colors.primary, color: colors.primary }}
+                  >
+                    Bulk Update
+                  </Button>
+                  <Button onClick={handleAutomateTrips} className="hidden sm:flex" style={{ backgroundColor: colors.accent }}>
+                    <SettingsIcon className="mr-2 h-4 w-4" />
+                    Generate
+                  </Button>
+                  <Button onClick={() => handleOpenModal()} style={{ backgroundColor: colors.primary }}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Add Trip
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm">
                 {autoDepart ? (
                   <div className="flex items-center" style={{ color: colors.primary }}>
@@ -1147,11 +1149,11 @@ const FleetManagementPage = () => {
               <TabsList className="grid w-full grid-cols-2 max-w-md" style={{ backgroundColor: colors.light }}>
                 <TabsTrigger value="schedule" style={{ color: colors.dark }}>
                   <ClockIcon className="mr-2 h-4 w-4" />
-                  Daily Schedule
+                  Schedule
                 </TabsTrigger>
                 <TabsTrigger value="timetable" style={{ color: colors.dark }}>
                   <BusIcon className="mr-2 h-4 w-4" />
-                  Route Timetable
+                  Timetable
                 </TabsTrigger>
               </TabsList>
               
@@ -1193,86 +1195,88 @@ const FleetManagementPage = () => {
                   </Card>
                 ) : (
                   <div className="border rounded-lg overflow-hidden" style={{ borderColor: colors.accent }}>
-                    <Table>
-                      <TableHeader style={{ backgroundColor: colors.muted }}>
-                        <TableRow>
-                          <TableHead className="w-[200px]" style={{ color: colors.dark }}>Route</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Date</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Time</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Service</TableHead>
-                          <TableHead className="text-right" style={{ color: colors.dark }}>Seats</TableHead>
-                          <TableHead className="text-right" style={{ color: colors.dark }}>Fare</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Status</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTrips.map((trip) => (
-                          <TableRow key={trip.id} style={{ backgroundColor: trip.hasDeparted ? colors.muted : colors.light }}>
-                            <TableCell className="font-medium" style={{ color: colors.dark }}>
-                              <div className="flex items-center">
-                                <BusIcon className="mr-2 h-4 w-4" style={{ color: colors.accent }} />
-                                {trip.routeName}
-                              </div>
-                            </TableCell>
-                            <TableCell style={{ color: colors.dark }}>{format(new Date(trip.departureDate), 'PP')}</TableCell>
-                            <TableCell style={{ color: colors.dark }}>{trip.departureTime}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" style={{ backgroundColor: colors.accent, color: colors.light }}>
-                                {trip.serviceType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span style={{ color: trip.availableSeats < 10 ? colors.destructive : colors.dark, fontWeight: trip.availableSeats < 10 ? '600' : 'normal' }}>
-                                {trip.availableSeats}/{trip.totalSeats}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right" style={{ color: colors.dark }}>P{trip.fare}</TableCell>
-                            <TableCell>
-                              <Badge variant={trip.hasDeparted ? 'secondary' : 'default'} style={{ 
-                                backgroundColor: trip.hasDeparted ? colors.accent : colors.primary,
-                                color: colors.light
-                              }}>
-                                {trip.hasDeparted ? 'Departed' : 'Scheduled'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleOpenModal(trip)}
-                                  disabled={trip.hasDeparted}
-                                  style={{ color: colors.primary }}
-                                >
-                                  <EditIcon className="h-4 w-4" />
-                                </Button>
-                                {!trip.hasDeparted && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleMarkDeparted(trip.id!)}
-                                      style={{ color: colors.secondary }}
-                                    >
-                                      <ArrowRightIcon className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleDeleteTrip(trip.id!)}
-                                      style={{ color: colors.destructive }}
-                                    >
-                                      <TrashIcon className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader style={{ backgroundColor: colors.muted }}>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]" style={{ color: colors.dark }}>Route</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Date</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Time</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Service</TableHead>
+                            <TableHead className="text-right" style={{ color: colors.dark }}>Seats</TableHead>
+                            <TableHead className="text-right" style={{ color: colors.dark }}>Fare</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Status</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredTrips.map((trip) => (
+                            <TableRow key={trip.id} style={{ backgroundColor: trip.hasDeparted ? colors.muted : colors.light }}>
+                              <TableCell className="font-medium" style={{ color: colors.dark }}>
+                                <div className="flex items-center">
+                                  <BusIcon className="mr-2 h-4 w-4" style={{ color: colors.accent }} />
+                                  <span className="truncate max-w-[120px]">{trip.routeName}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell style={{ color: colors.dark }}>{format(new Date(trip.departureDate), 'PP')}</TableCell>
+                              <TableCell style={{ color: colors.dark }}>{trip.departureTime}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" style={{ backgroundColor: colors.accent, color: colors.light }}>
+                                  {trip.serviceType}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span style={{ color: trip.availableSeats < 10 ? colors.destructive : colors.dark, fontWeight: trip.availableSeats < 10 ? '600' : 'normal' }}>
+                                  {trip.availableSeats}/{trip.totalSeats}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right" style={{ color: colors.dark }}>P{trip.fare}</TableCell>
+                              <TableCell>
+                                <Badge variant={trip.hasDeparted ? 'secondary' : 'default'} style={{ 
+                                  backgroundColor: trip.hasDeparted ? colors.accent : colors.primary,
+                                  color: colors.light
+                                }}>
+                                  {trip.hasDeparted ? 'Departed' : 'Scheduled'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenModal(trip)}
+                                    disabled={trip.hasDeparted}
+                                    style={{ color: colors.primary }}
+                                  >
+                                    <EditIcon className="h-4 w-4" />
+                                  </Button>
+                                  {!trip.hasDeparted && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleMarkDeparted(trip.id!)}
+                                        style={{ color: colors.secondary }}
+                                      >
+                                        <ArrowRightIcon className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteTrip(trip.id!)}
+                                        style={{ color: colors.destructive }}
+                                      >
+                                        <TrashIcon className="h-4 w-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </TabsContent>
@@ -1285,9 +1289,9 @@ const FleetManagementPage = () => {
                       View trips by route and date
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Select onValueChange={setSelectedRoute} value={selectedRoute}>
-                      <SelectTrigger className="w-[200px]" style={{ borderColor: colors.accent }}>
+                      <SelectTrigger className="w-full sm:w-[200px]" style={{ borderColor: colors.accent }}>
                         <SelectValue placeholder="All routes" />
                       </SelectTrigger>
                       <SelectContent style={{ backgroundColor: colors.light }}>
@@ -1303,7 +1307,7 @@ const FleetManagementPage = () => {
                         type="date"
                         value={format(selectedDate, 'yyyy-MM-dd')}
                         onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                        className="pl-10 w-[180px]"
+                        className="pl-10 w-full sm:w-[180px]"
                         style={{ borderColor: colors.accent }}
                       />
                     </div>
@@ -1326,71 +1330,73 @@ const FleetManagementPage = () => {
                   </Card>
                 ) : (
                   <div className="border rounded-lg overflow-hidden" style={{ borderColor: colors.accent }}>
-                    <Table>
-                      <TableHeader style={{ backgroundColor: colors.muted }}>
-                        <TableRow>
-                          <TableHead className="w-[200px]" style={{ color: colors.dark }}>Route</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Date</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Time</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Service</TableHead>
-                          <TableHead className="text-right" style={{ color: colors.dark }}>Seats</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Boarding</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Dropping</TableHead>
-                          <TableHead style={{ color: colors.dark }}>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTrips
-                          .filter(trip => selectedRoute === "all" || !selectedRoute ? true : trip.routeName === selectedRoute)
-                          .map((trip) => (
-                            <TableRow key={trip.id} style={{ backgroundColor: trip.hasDeparted ? colors.muted : colors.light }}>
-                              <TableCell className="font-medium" style={{ color: colors.dark }}>
-                                <div className="flex items-center">
-                                  <BusIcon className="mr-2 h-4 w-4" style={{ color: colors.accent }} />
-                                  {trip.routeName}
-                                </div>
-                              </TableCell>
-                              <TableCell style={{ color: colors.dark }}>{format(new Date(trip.departureDate), 'PP')}</TableCell>
-                              <TableCell style={{ color: colors.dark }}>{trip.departureTime}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline" style={{ backgroundColor: colors.accent, color: colors.light }}>
-                                  {trip.serviceType}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <span style={{ color: trip.availableSeats < 10 ? colors.destructive : colors.dark, fontWeight: trip.availableSeats < 10 ? '600' : 'normal' }}>
-                                  {trip.availableSeats}/{trip.totalSeats}
-                                </span>
-                              </TableCell>
-                              <TableCell style={{ color: colors.dark }}>{trip.boardingPoint}</TableCell>
-                              <TableCell style={{ color: colors.dark }}>{trip.droppingPoint}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleOpenModal(trip)}
-                                    disabled={trip.hasDeparted}
-                                    style={{ color: colors.primary }}
-                                  >
-                                    <EditIcon className="h-4 w-4" />
-                                  </Button>
-                                  {!trip.hasDeparted && (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader style={{ backgroundColor: colors.muted }}>
+                          <TableRow>
+                            <TableHead className="min-w-[150px]" style={{ color: colors.dark }}>Route</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Date</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Time</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Service</TableHead>
+                            <TableHead className="text-right" style={{ color: colors.dark }}>Seats</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Boarding</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Dropping</TableHead>
+                            <TableHead style={{ color: colors.dark }}>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredTrips
+                            .filter(trip => selectedRoute === "all" || !selectedRoute ? true : trip.routeName === selectedRoute)
+                            .map((trip) => (
+                              <TableRow key={trip.id} style={{ backgroundColor: trip.hasDeparted ? colors.muted : colors.light }}>
+                                <TableCell className="font-medium" style={{ color: colors.dark }}>
+                                  <div className="flex items-center">
+                                    <BusIcon className="mr-2 h-4 w-4" style={{ color: colors.accent }} />
+                                    <span className="truncate max-w-[120px]">{trip.routeName}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell style={{ color: colors.dark }}>{format(new Date(trip.departureDate), 'PP')}</TableCell>
+                                <TableCell style={{ color: colors.dark }}>{trip.departureTime}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" style={{ backgroundColor: colors.accent, color: colors.light }}>
+                                    {trip.serviceType}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span style={{ color: trip.availableSeats < 10 ? colors.destructive : colors.dark, fontWeight: trip.availableSeats < 10 ? '600' : 'normal' }}>
+                                    {trip.availableSeats}/{trip.totalSeats}
+                                  </span>
+                                </TableCell>
+                                <TableCell style={{ color: colors.dark }} className="truncate max-w-[100px]">{trip.boardingPoint}</TableCell>
+                                <TableCell style={{ color: colors.dark }} className="truncate max-w-[100px]">{trip.droppingPoint}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleDeleteTrip(trip.id!)}
-                                      style={{ color: colors.destructive }}
+                                      onClick={() => handleOpenModal(trip)}
+                                      disabled={trip.hasDeparted}
+                                      style={{ color: colors.primary }}
                                     >
-                                      <TrashIcon className="h-4 w-4" />
+                                      <EditIcon className="h-4 w-4" />
                                     </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
+                                    {!trip.hasDeparted && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteTrip(trip.id!)}
+                                        style={{ color: colors.destructive }}
+                                      >
+                                        <TrashIcon className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
               </TabsContent>
