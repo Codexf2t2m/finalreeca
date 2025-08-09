@@ -10,7 +10,7 @@ import RequestForm from "./booking/requestform";
 import BusSchedules from "./booking/busschedule";
 import PassengerDetailsForm from "./booking/passengerdetails/page";
 import HireBusModal from "./booking/hirebusmodal";
-import { Bus, User } from "lucide-react";
+import { Bus, User, Menu } from "lucide-react";
 import BookingForm from "@/components/bookingform";
 import {
   DropdownMenu,
@@ -18,6 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function BookingApp() {
   const [currentStep, setCurrentStep] = useState<
@@ -28,7 +33,6 @@ export default function BookingApp() {
     | "return-seats"
     | "passenger-details"
   >("search");
-
   const [searchData, setSearchData] = useState<SearchData | null>(null);
   const [selectedDepartureBus, setSelectedDepartureBus] = useState<any>(null);
   const [selectedReturnBus, setSelectedReturnBus] = useState<any>(null);
@@ -44,12 +48,10 @@ export default function BookingApp() {
 
   const parseDate = (dateStr: string): Date => {
     if (!dateStr) return new Date();
-
     if (dateStr.includes("/")) {
       const [day, month, year] = dateStr.split("/").map(Number);
       return new Date(year, month - 1, day);
     }
-
     return new Date(dateStr);
   };
 
@@ -77,7 +79,6 @@ export default function BookingApp() {
       alert("Please select a valid departure date");
       return;
     }
-
     if (data.returnDate && !isValidDate(returnDate)) {
       alert("Please select a valid return date");
       return;
@@ -193,7 +194,7 @@ export default function BookingApp() {
         })
         .catch(() => setConsultant(null));
     };
-    fetchAuthStatus(); // initial check
+    fetchAuthStatus();
     window.addEventListener("focus", fetchAuthStatus);
     return () => window.removeEventListener("focus", fetchAuthStatus);
   }, []);
@@ -302,6 +303,38 @@ export default function BookingApp() {
     );
   }
 
+  const NavLinks = () => (
+    <>
+      <a
+        href="https://reecatravel.co.bw/?cat=5"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-teal-800 hover:text-amber-600 font-medium"
+      >
+        Reeca Holidays
+      </a>
+      <a
+        href="/ourfleet"
+        className="text-teal-800 hover:text-amber-600 font-medium"
+      >
+        Our Fleet
+      </a>
+      <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
+      <a
+        href="https://reecatravel.co.bw/aboutus"
+        className="text-teal-800 hover:text-amber-600 font-medium"
+      >
+        About Us
+      </a>
+      <a
+        href="https://reecatravel.co.bw/contactus"
+        className="text-teal-800 hover:text-amber-600 font-medium"
+      >
+        Contact
+      </a>
+    </>
+  );
+
   if (currentStep === "search") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
@@ -343,11 +376,22 @@ export default function BookingApp() {
             </div>
           </div>
         )}
-
         <header className="bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
+                <Sheet>
+                  <SheetTrigger asChild className="md:hidden">
+                    <Button variant="outline" size="icon">
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <div className="flex flex-col space-y-3 mt-6">
+                      <NavLinks />
+                    </div>
+                  </SheetContent>
+                </Sheet>
                 <div
                   className="bg-white rounded-lg flex items-center justify-center p-1"
                   style={{ width: 180, height: 72 }}
@@ -363,23 +407,7 @@ export default function BookingApp() {
                 </div>
               </div>
               <nav className="hidden md:flex gap-6">
-                <a
-                  href="https://reecatravel.co.bw/?cat=5"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-teal-800 hover:text-amber-600 font-medium"
-                >
-                  Plan Journey
-                </a>
-                <a
-                  href="/ourfleet"
-                  className="text-teal-800 hover:text-amber-600 font-medium"
-                >
-                  Our Fleet
-                </a>
-                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
-                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">About Us</a>
-                <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Contact</a>
+                <NavLinks />
               </nav>
               <div className="flex items-center gap-2">
                 <ThemeToggle />
@@ -422,7 +450,7 @@ export default function BookingApp() {
                 Travel in Comfort & Style
               </h1>
               <p className="text-xl md:text-2xl max-w-2xl">
-                Premium bus services between Gaborone and Johannesburg
+                Seamless Shuttle, Daily Departures — between Gaborone and OR Tambo Bus Terminal
               </p>
             </div>
           </div>
@@ -433,7 +461,6 @@ export default function BookingApp() {
               <h2 className="text-2xl font-bold">Book Your Journey</h2>
               <p className="opacity-90">Find and book your perfect trip</p>
             </div>
-
             <div className="p-6">
               <BookingForm
                 onSearch={handleSearch}
@@ -456,23 +483,18 @@ export default function BookingApp() {
                 <h4 className="font-bold mb-4">Quick Links</h4>
                 <ul className="space-y-2">
                   <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
+                    <a href="/" className="text-gray-400 hover:text-white">
                       Home
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
-                      Book a Trip
+                    <a href="/busschedule" className="text-gray-400 hover:text-white">
+                      Bus Schedule
                     </a>
                   </li>
                   <li>
                     <a href="#" className="text-gray-400 hover:text-white">
-                      Our Fleet
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
-                      Contact Us
+                      Help
                     </a>
                   </li>
                 </ul>
@@ -481,18 +503,18 @@ export default function BookingApp() {
                 <h4 className="font-bold mb-4">Information</h4>
                 <ul className="space-y-2">
                   <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
+                    <a href="https://reecatravel.co.bw/forum/termandcondition" className="text-gray-400 hover:text-white">
                       Terms & Conditions
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
+                    <a href="https://reecatravel.co.bw/forum/privacypolicy" className="text-gray-400 hover:text-white">
                       Privacy Policy
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-400 hover:text-white">
-                      FAQ
+                    <a href="https://reecatravel.co.bw/forum/cancellationpolicy" className="text-gray-400 hover:text-white">
+                      Cancellation Policy
                     </a>
                   </li>
                 </ul>
@@ -506,7 +528,6 @@ export default function BookingApp() {
                 </address>
               </div>
             </div>
-
             <div className="mt-8 text-center">
               <a
                 href="https://toporapuladev.vercel.app/"
@@ -517,7 +538,6 @@ export default function BookingApp() {
                 Developed by TLR
               </a>
             </div>
-
             <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500">
               <p>© {new Date().getFullYear()} REECA Travel. All rights reserved.</p>
             </div>
@@ -541,7 +561,6 @@ export default function BookingApp() {
     );
   }
 
-  // Booking flow pages (after search)
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-teal-50">
       {agent && (
@@ -592,7 +611,6 @@ export default function BookingApp() {
           </div>
         </div>
       )}
-
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">

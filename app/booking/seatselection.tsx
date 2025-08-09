@@ -47,13 +47,14 @@ interface SeatSelectionProps {
 
 // Define color variables based on company colors
 const colors = {
-  primary: '#009393',       // Teal
-  secondary: '#febf00',     // Gold
-  accent: '#958c55',        // Olive
-  muted: '#fdbe00a4',       // Light gray
-  dark: '#1a1a1a',          // Dark gray
-  light: '#ffffff',         // White
-  destructive: '#ef4444'    // Red (kept for errors)
+  primary: 'rgb(0,153,153)', // Teal
+  secondary: '#FDBE00', // Gold
+  accent: '#958c55', // Olive
+  muted: '#fdbe00a4', // Light gray
+  dark: '#1a1a1a', // Dark gray
+  light: '#ffffff', // White
+  destructive: '#ef4444', // Red (kept for errors)
+  lightYellow: '#FDBE00', // Adjusted yellow for occupied seats
 };
 
 const morningBusImg = "/images/nbg.png";
@@ -80,10 +81,9 @@ const generateSeatLayoutWithBookings = (
 ): Seat[] => {
   const seats: Seat[] = [];
   const totalRows = Math.ceil(totalSeats / 4);
-
   const unavailableSeats = new Set([...occupiedSeats, ...bookedSeats]);
-
   let seatIndex = 0;
+
   for (let row = 1; row <= totalRows && seatIndex < totalSeats; row++) {
     const positions = ['A', 'B', 'C', 'D'];
     const sides = ['left', 'left', 'right', 'right'];
@@ -105,7 +105,6 @@ const generateSeatLayoutWithBookings = (
       seatIndex++;
     }
   }
-
   return seats;
 };
 
@@ -126,12 +125,11 @@ export default function SeatSelection({
       setIsLoadingSeats(true);
       try {
         const { bookings } = await fetchTripBookings(selectedBus.id);
-
         const bookedSeats: string[] = bookings
           .filter((booking: any) => booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'paid')
           .flatMap((booking: any) =>
             booking.passengers
-              .filter((p: any) => p.isReturn === isReturnTrip) // isReturnTrip: true for return, false for departure
+              .filter((p: any) => p.isReturn === isReturnTrip)
               .map((p: any) => p.seatNumber)
           );
 
@@ -149,7 +147,6 @@ export default function SeatSelection({
           occupiedSeats,
           bookedSeats
         );
-
         setSeatLayout(layout);
       } catch (error) {
         console.error('Error loading seat data:', error);
@@ -159,11 +156,12 @@ export default function SeatSelection({
     };
 
     loadSeatData();
-  }, [selectedBus.id, selectedBus.totalSeats, selectedBus.occupiedSeats]);
+  }, [selectedBus.id, selectedBus.totalSeats, selectedBus.occupiedSeats, isReturnTrip]);
 
   const handleSeatClick = (seatId: string) => {
     const isSelected = selectedSeats.includes(seatId);
     if (!isSelected && selectedSeats.length >= maxSelectableSeats) return;
+
     setSeatLayout(prev => prev.map(seat =>
       seat.id === seatId
         ? { ...seat, isSelected: !seat.isSelected }
@@ -188,8 +186,8 @@ export default function SeatSelection({
   if (selectedBus.promoActive && selectedSeats.length >= 2) {
     pricePerSeat = selectedBus.promoPrice || pricePerSeat;
   }
-  const totalPrice = pricePerSeat * selectedSeats.length;
 
+  const totalPrice = pricePerSeat * selectedSeats.length;
   const numberOfRows = Math.ceil((selectedBus.totalSeats || 63) / 4);
 
   // Determine bus image based on service type
@@ -203,7 +201,7 @@ export default function SeatSelection({
           <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin" style={{ color: colors.primary }} />
           <h2 className="text-2xl font-bold mb-4" style={{ color: colors.dark }}>Loading Seat Layout...</h2>
           <p className="text-gray-600">
-            Fetching current booking information for trip 
+            Fetching current booking information for trip
           </p>
         </div>
       </div>
@@ -214,7 +212,7 @@ export default function SeatSelection({
     <div className="max-w-6xl mx-auto my-4 md:my-8 px-4">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
         {/* Header Section */}
-        <div className="p-4 md:p-6 border-b" style={{ backgroundColor: colors.muted }}>
+        <div className="p-4 md:p-6 border-b" style={{ backgroundColor: colors.primary }}>
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div className="flex-1">
               <div className="flex items-start gap-3">
@@ -230,17 +228,17 @@ export default function SeatSelection({
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-lg md:text-xl" style={{ color: colors.dark }}>
+                  <div className="font-bold text-lg md:text-xl text-white">
                     {isReturnTrip ? 'RETURN TRIP: ' : ''}
                     {selectedBus.routeName || selectedBus.serviceType}
                   </div>
-                  <div className="text-sm md:text-base font-medium" style={{ color: colors.accent }}>
+                  <div className="text-sm md:text-base font-medium text-white">
                     {selectedBus.routeOrigin} → {selectedBus.routeDestination}
                   </div>
-                  <div className="text-xs md:text-sm text-gray-600 mt-1">
+                  <div className="text-xs md:text-sm text-white mt-1">
                     AC, Video ({selectedBus.totalSeats || 57} seats) • 2+2 Configuration
                   </div>
-                  <div className="text-xs text-green-600 mt-1">
+                  <div className="text-xs text-green-200 mt-1">
                     Available: {seatLayout.filter(seat => seat.isAvailable).length} |
                     Occupied: {seatLayout.filter(seat => !seat.isAvailable).length}
                   </div>
@@ -248,10 +246,10 @@ export default function SeatSelection({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-600 capitalize">
+              <div className="text-sm text-white capitalize">
                 {searchData.from} → {searchData.to}
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-white">
                 {format(new Date(searchData.departureDate), "dd MMM yyyy")}
               </div>
             </div>
@@ -315,7 +313,6 @@ export default function SeatSelection({
                 {format(departureDateObj, "dd MMM yyyy")}
               </span>
             </div>
-
             <div className="text-center">
               <span className="text-sm text-gray-500 block">Duration</span>
               <div className="flex items-center justify-center mt-1">
@@ -325,7 +322,6 @@ export default function SeatSelection({
               </div>
               <span className="text-xs text-gray-500">Non-stop journey</span>
             </div>
-
             <div className="text-center">
               <span className="text-sm text-gray-500 block">Arrival</span>
               <div className="flex items-center justify-center mt-1">
@@ -341,7 +337,6 @@ export default function SeatSelection({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 p-4 lg:p-6">
           <div className="lg:col-span-2">
             <h3 className="text-lg font-bold mb-4" style={{ color: colors.dark }}>Select Your Seats</h3>
-
             {/* Legend */}
             <div className="flex flex-wrap gap-3 md:gap-4 mb-4 md:mb-6 text-sm">
               <div className="flex items-center gap-2">
@@ -349,30 +344,21 @@ export default function SeatSelection({
                 <span className="text-xs md:text-sm">Available</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 md:w-6 md:h-6 bg-gray-400 border-2 border-gray-500 rounded-md"></div>
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded-md" style={{ backgroundColor: colors.lightYellow, borderColor: colors.lightYellow }}></div>
                 <span className="text-xs md:text-sm">Occupied</span>
               </div>
               <div className="flex items-center gap-2">
-                <div 
-                  className="w-5 h-5 md:w-6 md:h-6 border-2 rounded-md"
-                  style={{ backgroundColor: colors.primary, borderColor: colors.primary }}
-                ></div>
+                <div className="w-5 h-5 md:w-6 md:h-6 border-2 rounded-md" style={{ backgroundColor: colors.primary, borderColor: colors.primary }}></div>
                 <span className="text-xs md:text-sm">Selected</span>
               </div>
             </div>
 
             {/* Bus Layout */}
-            <div
-              className="border-2 rounded-xl p-3 md:p-6 bg-white shadow-sm"
-              style={{ borderColor: colors.secondary }}
-            >
+            <div className="border-2 rounded-xl p-3 md:p-6 bg-white shadow-sm" style={{ borderColor: colors.secondary }}>
               {/* Driver Section */}
               <div className="flex justify-end mb-4 md:mb-8">
                 <div className="relative">
-                  <div 
-                    className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex items-center justify-center shadow-md"
-                    style={{ backgroundColor: colors.primary }}
-                  >
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex items-center justify-center shadow-md" style={{ backgroundColor: colors.primary }}>
                     <div className="text-xs text-center font-medium text-white">Driver</div>
                   </div>
                 </div>
@@ -390,7 +376,6 @@ export default function SeatSelection({
                       <div className="w-4 md:w-6 text-center text-xs font-medium text-gray-500">
                         {rowNumber}
                       </div>
-
                       <div className="flex gap-1 md:gap-2">
                         {leftSeats.map((seatId) => {
                           const seat = seatLayout.find((s) => s.id === seatId);
@@ -406,11 +391,14 @@ export default function SeatSelection({
                                   ? "text-white shadow-md transform scale-105"
                                   : seat.isAvailable
                                     ? "bg-gray-200 hover:bg-gray-300 border-gray-300 hover:border-gray-400 hover:shadow-sm"
-                                    : "bg-gray-400 text-gray-600 cursor-not-allowed border-gray-500 opacity-60"
+                                    : "text-gray-600 cursor-not-allowed border-gray-500 opacity-60"
                                 }`}
                               style={selectedSeats.includes(seatId) ? {
                                 backgroundColor: colors.primary,
                                 borderColor: colors.primary
+                              } : !seat.isAvailable ? {
+                                backgroundColor: colors.lightYellow,
+                                borderColor: colors.lightYellow
                               } : {}}
                             >
                               {seatId}
@@ -418,11 +406,9 @@ export default function SeatSelection({
                           );
                         })}
                       </div>
-
                       <div className="w-6 md:w-8 border-l-2 border-dashed border-gray-300 h-6 md:h-8 flex items-center justify-center">
                         <div className="text-xs text-gray-400">||</div>
                       </div>
-
                       <div className="flex gap-1 md:gap-2">
                         {rightSeats.map((seatId) => {
                           const seat = seatLayout.find((s) => s.id === seatId);
@@ -438,11 +424,14 @@ export default function SeatSelection({
                                   ? "text-white shadow-md transform scale-105"
                                   : seat.isAvailable
                                     ? "bg-gray-200 hover:bg-gray-300 border-gray-300 hover:border-gray-400 hover:shadow-sm"
-                                    : "bg-gray-400 text-gray-600 cursor-not-allowed border-gray-500 opacity-60"
+                                    : "text-gray-600 cursor-not-allowed border-gray-500 opacity-60"
                                 }`}
                               style={selectedSeats.includes(seatId) ? {
                                 backgroundColor: colors.primary,
                                 borderColor: colors.primary
+                              } : !seat.isAvailable ? {
+                                backgroundColor: colors.lightYellow,
+                                borderColor: colors.lightYellow
                               } : {}}
                             >
                               {seatId}
@@ -460,7 +449,6 @@ export default function SeatSelection({
           {/* Booking Summary */}
           <div className="lg:col-span-1 space-y-4 md:space-y-6">
             <h3 className="text-lg font-bold mb-4" style={{ color: colors.dark }}>Booking Summary</h3>
-
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
@@ -487,7 +475,6 @@ export default function SeatSelection({
                 </div>
               </div>
             </div>
-
             <div className="space-y-4">
               <div className="p-4 rounded-lg border" style={{ backgroundColor: `${colors.secondary}15`, borderColor: `${colors.secondary}50` }}>
                 <h4 className="font-bold mb-2" style={{ color: colors.accent }}>Important Notice</h4>
@@ -496,7 +483,6 @@ export default function SeatSelection({
                   Please ensure you have your passengers' details ready.
                 </p>
               </div>
-
               <Button
                 onClick={onProceed}
                 disabled={selectedSeats.length === 0}

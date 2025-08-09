@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp, Copy, Luggage, ShoppingBag, Shield, Car } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Luggage, ShoppingBag, Shield, Car, Info } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -112,7 +112,6 @@ export default function PassengerDetailsForm({
   onPaymentComplete
 }: PassengerDetailsFormProps) {
   const isRoundTrip = !!returnBus;
-
   const [selectedAddons, setSelectedAddons] = useState<{ [key: string]: { departure: boolean; return: boolean } }>({});
   const [passengers, setPassengers] = useState<Passenger[]>(() => {
     const departurePassengers = (departureSeats || []).map(seat => ({
@@ -170,7 +169,6 @@ export default function PassengerDetailsForm({
   const [departureDroppingPoint, setDepartureDroppingPoint] = useState('');
   const [returnBoardingPoint, setReturnBoardingPoint] = useState('');
   const [returnDroppingPoint, setReturnDroppingPoint] = useState('');
-
   const [openSections, setOpenSections] = useState<SectionState>({
     passengers: true,
     contact: true,
@@ -183,13 +181,19 @@ export default function PassengerDetailsForm({
   const [consultant, setConsultant] = useState<{ id: string; name: string; email: string } | null>(null);
   const [infantFare, setInfantFare] = useState(250);
   const [childFare, setChildFare] = useState(400);
+  const [showInsuranceInfo, setShowInsuranceInfo] = useState(false);
 
   const getAddonsTotal = () => {
     let total = 0;
-    const paxCount = passengers.length;
+    const departurePassengers = passengers.filter(p => !p.isReturn);
+    const returnPassengers = passengers.filter(p => p.isReturn);
     ADDONS.forEach(addon => {
-      if (selectedAddons[addon.key]?.departure) total += addon.price * paxCount;
-      if (isRoundTrip && selectedAddons[addon.key]?.return) total += addon.price * paxCount;
+      if (selectedAddons[addon.key]?.departure) {
+        total += addon.price * departurePassengers.length;
+      }
+      if (isRoundTrip && selectedAddons[addon.key]?.return) {
+        total += addon.price * returnPassengers.length;
+      }
     });
     return total;
   };
@@ -355,26 +359,32 @@ export default function PassengerDetailsForm({
       alert('Please provide first and last names for all passengers');
       return;
     }
+
     if (!contactDetails.name || !contactDetails.email || !contactDetails.mobile) {
       alert('Please provide your name, email and mobile number');
       return;
     }
+
     if (!emergencyContact.name || !emergencyContact.phone) {
       alert('Please provide emergency contact details');
       return;
     }
+
     if (!departureBoardingPoint || !departureDroppingPoint) {
       alert('Please select departure boarding and dropping points');
       return;
     }
+
     if (isRoundTrip && (!returnBoardingPoint || !returnDroppingPoint)) {
       alert('Please select return boarding and dropping points');
       return;
     }
+
     if (!agreedToTerms) {
       alert('Please agree to the terms and conditions');
       return;
     }
+
     if (
       passengers.some(
         (p) =>
@@ -382,9 +392,10 @@ export default function PassengerDetailsForm({
           (p.hasInfant && !isValidInfant(p.infantBirthdate || ""))
       )
     ) {
-      alert("Children must be 2-11 years old. Infants must be under 11 years old.");
+      alert("Children must be 2-11 years old. Infants must be under 2 years old.");
       return;
     }
+
     onProceedToPayment();
   };
 
@@ -430,6 +441,7 @@ export default function PassengerDetailsForm({
         infantPassportNumber: existing?.infantPassportNumber || ""
       };
     });
+
     const returnPassengers = (returnSeats || []).map(seat => {
       const existing = passengers.find(p => p.seatNumber === seat && p.isReturn);
       return {
@@ -448,6 +460,7 @@ export default function PassengerDetailsForm({
         infantPassportNumber: existing?.infantPassportNumber || ""
       };
     });
+
     setPassengers([...departurePassengers, ...returnPassengers]);
   }, [departureSeats.join(','), returnSeats.join(',')]);
 
@@ -558,7 +571,8 @@ export default function PassengerDetailsForm({
               {Object.entries(selectedAddons).map(([key, value]) => {
                 const addon = ADDONS.find(a => a.key === key);
                 if (addon && (value.departure || value.return)) {
-                  const addonTotal = addon.price * passengers.length * (value.departure ? 1 : 0) + (isRoundTrip && value.return ? addon.price * passengers.length : 0);
+                  const addonTotal = addon.price * (value.departure ? passengers.filter(p => !p.isReturn).length : 0) +
+                                     (isRoundTrip && value.return ? addon.price * passengers.filter(p => p.isReturn).length : 0);
                   return (
                     <div key={key} className="flex justify-between pt-2">
                       <p className="font-medium text-gray-700 text-sm sm:text-base">{addon.label}:</p>
@@ -806,7 +820,6 @@ export default function PassengerDetailsForm({
                       className="w-full focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                     />
                   </div>
-                  
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
@@ -1020,8 +1033,23 @@ export default function PassengerDetailsForm({
                         {addon.price > 0 ? `P ${addon.price}` : 'FREE'}
                       </span>
                     </div>
+                    {addon.key === "travelInsurance" && (
+                      <button
+                        onClick={() => setShowInsuranceInfo(!showInsuranceInfo)}
+                        className="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                      >
+                        <Info className="h-4 w-4 text-gray-600" />
+                      </button>
+                    )}
                   </div>
                 ))}
+                {showInsuranceInfo && (
+                  <div className="p-3 bg-gray-100 rounded-lg border border-gray-200 text-sm text-gray-700">
+                    <p className="font-medium text-[rgb(0,153,153)] mb-2">Travel Insurance Information</p>
+                    <p>This travel insurance is applicable for day trips only.</p>
+                    <p className="mt-2">For stays, please contact the office as per your dates.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1040,7 +1068,7 @@ export default function PassengerDetailsForm({
                   <SelectValue placeholder="Select payment mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Credit Card">Credit Card | Debit Card </SelectItem>
+                  <SelectItem value="Credit Card">Credit Card | Debit Card</SelectItem>
                   {consultant && (
                     <SelectItem value="Cash">Paid in Cash</SelectItem>
                   )}
@@ -1062,7 +1090,6 @@ export default function PassengerDetailsForm({
               By continuing you agree to our <span className="underline text-[rgb(0,153,153)] cursor-pointer hover:text-[rgb(0,123,123)] font-semibold" onClick={() => setShowPolicyModal(true)}>TERMS & CONDITIONS</span> and Cancellation Policies
             </label>
           </div>
-
           <Button
             onClick={() => {
               if (!policyAccepted) {

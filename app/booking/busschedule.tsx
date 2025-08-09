@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isValid } from "date-fns";
 import Image from "next/image";
 import { BoardingPoint, SearchData } from "@/lib/types";
-import { 
-  Wifi, 
-  Luggage, 
-  Snowflake, 
-  Coffee, 
+import {
+  Wifi,
+  Luggage,
+  Snowflake,
+  Coffee,
   BatteryCharging,
   Bus,
   Clock,
@@ -21,13 +21,14 @@ import {
 
 // Define color variables based on company colors
 const colors = {
-  primary: '#009393',       // Teal
-  secondary: '#febf00',     // Gold
-  accent: '#958c55',        // Olive
-  muted: '#fdbe00a4',       // Light gray
-  dark: '#1a1a1a',          // Dark gray
-  light: '#ffffff',         // White
-  destructive: '#ef4444'    // Red (kept for errors)
+  primary: 'rgb(0,153,153)', // Teal
+  secondary: '#febf00', // Gold
+  accent: '#958c55', // Olive
+  muted: '#fdbe00a4', // Light gray
+  dark: '#1a1a1a', // Dark gray
+  light: '#ffffff', // White
+  destructive: '#ef4444', // Red (kept for errors)
+  yellow: '#FFD700', // Yellow for select buttons
 };
 
 interface Trip {
@@ -129,13 +130,11 @@ export default function BusSchedules({
       departureDate: departureDateStr
     });
     const url = `/api/trips?${params.toString()}`;
-
     const cached = tripsCache.get(url);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       setTrips(cached.data);
       return;
     }
-
     setLoading(true);
     try {
       const res = await fetch(url);
@@ -168,13 +167,10 @@ export default function BusSchedules({
   const filteredTrips = useMemo(() => {
     const selectedDate = days[selectedDay]?.date;
     if (!selectedDate) return [];
-
     const startOfDay = new Date(selectedDate);
     startOfDay.setHours(0, 0, 0, 0);
-
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
-
     return trips.filter((trip) => {
       const tripDate = new Date(trip.departureDate);
       const matchesDate = tripDate >= startOfDay && tripDate <= endOfDay;
@@ -191,7 +187,6 @@ export default function BusSchedules({
     const durationMinutes = trip.durationMinutes % 60;
     let departureDate: Date | null = null;
     let arrivalDate: Date | null = null;
-
     try {
       const depDateStr = typeof trip.departureDate === "string"
         ? trip.departureDate
@@ -244,7 +239,7 @@ export default function BusSchedules({
           <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div 
+                <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
                   style={{ backgroundColor: colors.primary }}
                 >
@@ -263,7 +258,6 @@ export default function BusSchedules({
               </div>
             </div>
           </div>
-
           {/* Journey Details */}
           <div className="px-4 py-4">
             {/* Bus Image */}
@@ -279,7 +273,6 @@ export default function BusSchedules({
                 />
               </div>
             </div>
-
             {/* Time and Route */}
             <div className="flex items-center justify-between mb-4">
               <div className="text-center">
@@ -290,7 +283,6 @@ export default function BusSchedules({
                   {trip.routeOrigin}
                 </div>
               </div>
-              
               <div className="flex-1 px-4">
                 <div className="flex items-center justify-center mb-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.secondary }}></div>
@@ -305,7 +297,6 @@ export default function BusSchedules({
                   <div className="text-xs text-gray-500">Direct</div>
                 </div>
               </div>
-              
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">
                   {arrivalDate ? dateUtils.safeFormat(arrivalDate, "HH:mm") : "N/A"}
@@ -315,7 +306,6 @@ export default function BusSchedules({
                 </div>
               </div>
             </div>
-
             {/* Features and Availability */}
             <div className="flex items-center justify-between border-t pt-3">
               <div className="flex space-x-2">
@@ -336,11 +326,10 @@ export default function BusSchedules({
                 </span>
               </div>
             </div>
-
             {/* Action Button */}
             <div className="mt-4">
               {isDeparted ? (
-                <Button 
+                <Button
                   disabled
                   className="w-full bg-gray-300 text-gray-500 cursor-not-allowed"
                 >
@@ -350,7 +339,7 @@ export default function BusSchedules({
                 <Button
                   onClick={handleSelectBus}
                   className="w-full text-white font-semibold py-3 rounded-lg"
-                  style={{ backgroundColor: colors.primary }}
+                  style={{ backgroundColor: colors.yellow }}
                 >
                   Select
                 </Button>
@@ -365,7 +354,6 @@ export default function BusSchedules({
             </div>
           </div>
         </div>
-
         {/* Desktop Layout (Original) */}
         <div className="hidden md:flex md:grid md:grid-cols-6 gap-4 p-4 items-center hover:bg-gray-50 transition-colors rounded-lg border-b">
           {/* Bus Details */}
@@ -390,7 +378,7 @@ export default function BusSchedules({
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-gray-600 hidden md:block">
+                <div className="text-sm text-gray-900">
                   {trip.routeOrigin} → {trip.routeDestination}
                 </div>
                 <div className="text-xs text-gray-500 hidden md:block">{trip.totalSeats} seats</div>
@@ -404,7 +392,6 @@ export default function BusSchedules({
               </div>
             </div>
           </div>
-
           {/* Desktop Departure */}
           <div className="hidden md:block">
             <div className="flex items-center text-gray-900">
@@ -414,7 +401,6 @@ export default function BusSchedules({
               {departureDate ? dateUtils.safeFormat(departureDate, "dd MMM yyyy") : "N/A"}
             </div>
           </div>
-
           {/* Desktop Duration */}
           <div className="hidden md:block text-center">
             <div className="font-medium text-gray-900">
@@ -422,7 +408,6 @@ export default function BusSchedules({
             </div>
             <div className="text-xs text-gray-500">Non-stop</div>
           </div>
-
           {/* Desktop Arrival */}
           <div className="hidden md:block">
             <div className="flex items-center text-gray-900">
@@ -434,7 +419,6 @@ export default function BusSchedules({
               {arrivalDate ? dateUtils.safeFormat(arrivalDate, "dd MMM yyyy") : "N/A"}
             </div>
           </div>
-
           {/* Fare & Action */}
           <div className="w-full md:w-auto text-right mt-2 md:mt-0">
             <div className="flex items-center justify-end md:justify-start">
@@ -455,7 +439,7 @@ export default function BusSchedules({
             ) : !isFull ? (
               <Button
                 onClick={handleSelectBus}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 text-sm w-full md:w-auto"
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 text-sm w-full md:w-auto"
               >
                 BOOK SEATS
               </Button>
@@ -476,20 +460,19 @@ export default function BusSchedules({
   return (
     <div className="max-w-5xl mx-auto mt-8">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        <div className="p-6 border-b" style={{ backgroundColor: colors.muted }}>
+        <div className="p-6 border-b" style={{ backgroundColor: colors.primary }}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <h2 className="text-xl font-bold" style={{ color: colors.dark }}>
+              <h2 className="text-xl font-bold text-white">
                 {isReturnTrip ? 'RETURN TRIP: ' : ''}
                 {searchData.from} → {searchData.to}
               </h2>
-              <p className="text-sm" style={{ color: colors.accent }}>
+              <p className="text-sm text-white">
                 {dateUtils.safeFormat(searchData.departureDate, "EEEE, MMMM do, yyyy")}
               </p>
             </div>
           </div>
         </div>
-        
         {/* Day Selector */}
         <div className="flex overflow-x-auto border-b bg-gray-50">
           {days.map((day, index) => (
@@ -497,7 +480,7 @@ export default function BusSchedules({
               key={index}
               onClick={() => setSelectedDay(index)}
               className={`flex-shrink-0 py-4 px-6 text-center focus:outline-none transition-colors ${
-                selectedDay === index ? "bg-teal-600 text-white font-medium shadow-md" : "hover:bg-gray-100 text-gray-700"
+                selectedDay === index ? "bg-[rgb(0,153,153)] text-white font-medium shadow-md" : "hover:bg-gray-100 text-gray-700"
               }`}
             >
               <div className="text-sm">{day.dayName}</div>
@@ -506,7 +489,6 @@ export default function BusSchedules({
             </button>
           ))}
         </div>
-        
         {/* Desktop Table Headers */}
         <div className="divide-y">
           <div className="hidden md:grid grid-cols-6 gap-4 p-4 bg-gray-100 text-sm font-semibold" style={{ color: colors.dark }}>
@@ -516,7 +498,6 @@ export default function BusSchedules({
             <div>Arrival</div>
             <div className="text-right">Fare & Action</div>
           </div>
-
           {/* Content Area */}
           <div className="p-4 md:p-0">
             {/* Loading State */}
