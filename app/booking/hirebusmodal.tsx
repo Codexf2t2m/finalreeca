@@ -125,7 +125,7 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
             />
           </div>
           <div>
-            <Label className="text-gray-700">Date</Label>
+            <Label className="text-gray-700">Depature Date</Label>
             <Input
               name="date"
               type="date"
@@ -185,10 +185,16 @@ export default function HireBusModal({ onClose, onSubmit }: { onClose: () => voi
               className="text-gray-900 bg-white border border-gray-300"
             />
           </div>
-          <Button className="mt-6 w-full bg-teal-600 text-white" type="submit" disabled={loading}>
+          <Button
+            className="mt-6 w-full text-white"
+            style={{ backgroundColor: '#FFD700' }}
+            type="submit"
+            disabled={loading}
+          >
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {loading ? "Submitting..." : "Submit Inquiry"}
           </Button>
+
         </form>
         <Button variant="outline" className="mt-2 w-full bg-transparent text-teal-600 border-teal-600 hover:bg-teal-50" onClick={onClose} disabled={loading}>
           Cancel

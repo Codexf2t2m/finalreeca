@@ -446,11 +446,13 @@ export default function BookingApp() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">
             <div className="container mx-auto px-4 pb-12 text-white">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              <h1 className="text-2xl md:text-4xl font-bold mb-4">
                 Travel in Comfort & Style
               </h1>
               <p className="text-xl md:text-2xl max-w-2xl">
-                Seamless Shuttle, Daily Departures — between Gaborone and OR Tambo Bus Terminal
+                Seamless Shuttle, Daily Departures between{" "}
+                <br className="md:hidden" />
+                Gaborone and Johannesburg
               </p>
             </div>
           </div>
@@ -522,9 +524,12 @@ export default function BookingApp() {
               <div>
                 <h4 className="font-bold mb-4">Contact</h4>
                 <address className="not-italic text-gray-400">
-                  <p>Gaborone, Botswana</p>
-                  <p>Phone: +26777655348</p>
+                  <p>Mogobe Plaza, Gaborone CBD, 4th Floor</p>
+                  <p>Emergency Phone:+267 77655348</p>
+                  <p>Office Line: +267 73061124</p>
+                  <p>WhatsApp: +267 76506348</p>
                   <p>Email: tickets@reecatravel.co.bw</p>
+                  <p>Travel Services: traveltalk@reecatravel.co.bw</p>
                 </address>
               </div>
             </div>

@@ -54,7 +54,8 @@ const colors = {
   dark: '#1a1a1a', // Dark gray
   light: '#ffffff', // White
   destructive: '#ef4444', // Red (kept for errors)
-  lightYellow: '#FDBE00', // Adjusted yellow for occupied seats
+  lightYellow: '#FDBE00',
+  newyeloo: '#FFD700', // Adjusted yellow for occupied seats
 };
 
 const morningBusImg = "/images/nbg.png";
@@ -482,7 +483,7 @@ export default function SeatSelection({
                 onClick={onProceed}
                 disabled={selectedSeats.length === 0}
                 className="w-full h-12 text-white font-semibold rounded-lg transition-colors"
-                style={{ backgroundColor: colors.secondary }}
+                style={{ backgroundColor: colors.newyeloo }}
               >
                 Proceed
               </Button>

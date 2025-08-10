@@ -182,8 +182,8 @@ export default function BookingForm({ onSearch, agentInfo, onHireBus }: BookingF
               variant="outline"
               className="w-full md:w-auto h-12 font-medium"
               style={{
-                borderColor: "rgb(243,193,39)",
-                color: "rgb(243,193,39)"
+                borderColor: "#FFD700",
+                color: "#FFD700"
               }}
             >
               Hire a Coach
@@ -193,7 +193,7 @@ export default function BookingForm({ onSearch, agentInfo, onHireBus }: BookingF
             onClick={handleSearch}
             className="w-full md:w-auto h-12 font-medium"
             style={{
-              backgroundColor: "rgb(243,193,39)",
+              backgroundColor: "#FFD700",
               color: "#fff",
               borderColor: "rgb(243,193,39)"
             }}

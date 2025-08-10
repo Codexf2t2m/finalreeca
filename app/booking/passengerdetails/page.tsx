@@ -1099,7 +1099,7 @@ export default function PassengerDetailsForm({
               handleSubmit();
             }}
             disabled={!agreedToTerms}
-            className="w-full h-12 sm:h-14 bg-[rgb(255,192,2)] hover:bg-[rgb(0,123,123)] text-white font-semibold rounded-xl text-base sm:text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full h-12 sm:h-14 bg-[#FFD700] hover:bg-[rgb(0,123,123)] text-white font-semibold rounded-xl text-base sm:text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             Pay (P {finalTotal.toFixed(2)})
           </Button>

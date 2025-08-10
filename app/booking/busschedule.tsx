@@ -254,7 +254,7 @@ export default function BusSchedules({
                 <div className="font-bold text-lg" style={{ color: colors.primary }}>
                   P{trip.fare}
                 </div>
-                <div className="text-xs text-gray-500">One-way</div>
+                <div className="text-xs text-gray-500">Standard</div>
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@ export default function BusSchedules({
                   isFull ? "text-red-600" : "text-green-600"
                 }`}>
                   {isDeparted ? "Departed" :
-                   isFull ? "Full" : `${trip.availableSeats} left`}
+                   isFull ? "Full" : `${trip.availableSeats} Avail`}
                 </span>
               </div>
             </div>
