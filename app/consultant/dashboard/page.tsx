@@ -11,10 +11,11 @@ export default function ConsultantDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [locked, setLocked] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
-  // --- Auto-lock logic ---
+  // Auto-lock logic
   function resetTimeout() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
@@ -34,7 +35,7 @@ export default function ConsultantDashboard() {
     };
   }, []);
 
-  // --- Restore session after login ---
+  // Restore session after login
   useEffect(() => {
     const lastPath = sessionStorage.getItem("consultant_last_path");
     if (window.location.search.includes("locked=1") && lastPath && window.location.pathname !== lastPath) {
@@ -43,7 +44,7 @@ export default function ConsultantDashboard() {
     }
   }, [router]);
 
-  // --- Consultant data fetch ---
+  // Consultant data fetch
   useEffect(() => {
     setIsLoading(true);
     fetch("/api/consultant/me").then(async res => {
@@ -99,6 +100,10 @@ export default function ConsultantDashboard() {
     router.push("/consultant/auth");
   };
 
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
+  };
+
   function getMostBookedRoute(bookings: any[]) {
     if (!bookings.length) return "-";
     const routeCount: Record<string, number> = {};
@@ -126,14 +131,13 @@ export default function ConsultantDashboard() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center h-16 px-4 border-b border-gray-100">
             <div className="flex items-center space-x-2">
-              <Image 
+              <Image
                 src="/images/reeca-travel-logo.png"
                 alt="Reeca Travel Logo"
                 width={150}
                 height={150}
                 className="rounded-md"
               />
-              
             </div>
           </div>
           <div className="flex-1 overflow-y-auto py-4">
@@ -174,7 +178,7 @@ export default function ConsultantDashboard() {
                 <p className="text-xs text-gray-500">{consultant.email}</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="mt-4 w-full flex items-center justify-center px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
             >
@@ -191,7 +195,7 @@ export default function ConsultantDashboard() {
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center space-x-2">
-            <Image 
+            <Image
               src="/images/reeca-travel-logo.png"
               alt="Reeca Travel Logo"
               width={150}
@@ -200,16 +204,35 @@ export default function ConsultantDashboard() {
             />
             <span className="text-lg font-semibold text-gray-800">Dashboard</span>
           </div>
-          <button className="p-1 rounded-md text-gray-500 hover:text-gray-600">
+          <button className="p-1 rounded-md text-gray-500 hover:text-gray-600" onClick={toggleProfileMenu}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
+        {showProfileMenu && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-20">
+            <div className="px-4 py-2">
+              <p className="text-sm font-medium text-gray-900">{consultant.name}</p>
+              <p className="text-xs text-gray-500">{consultant.email}</p>
+            </div>
+            <div className="border-t border-gray-200">
+              <button
+                onClick={() => {
+                  toggleProfileMenu();
+                  handleLogout();
+                }}
+                className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main content */}
-      <div className="md:pl-64">
+      <div className="md:pl-64 pt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6">
           {/* Header */}
           <div className="md:flex md:items-center md:justify-between mb-8">
@@ -255,7 +278,6 @@ export default function ConsultantDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <div className="flex items-center">
@@ -276,7 +298,6 @@ export default function ConsultantDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <div className="flex items-center">
@@ -318,7 +339,7 @@ export default function ConsultantDashboard() {
                 </div>
               </div>
             </div>
-            
+
             {bookings.length === 0 ? (
               <div className="text-center py-12">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,9 +419,9 @@ export default function ConsultantDashboard() {
                           P {b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-[#009393] hover:text-[#007a7a] hover:bg-[#009393]/10"
                           >
                             View
@@ -412,7 +433,7 @@ export default function ConsultantDashboard() {
                 </table>
                 {bookings.length > 5 && (
                   <div className="px-6 py-4 border-t border-gray-200 text-right">
-                    <Button 
+                    <Button
                       variant="ghost"
                       className="text-[#009393] hover:text-[#007a7a]"
                     >

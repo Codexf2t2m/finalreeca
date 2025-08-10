@@ -401,10 +401,11 @@ export default function PassengerDetailsForm({
 
   const formatPoint = (point: string) => {
     if (point.trim().toLowerCase() === "or tambo" || point.trim().toLowerCase() === "or tambo airport") {
-      return "OR Tambo Airport";
+      return "OR Tambo Airport Bus Terminal";
     }
     return point;
   };
+
 
   function isValidChild(birthdate: string): boolean {
     if (!birthdate) return false;
@@ -521,7 +522,7 @@ export default function PassengerDetailsForm({
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
         <div className="p-4 sm:p-6 border-b" style={{ backgroundColor: 'rgb(0, 153, 153)' }}>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-wide">
-            Passenger Details & Contact Information
+            Passenger Details & Contacts
           </h2>
           <p className="text-sm text-white/90 mt-1">
             Please provide details for all passengers and your contact information
@@ -782,7 +783,7 @@ export default function PassengerDetailsForm({
             >
               <div className="flex items-center gap-3">
                 <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
-                <h3 className="font-bold text-lg text-gray-800">CardHolder Details</h3>
+                <h3 className="font-bold text-lg text-gray-800">Purchaser Details</h3>
               </div>
               {openSections.contact ? <ChevronUp className="text-gray-500" /> : <ChevronDown className="text-gray-500" />}
             </button>
@@ -987,8 +988,7 @@ export default function PassengerDetailsForm({
               className="w-full p-4 bg-gray-100 text-left flex justify-between items-center hover:bg-gray-200 transition-all"
             >
               <h3 className="font-bold text-lg text-[rgb(148,138,84)] flex items-center gap-2">
-                <span role="img" aria-label="personalize" className="text-xl">✨</span>
-                Personalize Your Trip (Add-ons)
+                Personalize Your Trip
               </h3>
               {openSections.addons ? <ChevronUp className="text-[rgb(148,138,84)]" /> : <ChevronDown className="text-[rgb(148,138,84)]" />}
             </button>
@@ -1099,7 +1099,7 @@ export default function PassengerDetailsForm({
               handleSubmit();
             }}
             disabled={!agreedToTerms}
-            className="w-full h-12 sm:h-14 bg-[rgb(0,153,153)] hover:bg-[rgb(0,123,123)] text-white font-semibold rounded-xl text-base sm:text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full h-12 sm:h-14 bg-[rgb(255,192,2)] hover:bg-[rgb(0,123,123)] text-white font-semibold rounded-xl text-base sm:text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             Pay (P {finalTotal.toFixed(2)})
           </Button>

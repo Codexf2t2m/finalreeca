@@ -12,6 +12,7 @@ export default function AgentDashboard() {
   const [stats, setStats] = useState<{ bookings: number; revenue: number }>({ bookings: 0, revenue: 0 });
   const [bookings, setBookings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -67,13 +68,12 @@ export default function AgentDashboard() {
   };
 
   const handleLogout = () => {
-    // If using cookies-next:
     deleteCookie("agent_token");
     window.location.href = "/agent/auth";
+  };
 
-    // If not using cookies-next, fallback to:
-    document.cookie = "agent_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    window.location.href = "/agent/auth";
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
   };
 
   function getMostBookedRoute(bookings: any[]) {
@@ -104,35 +104,44 @@ export default function AgentDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <Image 
+              <Image
                 src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={150}
                 height={150}
                 className="rounded-md object-cover border-2 border-[#958c55]/30"
               />
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-gray-900">Agent Dashboard</h1>
                 <p className="text-sm text-[#958c55]">Manage bookings and clients</p>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">{agent.name}</p>
-              <p className="text-xs text-gray-500">{agent.email}</p>
-            </div>
-            <div className="h-10 w-10 rounded-full bg-[#009393] flex items-center justify-center text-white font-bold shadow-sm">
-              {agent.name.charAt(0).toUpperCase()}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-2 border-[#009393] text-[#009393] hover:bg-[#009393]/10"
-              onClick={handleLogout}
+          <div className="relative">
+            <button
+              onClick={toggleProfileMenu}
+              className="flex items-center space-x-2 focus:outline-none"
             >
-              Logout
-            </Button>
+              <div className="h-10 w-10 rounded-full bg-[#009393] flex items-center justify-center text-white font-bold shadow-sm">
+                {agent.name.charAt(0).toUpperCase()}
+              </div>
+            </button>
+            {showProfileMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-20">
+                <div className="px-4 py-2">
+                  <p className="text-sm font-medium text-gray-900">{agent.name}</p>
+                  <p className="text-xs text-gray-500">{agent.email}</p>
+                </div>
+                <div className="border-t border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -157,8 +166,6 @@ export default function AgentDashboard() {
               <p className="mt-2 text-xs text-gray-500">All time bookings</p>
             </CardContent>
           </Card>
-
-          {/* Replace TOTAL Payments with Most Booked Route */}
           <Card className="border-l-4 border-[#febf00] hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">MOST ROUTE BOOKED FOR</CardTitle>
@@ -179,20 +186,19 @@ export default function AgentDashboard() {
               <p className="mt-2 text-xs text-gray-500">Most frequently booked route</p>
             </CardContent>
           </Card>
-
           <Card className="border-l-4 border-[#958c55] hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">QUICK ACTIONS</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
+                <Button
                   onClick={() => router.push("/")}
                   className="bg-[#009393] hover:bg-[#007a7a] text-white px-4 py-2 text-sm transition-colors duration-200 shadow-sm"
                 >
                   New Booking
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   className="text-sm border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
                   onClick={() => router.push("/")}
@@ -215,8 +221,8 @@ export default function AgentDashboard() {
               Recent Bookings
             </h2>
             <div className="flex flex-col xs:flex-row gap-3 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => router.push("/")}
                 className="flex items-center justify-center gap-2 border-[#009393] text-[#009393] hover:bg-[#009393]/10"
@@ -226,9 +232,9 @@ export default function AgentDashboard() {
                 </svg>
                 New Booking
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="flex items-center justify-center gap-2 border-[#958c55] text-[#958c55] hover:bg-[#958c55]/10"
                 onClick={handleExport}
               >
@@ -239,7 +245,7 @@ export default function AgentDashboard() {
               </Button>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             {bookings.length === 0 ? (
               <div className="p-12 text-center">
@@ -329,9 +335,9 @@ export default function AgentDashboard() {
                           P{b.totalPrice?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-[#009393] hover:text-[#007a7a] hover:bg-[#009393]/10"
                           >
                             View
@@ -347,17 +353,17 @@ export default function AgentDashboard() {
                     <span className="font-medium">{bookings.length}</span> bookings
                   </div>
                   <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled
                       className="border-gray-300 text-gray-500"
                     >
                       Previous
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled
                       className="border-gray-300 text-gray-500"
                     >
@@ -376,7 +382,7 @@ export default function AgentDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2">
-              <Image 
+              <Image
                 src="/images/reeca-travel-logo.png"
                 alt="Bus Company Logo"
                 width={150}

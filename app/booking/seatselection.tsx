@@ -235,6 +235,9 @@ export default function SeatSelection({
                   <div className="text-sm md:text-base font-medium text-white">
                     {selectedBus.routeOrigin} → {selectedBus.routeDestination}
                   </div>
+                  <div className="text-sm text-white">
+                {format(new Date(searchData.departureDate), "dd MMM yyyy")}
+              </div>
                   <div className="text-xs md:text-sm text-white mt-1">
                     AC, Video ({selectedBus.totalSeats || 57} seats) • 2+2 Configuration
                   </div>
@@ -243,14 +246,6 @@ export default function SeatSelection({
                     Occupied: {seatLayout.filter(seat => !seat.isAvailable).length}
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-white capitalize">
-                {searchData.from} → {searchData.to}
-              </div>
-              <div className="text-sm text-white">
-                {format(new Date(searchData.departureDate), "dd MMM yyyy")}
               </div>
             </div>
           </div>
@@ -487,7 +482,7 @@ export default function SeatSelection({
                 onClick={onProceed}
                 disabled={selectedSeats.length === 0}
                 className="w-full h-12 text-white font-semibold rounded-lg transition-colors"
-                style={{ backgroundColor: colors.primary }}
+                style={{ backgroundColor: colors.secondary }}
               >
                 Proceed
               </Button>
