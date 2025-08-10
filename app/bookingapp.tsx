@@ -319,7 +319,7 @@ export default function BookingApp() {
       >
         Our Fleet
       </a>
-      <a href="#" className="text-teal-800 hover:text-amber-600 font-medium">Help</a>
+      <a href="/" className="text-teal-800 hover:text-amber-600 font-medium">Booking</a>
       <a
         href="https://reecatravel.co.bw/aboutus"
         className="text-teal-800 hover:text-amber-600 font-medium"
@@ -452,7 +452,7 @@ export default function BookingApp() {
               <p className="text-xl md:text-2xl max-w-2xl">
                 Seamless Shuttle, Daily Departures between{" "}
                 <br className="md:hidden" />
-                Gaborone and Johannesburg
+                Gaborone and OR Tambo airport
               </p>
             </div>
           </div>
