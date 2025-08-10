@@ -13,6 +13,7 @@ export function PolicyModal({ isOpen, onClose, mode = "user", onAgree }: PolicyM
   const [policy, setPolicy] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(false); // For read more/less toggle
 
   useEffect(() => {
     if (isOpen) {
@@ -48,7 +49,24 @@ export function PolicyModal({ isOpen, onClose, mode = "user", onAgree }: PolicyM
               disabled={saving}
             />
           ) : (
-            <div className="whitespace-pre-line text-sm text-gray-700 bg-gray-50 rounded p-3">{policy}</div>
+            <>
+              <div
+                className={`whitespace-pre-line text-sm text-gray-700 bg-gray-50 rounded p-3 transition-all duration-300 ${
+                  expanded ? "max-h-[400px]" : "max-h-[150px]"
+                } overflow-y-auto`}
+              >
+                {policy}
+              </div>
+              {policy.length > 300 && ( // Show button only if content is long
+                <Button
+                  variant="ghost"
+                  className="mt-2 text-[#009393] underline px-0"
+                  onClick={() => setExpanded(!expanded)}
+                >
+                  {expanded ? "Read Less" : "Read More"}
+                </Button>
+              )}
+            </>
           )}
         </div>
         <DialogFooter>
@@ -83,6 +101,3 @@ export function PolicyModal({ isOpen, onClose, mode = "user", onAgree }: PolicyM
     </Dialog>
   );
 }
-
-// Usage example
-
