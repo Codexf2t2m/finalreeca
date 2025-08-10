@@ -43,7 +43,7 @@ export default function FleetPage() {
       ]
     },
     {
-      type: "Standard Combi",
+      type: "luxurious shuttle",
       name: "Toyota Quantum",
       description: "Reliable and comfortable transport for small groups at affordable rates. Our most economical option for regional travel.",
       capacity: "13 passengers",

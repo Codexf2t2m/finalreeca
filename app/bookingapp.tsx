@@ -446,7 +446,7 @@ export default function BookingApp() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">
             <div className="container mx-auto px-4 pb-12 text-white">
-              <h1 className="text-2xl md:text-4xl font-bold mb-4">
+              <h1 className="text-3xl md:text-3xl font-bold mb-4">
                 Travel in Comfort & Style
               </h1>
               <p className="text-xl md:text-2xl max-w-2xl">
@@ -496,7 +496,7 @@ export default function BookingApp() {
                   </li>
                   <li>
                     <a href="#" className="text-gray-400 hover:text-white">
-                      Help
+                      Lost & Found
                     </a>
                   </li>
                 </ul>
@@ -515,8 +515,13 @@ export default function BookingApp() {
                     </a>
                   </li>
                   <li>
+                    <a href="#" className="text-gray-400 hover:text-white">
+                      Travel Doccuments
+                    </a>
+                  </li>
+                  <li>
                     <a href="https://reecatravel.co.bw/forum/cancellationpolicy" className="text-gray-400 hover:text-white">
-                      Cancellation Policy
+                      FAQ
                     </a>
                   </li>
                 </ul>
@@ -528,7 +533,7 @@ export default function BookingApp() {
                   <p>Emergency Phone:+267 77655348</p>
                   <p>Office Line: +267 73061124</p>
                   <p>WhatsApp: +267 76506348</p>
-                  <p>Email: tickets@reecatravel.co.bw</p>
+                  <p>Bus Tickets: tickets@reecatravel.co.bw</p>
                   <p>Travel Services: traveltalk@reecatravel.co.bw</p>
                 </address>
               </div>
