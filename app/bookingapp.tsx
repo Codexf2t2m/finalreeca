@@ -432,7 +432,7 @@ export default function BookingApp() {
         </header>
         <div className="relative h-[500px] w-full bg-gray-900 overflow-hidden">
           <Image
-            src="/images/back.jpg"
+            src="/images/b2.jpg"
             alt="REECA Travel Premium Bus"
             fill
             className="object-cover object-[center_40%] md:object-[center_60%]"
