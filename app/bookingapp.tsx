@@ -458,7 +458,7 @@ export default function BookingApp() {
         </div>
         <div className="container mx-auto px-4 py-8 -mt-16 relative z-10">
           <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-12 border border-gray-200">
-            <div className="p-6 bg-gradient-to-r from-teal-600 to-teal-800 text-white">
+            <div className="p-6  text-white" style={{ backgroundColor: 'rgb(0, 153, 153)' }}>
               <h2 className="text-2xl font-bold">Book Your Journey</h2>
               <p className="opacity-90">Find and book your perfect trip</p>
             </div>
