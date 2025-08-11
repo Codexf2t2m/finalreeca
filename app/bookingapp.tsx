@@ -432,16 +432,15 @@ export default function BookingApp() {
         </header>
         <div className="relative h-[500px] w-full bg-gray-900 overflow-hidden">
           <Image
-            src="/images/b2.jpg"
+            src="/images/1.png"
             alt="REECA Travel Premium Bus"
             fill
-            className="object-cover object-[center_40%] md:object-[center_60%]"
+            className="object-cover object-center"
             priority
             quality={100}
             style={{
               objectFit: "cover",
-              width: "100%",
-              height: "100%",
+              objectPosition: "center center",
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent flex items-end">

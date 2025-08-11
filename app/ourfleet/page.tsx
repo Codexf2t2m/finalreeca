@@ -145,8 +145,8 @@ export default function FleetPage() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
           {vehicles.map((vehicle, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300">
-              <div className={`relative bg-gray-100 ${index === 0 ? 'h-80' : 'h-48 sm:h-52 lg:h-48 xl:h-56'}`}>
+            <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-300 h-full flex flex-col">
+              <div className="relative bg-gray-100 h-80">
                 <Image
                   src={vehicle.image}
                   alt={vehicle.name}
@@ -158,13 +158,13 @@ export default function FleetPage() {
                   <h3 className="text-lg sm:text-xl font-bold text-white mt-2">{vehicle.name}</h3>
                 </div>
               </div>
-              <div className="p-4 sm:p-6">
+              <div className="p-4 sm:p-6 flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <span className="text-sm font-medium text-[#007F7F]">{vehicle.capacity}</span>
                   <span className="text-xs font-semibold bg-[#FFC002]/20 text-[#007F7F] px-2 py-1 rounded">Available</span>
                 </div>
                 <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base leading-relaxed">{vehicle.description}</p>
-                <ul className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6">
+                <ul className="space-y-1.5 sm:space-y-2 mb-4 sm:mb-6 flex-1">
                   {vehicle.features.map((feature, i) => (
                     <li key={i} className="flex items-start">
                       <svg className="w-3 h-3 sm:w-4 sm:h-4 text-[#007F7F] mt-1 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

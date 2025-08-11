@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { 
+import {
   Calendar as CalendarIcon,
   Clock as ClockIcon,
   Bus as BusIcon,
@@ -127,6 +127,7 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
     fare: '',
     availableSeats: '',
     totalSeats: '',
+    durationMinutes: '',
     serviceType: 'keep-current',
     departureTime: 'keep-current',
     boardingPoint: '',
@@ -199,7 +200,6 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Updates</CardTitle>
@@ -231,6 +231,15 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
                     type="number"
                     value={updates.totalSeats}
                     onChange={(e) => setUpdates({...updates, totalSeats: e.target.value})}
+                    placeholder="Leave blank to keep current"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Duration (Minutes)</label>
+                  <Input
+                    type="number"
+                    value={updates.durationMinutes}
+                    onChange={(e) => setUpdates({...updates, durationMinutes: e.target.value})}
                     placeholder="Leave blank to keep current"
                   />
                 </div>
@@ -280,7 +289,6 @@ const BulkUpdateModal: React.FC<BulkUpdateModalProps> = ({ isOpen, onClose, onSa
               </div>
             </CardContent>
           </Card>
-
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
@@ -313,9 +321,7 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
       const defaultStartDate = lastTripDate ?
         format(addDays(parseISO(lastTripDate), 1), 'yyyy-MM-dd') :
         format(new Date(), 'yyyy-MM-dd');
-
       setStartDate(defaultStartDate);
-
       // Set default end date to 6 months from start
       const defaultEndDate = format(addDays(new Date(), 180), 'yyyy-MM-dd');
       setEndDate(defaultEndDate);
@@ -410,7 +416,6 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
             Automatically create trips for a date range based on templates
           </DialogDescription>
         </DialogHeader>
-
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -442,7 +447,6 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
               </div>
             </CardContent>
           </Card>
-
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Trip Templates</h3>
             <div className="space-y-4">
@@ -522,7 +526,6 @@ const AutomateTripsModal: React.FC<AutomateTripsModalProps> = ({
               ))}
             </div>
           </div>
-
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
               Cancel
@@ -593,7 +596,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             </SelectContent>
           </Select>
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Date</label>
           <div className="relative">
@@ -613,7 +615,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             />
           </div>
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Departure Time</label>
           <div className="relative">
@@ -636,7 +637,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             </Select>
           </div>
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Service Type</label>
           <Select
@@ -655,7 +655,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             </SelectContent>
           </Select>
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Available Seats</label>
           <Input
@@ -666,7 +665,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             required
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Total Seats</label>
           <Input
@@ -677,7 +675,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             required
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Fare (Pula)</label>
           <Input
@@ -688,7 +685,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             required
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Duration (Minutes)</label>
           <Input
@@ -699,7 +695,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             required
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Route Origin</label>
           <Input
@@ -708,7 +703,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             onChange={handleInputChange}
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Route Destination</label>
           <Input
@@ -717,7 +711,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             onChange={handleInputChange}
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Boarding Point</label>
           <Input
@@ -726,7 +719,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
             onChange={handleInputChange}
           />
         </div>
-
         <div className="space-y-2">
           <label className="block text-sm font-medium">Dropping Point</label>
           <Input
@@ -736,7 +728,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           />
         </div>
       </div>
-
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -764,7 +755,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onSave, routes, times }) => {
           </label>
         </div>
       </div>
-
       <div className="flex justify-end pt-4">
         <Button type="submit" className="w-full md:w-auto" style={{ backgroundColor: colors.primary }}>
           {trip ? 'Update Trip' : 'Create Trip'}
@@ -806,7 +796,6 @@ const FleetManagementPage = () => {
 
   useEffect(() => {
     if (!autoDepart) return;
-
     const interval = setInterval(() => {
       const now = new Date();
       // Only check trips for today and tomorrow
@@ -828,7 +817,6 @@ const FleetManagementPage = () => {
           try {
             const [hours, minutes] = trip.departureTime.split(":").map(Number);
             tripDate.setHours(hours, minutes, 0, 0);
-
             if (now >= tripDate) {
               handleMarkDeparted(trip.id);
             }
@@ -881,11 +869,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify(updateData),
       });
-
       if (!response.ok) {
         throw new Error('Failed to bulk update trips');
       }
-
       const result = await response.json();
       fetchTrips();
       alert(`Bulk update successful. ${result.updatedCount} trips updated.`);
@@ -912,13 +898,12 @@ const FleetManagementPage = () => {
       // Generate dates between start and end
       for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
         const currentDate = new Date(d);
-        
+
         // For each date, create trips based on base templates
         baseTrips.forEach(baseTrip => {
           const [hours, minutes] = baseTrip.departureTime.split(':').map(Number);
           const departureDateTime = new Date(currentDate);
           departureDateTime.setHours(hours, minutes, 0, 0);
-
           tripsToCreate.push({
             serviceType: baseTrip.serviceType,
             routeName: baseTrip.routeName,
@@ -986,11 +971,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify(trip),
       });
-
       if (!response.ok) {
         throw new Error('Failed to save trip');
       }
-
       const data = await response.json();
       setTrips(prevTrips => {
         if (trip.id) {
@@ -1018,11 +1001,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify({ id: tripId, hasDeparted: true }),
       });
-
       if (!response.ok) {
         throw new Error('Failed to mark trip as departed');
       }
-
       const data = await response.json();
       setTrips(prevTrips => prevTrips.map(t => t.id === tripId ? data : t));
     } catch (error) {
@@ -1035,7 +1016,6 @@ const FleetManagementPage = () => {
 
   const handleDeleteTrip = async (tripId: string) => {
     if (!confirm('Are you sure you want to delete this trip?')) return;
-
     setIsLoading(true);
     try {
       const response = await fetch('/api/trips', {
@@ -1045,11 +1025,9 @@ const FleetManagementPage = () => {
         },
         body: JSON.stringify({ id: tripId }),
       });
-
       if (!response.ok) {
         throw new Error('Failed to delete trip');
       }
-
       setTrips(prevTrips => prevTrips.filter(t => t.id !== tripId));
     } catch (error) {
       console.error('Error deleting trip:', error);
@@ -1065,7 +1043,6 @@ const FleetManagementPage = () => {
     selectedDateStart.setHours(0, 0, 0, 0);
     const selectedDateEnd = new Date(selectedDate);
     selectedDateEnd.setHours(23, 59, 59, 999);
-
     return tripDate >= selectedDateStart && tripDate <= selectedDateEnd;
   });
 
@@ -1083,19 +1060,19 @@ const FleetManagementPage = () => {
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="auto-depart" 
-                    checked={autoDepart} 
-                    onCheckedChange={setAutoDepart} 
+                  <Switch
+                    id="auto-depart"
+                    checked={autoDepart}
+                    onCheckedChange={setAutoDepart}
                   />
                   <label htmlFor="auto-depart" className="text-sm font-medium leading-none">
                     Auto Depart
                   </label>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={() => setIsBulkUpdateModalOpen(true)} 
-                    variant="outline" 
+                  <Button
+                    onClick={() => setIsBulkUpdateModalOpen(true)}
+                    variant="outline"
                     className="hidden sm:flex"
                     style={{ borderColor: colors.primary, color: colors.primary }}
                   >
@@ -1112,7 +1089,6 @@ const FleetManagementPage = () => {
                 </div>
               </div>
             </div>
-
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="text-sm">
                 {autoDepart ? (
@@ -1140,7 +1116,6 @@ const FleetManagementPage = () => {
             </div>
           </div>
         </header>
-
         <main className="container mx-auto px-4 py-8 flex-1">
           {isLoading ? (
             <LoadingSpinner />
@@ -1156,7 +1131,7 @@ const FleetManagementPage = () => {
                   Timetable
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="schedule" className="mt-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                   <div>
@@ -1178,7 +1153,6 @@ const FleetManagementPage = () => {
                     </div>
                   </div>
                 </div>
-
                 {filteredTrips.length === 0 ? (
                   <Card style={{ backgroundColor: colors.light }}>
                     <CardContent className="py-8 text-center">
@@ -1232,7 +1206,7 @@ const FleetManagementPage = () => {
                               </TableCell>
                               <TableCell className="text-right" style={{ color: colors.dark }}>P{trip.fare}</TableCell>
                               <TableCell>
-                                <Badge variant={trip.hasDeparted ? 'secondary' : 'default'} style={{ 
+                                <Badge variant={trip.hasDeparted ? 'secondary' : 'default'} style={{
                                   backgroundColor: trip.hasDeparted ? colors.accent : colors.primary,
                                   color: colors.light
                                 }}>
@@ -1280,7 +1254,6 @@ const FleetManagementPage = () => {
                   </div>
                 )}
               </TabsContent>
-
               <TabsContent value="timetable" className="mt-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                   <div>
@@ -1313,7 +1286,6 @@ const FleetManagementPage = () => {
                     </div>
                   </div>
                 </div>
-
                 {filteredTrips.filter(trip => selectedRoute === "all" || !selectedRoute ? true : trip.routeName === selectedRoute).length === 0 ? (
                   <Card style={{ backgroundColor: colors.light }}>
                     <CardContent className="py-8 text-center">
@@ -1404,7 +1376,6 @@ const FleetManagementPage = () => {
           )}
         </main>
       </div>
-
       {/* Trip Form Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl overflow-y-auto max-h-[80vh]" style={{ backgroundColor: colors.light }}>
@@ -1434,7 +1405,6 @@ const FleetManagementPage = () => {
           )}
         </DialogContent>
       </Dialog>
-
       {/* Automate Trips Modal */}
       <AutomateTripsModal
         isOpen={isAutomateModalOpen}
@@ -1444,7 +1414,6 @@ const FleetManagementPage = () => {
         times={times}
         lastTripDate={lastTripDate}
       />
-
       {/* Bulk Update Modal */}
       <BulkUpdateModal
         isOpen={isBulkUpdateModalOpen}
@@ -1453,7 +1422,6 @@ const FleetManagementPage = () => {
         routes={routes}
         times={times}
       />
-
       {/* Error Modal */}
       <ErrorModal message={error} onClose={() => setError(null)} />
     </div>

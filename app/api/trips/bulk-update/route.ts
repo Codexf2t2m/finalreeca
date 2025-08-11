@@ -15,6 +15,7 @@ export async function PUT(request: Request) {
     if (updates.fare) setClauses.push(`"fare" = ${Number(updates.fare)}`);
     if (updates.availableSeats) setClauses.push(`"availableSeats" = ${Number(updates.availableSeats)}`);
     if (updates.totalSeats) setClauses.push(`"totalSeats" = ${Number(updates.totalSeats)}`);
+    if (updates.durationMinutes) setClauses.push(`"durationMinutes" = ${Number(updates.durationMinutes)}`);
     if (updates.serviceType && updates.serviceType !== "keep-current") setClauses.push(`"serviceType" = '${updates.serviceType}'`);
     if (updates.departureTime && updates.departureTime !== "keep-current") setClauses.push(`"departureTime" = '${updates.departureTime}'`);
     if (updates.boardingPoint) setClauses.push(`"boardingPoint" = '${updates.boardingPoint}'`);
@@ -39,12 +40,10 @@ export async function PUT(request: Request) {
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
     const query = `UPDATE "Trip" SET ${setClause} ${whereClause};`;
-
     console.log("Executing bulk update query:", query);
 
     // Execute the raw SQL query for bulk updates
     const result = await prisma.$executeRawUnsafe(query);
-
     console.log("Bulk update result:", result);
 
     return NextResponse.json({ success: true, updatedCount: result });
