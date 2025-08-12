@@ -1034,6 +1034,14 @@ export default function PassengerDetailsForm({
                   Select extras for each passenger. Prices are per passenger, per trip.
                 </div>
                 {ADDONS.map(addon => {
+                  // Only show Wimpy Meal if departure is from Gaborone
+                  const depOrigin = (departureBus?.routeOrigin || searchData.from || '').toLowerCase().trim();
+                  if (
+                    addon.key === "wimpyMeal" &&
+                    depOrigin !== "gaborone"
+                  ) {
+                    return null;
+                  }
                   if (!addon.showOnReturn && isRoundTrip) return null;
                   const showInfo = addon.key === "travelInsurance" && showInsuranceInfo;
                   return (
