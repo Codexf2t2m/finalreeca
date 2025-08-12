@@ -78,7 +78,7 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
     doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), 'F');
     
     // Add logo
-    const logoUrl = "/images/reeca-travel-logo.png";
+    const logoUrl = "/images/plog.png";
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = logoUrl;

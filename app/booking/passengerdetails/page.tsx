@@ -78,6 +78,7 @@ const ADDONS = [
     description: "Additional baggage allowance for your trip.",
     price: 300,
     icon: <Luggage className="h-5 w-5 text-[#ffc721]" />,
+    showOnReturn: true,
   },
   {
     key: "wimpyMeal",
@@ -85,6 +86,7 @@ const ADDONS = [
     description: "Delicious Wimpy meal for your journey available from Gaborone only.",
     price: 60,
     icon: <ShoppingBag className="h-5 w-5 text-[#ffc721]" />,
+    showOnReturn: false, // Only show for departure
   },
   {
     key: "travelInsurance",
@@ -92,8 +94,8 @@ const ADDONS = [
     description: "Comprehensive travel insurance coverage.",
     price: 150,
     icon: <Shield className="h-5 w-5 text-[#ffc721]" />,
+    showOnReturn: true,
   },
-  
 ];
 
 export default function PassengerDetailsForm({
@@ -1031,52 +1033,56 @@ export default function PassengerDetailsForm({
                 <div className="text-sm text-[rgb(0,153,153)] mb-4 font-medium bg-gray-100 p-3 rounded-lg border border-gray-200">
                   Select extras for each passenger. Prices are per passenger, per trip.
                 </div>
-                {ADDONS.map(addon => (
-                  <div key={addon.key} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 border border-gray-200 rounded-lg p-3 sm:p-4 bg-white hover:bg-gray-50 transition-all">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="p-2 bg-gray-100 rounded-full border border-gray-200">
-                        {addon.icon}
+                {ADDONS.map(addon => {
+                  // Hide Wimpy Meal for return trips
+                  if (!addon.showOnReturn && isRoundTrip) return null;
+                  return (
+                    <div key={addon.key} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 border border-gray-200 rounded-lg p-3 sm:p-4 bg-white hover:bg-gray-50 transition-all">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="p-2 bg-gray-100 rounded-full border border-gray-200">
+                          {addon.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">{addon.label}</div>
+                          <div className="text-xs sm:text-sm text-[rgb(148,138,84)] mt-1">{addon.description}</div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">{addon.label}</div>
-                        <div className="text-xs sm:text-sm text-[rgb(148,138,84)] mt-1">{addon.description}</div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 ml-auto">
-                      <div className="flex gap-3">
-                        <label className="flex items-center gap-1 text-sm">
-                          <Checkbox
-                            checked={!!selectedAddons[addon.key]?.departure}
-                            onCheckedChange={checked => handleAddonChange(addon.key, "departure", !!checked)}
-                            className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
-                          />
-                          <span className="text-xs sm:text-sm">Departure</span>
-                        </label>
-                        {isRoundTrip && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 ml-auto">
+                        <div className="flex gap-3">
                           <label className="flex items-center gap-1 text-sm">
                             <Checkbox
-                              checked={!!selectedAddons[addon.key]?.return}
-                              onCheckedChange={checked => handleAddonChange(addon.key, "return", !!checked)}
+                              checked={!!selectedAddons[addon.key]?.departure}
+                              onCheckedChange={checked => handleAddonChange(addon.key, "departure", !!checked)}
                               className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
                             />
-                            <span className="text-xs sm:text-sm">Return</span>
+                            <span className="text-xs sm:text-sm">Departure</span>
                           </label>
-                        )}
+                          {isRoundTrip && addon.showOnReturn && (
+                            <label className="flex items-center gap-1 text-sm">
+                              <Checkbox
+                                checked={!!selectedAddons[addon.key]?.return}
+                                onCheckedChange={checked => handleAddonChange(addon.key, "return", !!checked)}
+                                className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
+                              />
+                              <span className="text-xs sm:text-sm">Return</span>
+                            </label>
+                          )}
+                        </div>
+                        <span className="font-bold text-[rgb(255,199,33)] text-sm sm:text-base bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                          {addon.price > 0 ? `P ${addon.price}` : 'FREE'}
+                        </span>
                       </div>
-                      <span className="font-bold text-[rgb(255,199,33)] text-sm sm:text-base bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
-                        {addon.price > 0 ? `P ${addon.price}` : 'FREE'}
-                      </span>
+                      {addon.key === "travelInsurance" && (
+                        <button
+                          onClick={() => setShowInsuranceInfo(!showInsuranceInfo)}
+                          className="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                        >
+                          <Info className="h-4 w-4 text-gray-600" />
+                        </button>
+                      )}
                     </div>
-                    {addon.key === "travelInsurance" && (
-                      <button
-                        onClick={() => setShowInsuranceInfo(!showInsuranceInfo)}
-                        className="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
-                      >
-                        <Info className="h-4 w-4 text-gray-600" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {showInsuranceInfo && (
                   <div className="p-3 bg-gray-100 rounded-lg border border-gray-200 text-sm text-gray-700">
                     <p className="font-medium text-[rgb(0,153,153)] mb-2">Travel Insurance Information</p>
@@ -1146,7 +1152,7 @@ export default function PassengerDetailsForm({
                 <SelectContent>
                   <SelectItem value="Credit Card">Credit Card | Debit Card</SelectItem>
                   {consultant && (
-                    <SelectItem value="Cash">Paid in Cash</SelectItem>
+                    <SelectItem value="Cash">Bank Deposit</SelectItem>
                   )}
                 </SelectContent>
               </Select>
