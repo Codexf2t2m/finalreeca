@@ -277,14 +277,13 @@ export const PrintableTicket: React.FC<PrintableTicketProps> = ({ bookingData })
         <div className="md:col-span-1">
           <h3 className="font-bold text-gray-800 mb-1 md:mb-2">REECA TRAVEL</h3>
           <div className="text-xs md:text-sm text-gray-600 space-y-1">
-            <p>Company ID: REECA TRAVEL</p>
             <p>GABORONE CBD</p>
             <p>MOGOBE PLAZA</p>
             <p>GABORONE South-East</p>
             <p>Botswana</p>
             <p>+26773061124</p>
-            <p>tickets@reecattavel.co.bw</p>
-            <p>WWW.REECATRAVEL.CO.BW</p>
+            <p>tickets@reecatravel.co.bw</p>
+            <p>www.reecabus.co.bw</p>
           </div>
         </div>
         <div className="md:col-span-2">

@@ -68,6 +68,9 @@ export async function createBookingWithRetry(data: any, maxRetries = 3) {
               birthdate: p.birthdate ?? null,
               passportNumber: p.passportNumber ?? null,
               type: p.type ?? 'adult',
+              phone: p.phone || null,
+              nextOfKinName: p.nextOfKinName || null,
+              nextOfKinPhone: p.nextOfKinPhone || null,
             })),
           });
           console.log("Passengers created successfully");

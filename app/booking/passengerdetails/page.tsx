@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronUp, Copy, Luggage, ShoppingBag, Shield, Car, Info } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Luggage, ShoppingBag, Shield, Car, Info, Gift } from "lucide-react";
 import { SearchData, BoardingPoint } from "@/lib/types";
 import { format } from "date-fns";
 import { PolicyModal } from "@/components/PolicyModal";
@@ -27,6 +27,9 @@ interface Passenger {
   infantBirthdate?: string;
   birthdate: string;
   passportNumber: string;
+  phone?: string;
+  nextOfKinName?: string;
+  nextOfKinPhone?: string;
 }
 
 interface ContactDetails {
@@ -90,13 +93,7 @@ const ADDONS = [
     price: 150,
     icon: <Shield className="h-5 w-5 text-[#ffc721]" />,
   },
-  {
-    key: "winCarCompetition",
-    label: "Win a Car Competition",
-    description: "Enter our exciting car competition at no extra cost!",
-    price: 0,
-    icon: <Car className="h-5 w-5 text-[#ffc721]" />,
-  },
+  
 ];
 
 export default function PassengerDetailsForm({
@@ -182,6 +179,7 @@ export default function PassengerDetailsForm({
   const [infantFare, setInfantFare] = useState(250);
   const [childFare, setChildFare] = useState(400);
   const [showInsuranceInfo, setShowInsuranceInfo] = useState(false);
+  const [promotions, setPromotions] = useState([]);
 
   const getAddonsTotal = () => {
     let total = 0;
@@ -281,6 +279,12 @@ export default function PassengerDetailsForm({
         setInfantFare(data.infant ?? 250);
         setChildFare(data.child ?? 400);
       });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/promotions")
+      .then(res => res.json())
+      .then(data => setPromotions((data.promotions || []).filter((p: any) => p.active)));
   }, []);
 
   const agentDiscount: number = agent ? Math.round(baseTotal * 0.10) : 0;
@@ -490,6 +494,9 @@ export default function PassengerDetailsForm({
           passportNumber: p.passportNumber || null,
           infantName: p.infantName || null,
           infantPassportNumber: p.infantPassportNumber || null,
+          phone: p.phone || null,                // <-- add this
+          nextOfKinName: p.nextOfKinName || null, // <-- add this
+          nextOfKinPhone: p.nextOfKinPhone || null // <-- add this               // <-- add      
         })),
         userName: contactDetails.name,
         userEmail: contactDetails.email,
@@ -601,7 +608,7 @@ export default function PassengerDetailsForm({
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 text-left flex flex-col sm:flex-row sm:justify-between sm:items-center transition-colors"
             >
               <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
+                <span className="bg-[rgb(0,153,153)] text-white rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">2</span>
                 <h3 className="font-bold text-lg text-gray-800">
                   Passenger Details ({passengers.length})
                 </h3>
@@ -703,18 +710,45 @@ export default function PassengerDetailsForm({
                             </div>
                           )}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              {isChild ? "Passport Number" : "Passport Number"}
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
                             <Input
                               value={passenger.passportNumber || ""}
                               onChange={e => updatePassenger(passenger.id, "passportNumber", e.target.value)}
-                              placeholder={isChild ? "Passport Number" : "Passport Number"}
+                              placeholder="Passport Number"
                               required
                               className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
                             />
                           </div>
+                          {/* --- Phone, Next of Kin Name, Next of Kin Phone --- */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Passenger Phone</label>
+                            <Input
+                              value={passenger.phone || ""}
+                              onChange={e => updatePassenger(passenger.id, "phone", e.target.value)}
+                              placeholder="Passenger Phone"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Next of Kin Name</label>
+                            <Input
+                              value={passenger.nextOfKinName || ""}
+                              onChange={e => updatePassenger(passenger.id, "nextOfKinName", e.target.value)}
+                              placeholder="Next of Kin Name"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Next of Kin Phone</label>
+                            <Input
+                              value={passenger.nextOfKinPhone || ""}
+                              onChange={e => updatePassenger(passenger.id, "nextOfKinPhone", e.target.value)}
+                              placeholder="Next of Kin Phone"
+                              className="focus:ring-[rgb(0,153,153)] focus:border-[rgb(0,153,153)] border-gray-300"
+                            />
+                          </div>
                         </div>
+                        {/* --- Infant checkbox and details below --- */}
                         <div className="flex items-center gap-2 mt-4">
                           <Checkbox
                             id={`infant-${passenger.id}`}
@@ -1050,6 +1084,48 @@ export default function PassengerDetailsForm({
                     <p className="mt-2">For stays, please contact the office as per your dates.</p>
                   </div>
                 )}
+                {promotions.map((promo: any) => (
+                  <div
+                    key={promo.id}
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 border border-gray-200 rounded-lg p-3 sm:p-4 bg-white hover:bg-gray-50 transition-all"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      {/* Fixed icon for all promotions */}
+                      <div className="p-2 bg-yellow-50 rounded-full border border-yellow-200">
+                        <Gift className="h-5 w-5 text-[rgb(255,199,33)]" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-[rgb(0,153,153)] text-sm sm:text-base">{promo.title}</div>
+                        <div className="text-xs sm:text-sm text-[rgb(148,138,84)] mt-1">{promo.description}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 ml-auto">
+                      <div className="flex gap-3">
+                        <label className="flex items-center gap-1 text-sm">
+                          <Checkbox
+                            checked={!!selectedAddons[promo.id]?.departure}
+                            onCheckedChange={checked => handleAddonChange(promo.id, "departure", !!checked)}
+                            className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
+                          />
+                          <span className="text-xs sm:text-sm">Departure</span>
+                        </label>
+                        {isRoundTrip && (
+                          <label className="flex items-center gap-1 text-sm">
+                            <Checkbox
+                              checked={!!selectedAddons[promo.id]?.return}
+                              onCheckedChange={checked => handleAddonChange(promo.id, "return", !!checked)}
+                              className="border-[rgb(255,199,33)] data-[state=checked]:bg-[rgb(0,153,153)] data-[state=checked]:border-[rgb(0,153,153)]"
+                            />
+                            <span className="text-xs sm:text-sm">Return</span>
+                          </label>
+                        )}
+                      </div>
+                      <span className="font-bold text-[rgb(255,199,33)] text-sm sm:text-base bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                        FREE
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1134,6 +1210,9 @@ export default function PassengerDetailsForm({
                   passportNumber: p.passportNumber || null,
                   infantName: p.infantName || null,
                   infantPassportNumber: p.infantPassportNumber || null,
+                  phone: p.phone || null,                // <-- add this
+                  nextOfKinName: p.nextOfKinName || null, // <-- add this
+                  nextOfKinPhone: p.nextOfKinPhone || null // <-- add this               // <-- add      
                 })),
                 userName: contactDetails.name,
                 userEmail: contactDetails.email,

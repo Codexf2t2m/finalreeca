@@ -357,6 +357,14 @@ export default function DashboardOverview() {
                   </div>
                   <span className="text-sm font-medium">Set Fare Prices</span>
                 </button>
+                <Link href="/admin/promotions">
+                  <button className="w-full h-24 flex flex-col items-center justify-center gap-3 border border-[#e5e7eb] rounded-lg hover:border-[#fbbf24] hover:bg-[#fef3c7] transition-colors">
+                    <div className="rounded-full bg-[#fbbf24]/30 p-3">
+                      <BarChart3 className="h-5 w-5 text-[#f59e42]" />
+                    </div>
+                    <span className="text-sm font-medium">Promotions</span>
+                  </button>
+                </Link>
               </div>
             </div>
           </div>

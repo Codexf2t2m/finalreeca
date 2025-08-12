@@ -59,6 +59,9 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
         infantName: p.infantName, // <-- add this
         infantBirthdate: p.infantBirthdate, // <-- add this
         infantPassportNumber: p.infantPassportNumber, // <-- add this
+        phone: p.phone || "-",
+        nokName: p.nextOfKinName || "-",
+        nokPhone: p.nextOfKinPhone || "-",
       }))
   );
 
@@ -235,13 +238,16 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
 
       // Table (move down to avoid logo/trip info)
       autoTable(doc, {
-        head: [["#", "Full Name", "Passport Number", "Seat", "Type", "Infant"]],
+        head: [["#", "Full Name", "Passport Number", "Seat", "Type", "Phone", "NOK Name", "NOK Number", "Infant"]],
         body: currentTripPassengers.map((p, idx) => [
           idx + 1,
           p.name,
           p.passportNumber || "-",
           p.seat,
-          p.type === "child" ? "Child" : p.type === "adult" ? "Adult" : "Adult",
+          p.type === "child" ? "Child" : "Adult",
+          p.phone,
+          p.nokName,
+          p.nokPhone,
           p.hasInfant
             ? `Yes${p.infantName ? `, Name: ${p.infantName}` : ""}${p.infantBirthdate ? `, DOB: ${p.infantBirthdate}` : ""}${p.infantPassportNumber ? `, Passport: ${p.infantPassportNumber}` : ""}`
             : "No"
@@ -287,6 +293,9 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
           new TableCell({ children: [new Paragraph("Passport Number")] }),
           new TableCell({ children: [new Paragraph("Seat")] }),
           new TableCell({ children: [new Paragraph("Type")] }),
+          new TableCell({ children: [new Paragraph("Phone")] }),
+          new TableCell({ children: [new Paragraph("NOK Name")] }),
+          new TableCell({ children: [new Paragraph("NOK Number")] }),
           new TableCell({ children: [new Paragraph("Infant")] }),
         ]
       }),
@@ -297,7 +306,10 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
             new TableCell({ children: [new Paragraph(p.name)] }),
             new TableCell({ children: [new Paragraph(p.passportNumber || "-")] }),
             new TableCell({ children: [new Paragraph(p.seat)] }),
-            new TableCell({ children: [new Paragraph(p.type === "child" ? "Child" : p.type === "adult" ? "Adult" : "Adult")] }),
+            new TableCell({ children: [new Paragraph(p.type === "child" ? "Child" : "Adult")] }),
+            new TableCell({ children: [new Paragraph(p.phone)] }),
+            new TableCell({ children: [new Paragraph(p.nokName)] }),
+            new TableCell({ children: [new Paragraph(p.nokPhone)] }),
             new TableCell({
               children: [
                 new Paragraph(
@@ -425,9 +437,12 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Passenger</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Seat</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">NOK Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">NOK Number</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Booking Ref</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Agent</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Infant</th> {/* NEW */}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Infant</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Boarded</th>
                 </tr>
               </thead>
@@ -451,6 +466,15 @@ export default function ManifestPage({ params }: { params: { busId: string } }) 
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
                         {passenger.title}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {passenger.phone}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {passenger.nokName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {passenger.nokPhone}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">
                       {passenger.bookingRef}
